@@ -1,0 +1,232 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: dark;
+    --grid-size: 46px;
+  }
+
+  * {
+    @apply border-hairline;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    @apply bg-void text-chalk font-sans antialiased;
+    /* Two soft blue pools behind everything, so flat sections still have depth. */
+    background-image:
+      radial-gradient(ellipse 90% 50% at 12% -5%, rgba(31, 107, 255, 0.16), transparent 60%),
+      radial-gradient(ellipse 70% 45% at 92% 8%, rgba(18, 194, 233, 0.1), transparent 60%);
+    background-attachment: fixed;
+    text-rendering: optimizeLegibility;
+  }
+
+  ::selection {
+    @apply bg-vybe-500/40 text-white;
+  }
+
+  /* Focus ring is visible on every interactive surface — the site is dark and
+     low-contrast by design, so the default outline would disappear. */
+  :focus-visible {
+    @apply outline-none ring-2 ring-vybe-400 ring-offset-2 ring-offset-void;
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    @apply bg-void;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply rounded-full bg-hairline;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-vybe-800;
+  }
+
+  h1, h2, h3, h4 {
+    @apply font-display tracking-tight;
+    text-wrap: balance;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+}
+
+@layer components {
+  /* ---- Layout ---- */
+  .container-hov {
+    @apply mx-auto w-full max-w-[1240px] px-5 sm:px-7 lg:px-10;
+  }
+
+  .section {
+    @apply py-20 sm:py-28 lg:py-36;
+  }
+
+  /* ---- Type ---- */
+  .eyebrow {
+    @apply font-mono text-[11px] font-semibold uppercase tracking-[0.28em] text-vybe-300;
+  }
+
+  .display-1 {
+    @apply font-display text-5xl font-extrabold leading-[0.92] tracking-tight sm:text-7xl lg:text-8xl;
+  }
+
+  .display-2 {
+    @apply font-display text-4xl font-bold leading-[1.02] tracking-tight sm:text-5xl lg:text-6xl;
+  }
+
+  .lede {
+    @apply text-base leading-relaxed text-haze sm:text-lg;
+  }
+
+  /* Blue-to-cyan gradient text, used for one phrase per section at most. */
+  .text-gradient {
+    @apply bg-gradient-to-r from-vybe-200 via-vybe-400 to-pulse-400 bg-clip-text text-transparent;
+  }
+
+  /* ---- Surfaces ---- */
+  .glass {
+    @apply border border-hairline/80 bg-surface/60 backdrop-blur-xl;
+  }
+
+  .card {
+    @apply relative overflow-hidden rounded-2xl border border-hairline bg-surface/70 backdrop-blur-md;
+  }
+
+  /* A single hairline of light along the top edge — reads as a bevel and keeps
+     stacked dark cards from merging into one another. */
+  .card-lit::before {
+    content: '';
+    @apply pointer-events-none absolute inset-x-0 top-0 h-px;
+    background: linear-gradient(90deg, transparent, rgba(122, 178, 255, 0.55), transparent);
+  }
+
+  .hairline-top {
+    @apply border-t border-hairline;
+  }
+
+  /* ---- Buttons ---- */
+  .btn {
+    @apply inline-flex select-none items-center justify-center gap-2 rounded-full text-sm font-semibold
+           transition-all duration-200 disabled:pointer-events-none disabled:opacity-45;
+  }
+
+  .btn-primary {
+    @apply btn bg-vybe-500 px-7 py-3.5 text-white shadow-glow
+           hover:-translate-y-0.5 hover:bg-vybe-400 hover:shadow-glow-lg active:translate-y-0;
+  }
+
+  .btn-secondary {
+    @apply btn border border-vybe-500/40 bg-vybe-500/10 px-7 py-3.5 text-vybe-100
+           hover:-translate-y-0.5 hover:border-vybe-400/70 hover:bg-vybe-500/20 active:translate-y-0;
+  }
+
+  .btn-ghost {
+    @apply btn border border-hairline px-6 py-3 text-haze hover:border-vybe-600 hover:text-chalk;
+  }
+
+  /* ---- Forms ---- */
+  .field {
+    @apply w-full rounded-xl border border-hairline bg-ink/80 px-4 py-3.5 text-[15px] text-chalk
+           placeholder:text-dim transition-colors
+           focus:border-vybe-500 focus:bg-ink focus:outline-none focus:ring-2 focus:ring-vybe-500/25;
+  }
+
+  .field-error {
+    @apply border-red-500/60 focus:border-red-500 focus:ring-red-500/25;
+  }
+
+  .label {
+    @apply mb-2 block text-[13px] font-medium text-haze;
+  }
+
+  .help {
+    @apply mt-1.5 text-[12px] leading-relaxed text-dim;
+  }
+
+  .error-text {
+    @apply mt-1.5 flex items-start gap-1.5 text-[12px] leading-relaxed text-red-400;
+  }
+
+  /* ---- Bits ---- */
+  .badge {
+    @apply inline-flex items-center gap-1.5 rounded-full border border-vybe-500/30 bg-vybe-500/10
+           px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-vybe-200;
+  }
+
+  .divider {
+    @apply h-px w-full bg-gradient-to-r from-transparent via-hairline to-transparent;
+  }
+
+  .grid-overlay {
+    background-image:
+      linear-gradient(to right, rgba(31, 107, 255, 0.06) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(31, 107, 255, 0.06) 1px, transparent 1px);
+    background-size: var(--grid-size) var(--grid-size);
+    /* Fade the grid out at the edges so it never reads as a hard-edged box. */
+    mask-image: radial-gradient(ellipse 75% 65% at 50% 40%, #000 35%, transparent 100%);
+    -webkit-mask-image: radial-gradient(ellipse 75% 65% at 50% 40%, #000 35%, transparent 100%);
+  }
+
+  /* Film grain: kills the banding that large dark-blue gradients show on
+     8-bit panels. Applied as a fixed overlay at very low opacity. */
+  .noise-overlay::after {
+    content: '';
+    @apply pointer-events-none fixed inset-0 z-[1] opacity-[0.035];
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+}
+
+@layer utilities {
+  .perspective-1000 {
+    perspective: 1000px;
+  }
+  .preserve-3d {
+    transform-style: preserve-3d;
+  }
+  .backface-hidden {
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+  }
+  .mask-fade-b {
+    mask-image: linear-gradient(to bottom, #000 55%, transparent 100%);
+    -webkit-mask-image: linear-gradient(to bottom, #000 55%, transparent 100%);
+  }
+  .mask-fade-x {
+    mask-image: linear-gradient(to right, transparent, #000 12%, #000 88%, transparent);
+    -webkit-mask-image: linear-gradient(to right, transparent, #000 12%, #000 88%, transparent);
+  }
+}
+
+/* Everything decorative stops for users who asked it to. The site stays fully
+   usable — only motion is removed, not content. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Ticket pages get printed and handed over at some doors. */
+@media print {
+  body {
+    background: #fff !important;
+    color: #000 !important;
+  }
+  .no-print {
+    display: none !important;
+  }
+}
