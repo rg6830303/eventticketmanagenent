@@ -34,6 +34,21 @@ export function loadEnv(files = ['.env.local', '.env']) {
   }
 }
 
+/**
+ * pg 8.23+ reads `sslmode=require` from the connection string as `verify-full`,
+ * which overrides the `ssl` option and rejects Supabase's certificate chain.
+ * Strip it so sslConfig() below is what actually applies.
+ */
+export function cleanConnectionString(raw) {
+  try {
+    const url = new URL(raw);
+    url.searchParams.delete('sslmode');
+    return url.toString();
+  } catch {
+    return raw;
+  }
+}
+
 export function requireDatabaseUrl() {
   const url = process.env.DATABASE_URL;
   if (!url) {
@@ -42,7 +57,7 @@ export function requireDatabaseUrl() {
     console.error('    DATABASE_URL="postgresql://…" npm run db:push\n');
     process.exit(1);
   }
-  return url;
+  return cleanConnectionString(url);
 }
 
 /**

@@ -18,9 +18,30 @@ declare global {
   var __hovPool: Pool | undefined;
 }
 
+/**
+ * Supabase and Neon both hand you a URL ending in `?sslmode=require`.
+ *
+ * As of pg 8.23, `sslmode=require` in the connection string is treated as
+ * `verify-full` and takes precedence over the `ssl` option below — so the
+ * connection dies with "self-signed certificate in certificate chain" against
+ * providers whose chain Node does not ship a root for. Stripping the parameter
+ * hands the decision back to the explicit `ssl` config.
+ */
+function connectionString(): string {
+  const raw = env.databaseUrl;
+  try {
+    const url = new URL(raw);
+    url.searchParams.delete('sslmode');
+    return url.toString();
+  } catch {
+    // libpq key=value form rather than a URL — leave it untouched.
+    return raw;
+  }
+}
+
 function createPool(): Pool {
   const pool = new Pool({
-    connectionString: env.databaseUrl,
+    connectionString: connectionString(),
     ssl: env.databaseSsl ? { rejectUnauthorized: false } : undefined,
     max: 5,
     idleTimeoutMillis: 30_000,
