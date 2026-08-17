@@ -1,4 +1,5 @@
 import 'server-only';
+import { getSiteUrl } from './site-url';
 
 /**
  * Central environment access.
@@ -49,13 +50,9 @@ function secret(name: string): string {
 }
 
 export const env = {
+  // Single source of truth — see site-url.ts for why this needs to be defensive.
   get siteUrl(): string {
-    const explicit = opt('NEXT_PUBLIC_SITE_URL');
-    if (explicit) return explicit.replace(/\/+$/, '');
-    // Vercel injects this on preview deployments where no custom domain exists.
-    const vercel = opt('VERCEL_URL');
-    if (vercel) return `https://${vercel}`;
-    return 'http://localhost:3000';
+    return getSiteUrl();
   },
 
   get appEnv(): string {

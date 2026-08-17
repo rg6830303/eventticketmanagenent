@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import { Inter, Space_Grotesk, JetBrains_Mono } from 'next/font/google';
 import './globals.css';
 import { BRAND } from '@/content/site';
+import { getSiteUrl } from '@/lib/site-url';
 
 /**
  * next/font downloads and self-hosts these at build time, so no request ever
@@ -28,7 +29,7 @@ const mono = JetBrains_Mono({
   variable: '--font-mono',
 });
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/+$/, '') ?? 'http://localhost:3000';
+const siteUrl = getSiteUrl();
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
