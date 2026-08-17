@@ -17,11 +17,14 @@ import * as THREE from 'three';
 
 function detectWebGL(): boolean {
   try {
+    if (!window.WebGLRenderingContext) return false;
     const canvas = document.createElement('canvas');
-    return Boolean(
-      window.WebGLRenderingContext &&
-        (canvas.getContext('webgl') || canvas.getContext('experimental-webgl')),
-    );
+    const context = canvas.getContext('webgl2') ?? canvas.getContext('webgl');
+    if (!context) return false;
+    // Release the probe context immediately. Browsers cap the number of live
+    // contexts (~16), and leaking one here can starve the real renderer.
+    (context.getExtension('WEBGL_lose_context') as { loseContext(): void } | null)?.loseContext();
+    return true;
   } catch {
     return false;
   }
@@ -149,6 +152,19 @@ export function HeroScene({ className }: { className?: string }) {
         gl={{ antialias: true, alpha: true, powerPreference: 'high-performance' }}
         // Pointer events belong to the copy sitting on top of this canvas.
         style={{ pointerEvents: 'none' }}
+        onCreated={({ gl }) => {
+          // A GPU reset or tab-memory eviction fires this. Swallow the default
+          // (which would throw on the next frame) and retire the scene quietly.
+          gl.domElement.addEventListener(
+            'webglcontextlost',
+            (event) => {
+              event.preventDefault();
+              console.warn('[hero-webgl] context lost — scene retired');
+              setReady(false);
+            },
+            { once: true },
+          );
+        }}
       >
         <Suspense fallback={null}>
           <ambientLight intensity={0.4} />

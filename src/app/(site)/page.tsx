@@ -12,6 +12,7 @@ import { TiltCard, TiltLayer } from '@/components/ui/TiltCard';
 // Client component that renders null until it has mounted and confirmed WebGL,
 // so it contributes nothing to SSR and never blocks the hero's first paint.
 import { HeroScene } from '@/components/three/HeroScene';
+import { SafeDecoration } from '@/components/ui/SafeDecoration';
 
 export const dynamic = 'force-dynamic';
 
@@ -44,7 +45,11 @@ export default async function HomePage() {
       {/* Hero                                                               */}
       {/* ------------------------------------------------------------------ */}
       <section className="relative flex min-h-[92dvh] items-center overflow-hidden">
-        <HeroScene className="pointer-events-none absolute inset-0 -z-10 opacity-60" />
+        {/* Ornamental only — if WebGL fails on the visitor's machine the hero
+            must still render, so it can never reach the root boundary. */}
+        <SafeDecoration label="hero-webgl">
+          <HeroScene className="pointer-events-none absolute inset-0 -z-10 opacity-60" />
+        </SafeDecoration>
         <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 grid-overlay" />
         <div
           aria-hidden

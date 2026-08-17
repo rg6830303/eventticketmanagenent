@@ -46,9 +46,17 @@ export default function Error({
           </Link>
         </div>
 
-        {error.digest && (
+        {/* A server error carries a digest and its message is deliberately
+            withheld. A client-side error has no digest, and its message came
+            from the visitor's own browser — showing it leaks nothing and is
+            the only thing that makes these reportable. */}
+        {error.digest ? (
           <p className="mt-8 font-mono text-[11px] text-dim">Reference: {error.digest}</p>
-        )}
+        ) : error.message ? (
+          <p className="mx-auto mt-8 max-w-sm break-words font-mono text-[11px] leading-relaxed text-dim">
+            {error.message}
+          </p>
+        ) : null}
       </div>
     </div>
   );
