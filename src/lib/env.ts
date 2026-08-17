@@ -91,13 +91,16 @@ export const env = {
   },
 
   // --- SMTP ---
+  // Reading this must never throw: it is touched on the booking path, and a
+  // missing SMTP variable has to degrade to "ticket not emailed" rather than
+  // failing a booking that is already committed. `smtpConfigured` is the guard.
   get smtp() {
     return {
       host: opt('SMTP_HOST', 'smtp.gmail.com'),
       port: int('SMTP_PORT', 465),
       secure: bool('SMTP_SECURE', true),
-      user: req('SMTP_USER'),
-      password: req('SMTP_PASSWORD'),
+      user: opt('SMTP_USER'),
+      password: opt('SMTP_PASSWORD'),
       fromName: opt('MAIL_FROM_NAME', 'Houz of Vybe'),
       fromAddress: opt('MAIL_FROM_ADDRESS', opt('SMTP_USER')),
       replyTo: opt('MAIL_REPLY_TO'),

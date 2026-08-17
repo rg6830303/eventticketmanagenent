@@ -85,14 +85,25 @@ export async function POST(request: NextRequest) {
     // resend from the confirmation page.
     let emailSent = false;
     if (detail.booking.status === 'confirmed') {
-      const sent = await sendTicketEmail(detail);
-      emailSent = sent.ok;
-      if (sent.ok) {
-        await markEmailSent(detail.booking.id);
-      } else {
-        console.error('[bookings] ticket email failed', {
+      // Isolated on purpose. Past this point the booking is committed and the
+      // tickets exist, so nothing the mailer does — including an unexpected
+      // throw — is allowed to turn a successful booking into a 500. The
+      // customer keeps their tickets and can resend from the confirmation page.
+      try {
+        const sent = await sendTicketEmail(detail);
+        emailSent = sent.ok;
+        if (sent.ok) {
+          await markEmailSent(detail.booking.id);
+        } else {
+          console.error('[bookings] ticket email failed', {
+            reference: detail.booking.reference,
+            error: sent.error,
+          });
+        }
+      } catch (mailError) {
+        console.error('[bookings] ticket email threw', {
           reference: detail.booking.reference,
-          error: sent.error,
+          error: mailError instanceof Error ? mailError.message : mailError,
         });
       }
     }

@@ -83,13 +83,15 @@ interface SendArgs {
  * admin console instead of from a support guess.
  */
 async function sendMail(args: SendArgs): Promise<SendResult> {
-  const smtp = env.smtp;
-
+  // Checked before anything reads SMTP config, so an unconfigured deployment
+  // returns a failure result instead of throwing.
   if (!env.smtpConfigured) {
     const error = 'SMTP is not configured — set SMTP_USER and SMTP_PASSWORD';
     await logEmail(args, 'failed', null, error);
     return { ok: false, error };
   }
+
+  const smtp = env.smtp;
 
   try {
     // Marks the message as transactional so Gmail does not file it under
