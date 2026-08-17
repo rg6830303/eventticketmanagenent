@@ -11,6 +11,7 @@ export const metadata: Metadata = {
 export default function TermsPage() {
   return (
     <LegalLayout
+      current="/legal/terms"
       eyebrow="Legal"
       title="Terms of service"
       lede="These terms govern the purchase of tickets and entry to events produced by Houz of Vybe in Hyderabad, Telangana."

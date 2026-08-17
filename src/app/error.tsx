@@ -2,6 +2,8 @@
 
 import Link from 'next/link';
 import { useEffect } from 'react';
+import { Logo } from '@/components/brand/Logo';
+import { Globe } from '@/components/brand/Globe';
 
 export default function Error({
   error,
@@ -16,17 +18,43 @@ export default function Error({
   }, [error]);
 
   return (
-    <div className="relative flex min-h-dvh flex-col items-center justify-center overflow-hidden px-5 text-center">
+    <div className="relative flex min-h-dvh flex-col items-center justify-center overflow-hidden px-5 py-20 text-center">
       <div aria-hidden className="pointer-events-none absolute inset-0">
         <div className="absolute inset-0 grid-overlay" />
         <div className="absolute left-1/2 top-1/2 h-96 w-96 -translate-x-1/2 -translate-y-1/2 rounded-full bg-vybe-700/20 blur-[110px]" />
       </div>
 
+      <div
+        aria-hidden
+        className="pointer-events-none absolute left-1/2 top-1/2 aspect-square w-[min(120vw,720px)] -translate-x-1/2 -translate-y-1/2"
+      >
+        <Globe spin strokeWidth={1.4} className="h-full w-full text-flare/[0.14]" />
+      </div>
+
       <div className="relative max-w-md">
-        <div className="mx-auto mb-7 flex h-16 w-16 items-center justify-center rounded-full border border-vybe-500/40 bg-vybe-500/10">
-          <span aria-hidden className="font-display text-2xl text-vybe-300">
-            !
-          </span>
+        <Link
+          href="/"
+          className="mb-10 inline-block rounded-full"
+          aria-label="Houz of Vybe — home"
+        >
+          <Logo variant="inline" />
+        </Link>
+
+        <div className="mx-auto mb-7 flex h-16 w-16 items-center justify-center rounded-full border border-flare/40 bg-flare/10">
+          <svg
+            aria-hidden="true"
+            viewBox="0 0 24 24"
+            className="h-6 w-6 text-flare-300"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M12 8v5" />
+            <path d="M12 16.5h.01" />
+            <circle cx="12" cy="12" r="9" />
+          </svg>
         </div>
 
         <h1 className="font-display text-2xl font-bold text-chalk sm:text-3xl">

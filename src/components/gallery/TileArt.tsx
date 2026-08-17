@@ -70,21 +70,23 @@ export function TileArt({ hue, seed, variant = 'tile', className }: TileArtProps
         focusable="false"
       >
         <defs>
+          {/* Brand ramp: vybe-50 core, pulse-300 falling off to nothing. */}
           <linearGradient id={`${uid}-beam`} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#dfeaff" stopOpacity="0.55" />
-            <stop offset="55%" stopColor="#a8caff" stopOpacity="0.16" />
-            <stop offset="100%" stopColor="#a8caff" stopOpacity="0" />
+            <stop offset="0%" stopColor="#eaf2ff" stopOpacity="0.58" />
+            <stop offset="45%" stopColor="#7df2ff" stopOpacity="0.14" />
+            <stop offset="100%" stopColor="#1f6bff" stopOpacity="0" />
           </linearGradient>
           <linearGradient id={`${uid}-floor`} x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor="#03060f" stopOpacity="0" />
-            <stop offset="100%" stopColor="#03060f" stopOpacity="0.92" />
+            <stop offset="100%" stopColor="#03060f" stopOpacity="0.94" />
           </linearGradient>
           <pattern id={`${uid}-dots`} width="3.4" height="3.4" patternUnits="userSpaceOnUse">
-            <circle cx="0.8" cy="0.8" r="0.38" fill="#a8caff" fillOpacity="0.2" />
+            <circle cx="0.8" cy="0.8" r="0.38" fill="#74abff" fillOpacity="0.18" />
           </pattern>
           <radialGradient id={`${uid}-lamp`} cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stopColor="#eaf2ff" stopOpacity="0.9" />
-            <stop offset="100%" stopColor="#7db2ff" stopOpacity="0" />
+            <stop offset="0%" stopColor="#eaf2ff" stopOpacity="0.92" />
+            <stop offset="55%" stopColor="#4189ff" stopOpacity="0.28" />
+            <stop offset="100%" stopColor="#1f6bff" stopOpacity="0" />
           </radialGradient>
         </defs>
 

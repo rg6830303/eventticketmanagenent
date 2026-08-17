@@ -1,33 +1,45 @@
 import Link from 'next/link';
-import { Logo } from '@/components/site/Logo';
+import { Logo } from '@/components/brand/Logo';
+import { Globe } from '@/components/brand/Globe';
 
 export const metadata = { title: 'Page not found' };
 
 export default function NotFound() {
   return (
-    <div className="relative flex min-h-dvh flex-col items-center justify-center overflow-hidden px-5 text-center">
+    <div className="relative flex min-h-dvh flex-col items-center justify-center overflow-hidden px-5 py-20 text-center">
       <div aria-hidden className="pointer-events-none absolute inset-0">
         <div className="absolute inset-0 grid-overlay" />
         <div className="absolute left-1/2 top-1/2 h-[420px] w-[420px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-vybe-600/20 blur-[120px]" />
       </div>
 
-      <div className="relative">
-        <Link href="/" className="mb-10 inline-block" aria-label="Houz of Vybe — home">
-          <Logo />
+      {/* The mark drifted off its axis — the page is the one thing here that
+          isn't where it should be. */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute left-1/2 top-1/2 aspect-square w-[min(112vw,660px)] -translate-x-[38%] -translate-y-[56%] animate-float"
+      >
+        <Globe spin strokeWidth={1.5} className="h-full w-full text-flare/25" />
+      </div>
+
+      <div className="relative w-full max-w-xl">
+        <Link
+          href="/"
+          className="mb-12 inline-block rounded-full"
+          aria-label="Houz of Vybe — home"
+        >
+          <Logo variant="inline" />
         </Link>
 
-        <p className="relative font-display text-[26vw] font-extrabold leading-none tracking-tighter text-chalk/10 sm:text-[180px]">
+        <p
+          aria-hidden
+          className="font-display text-[30vw] font-extrabold leading-none tracking-tighter text-chalk sm:text-[190px]"
+          style={{ textShadow: '0 0 60px rgba(3,6,15,0.9)' }}
+        >
           404
-          {/* Offset duplicates give the number a chromatic-split, misregistered look. */}
-          <span aria-hidden className="absolute inset-0 translate-x-[3px] text-vybe-500/25">
-            404
-          </span>
-          <span aria-hidden className="absolute inset-0 -translate-x-[3px] text-pulse-400/20">
-            404
-          </span>
         </p>
 
-        <h1 className="mt-4 font-display text-2xl font-bold text-chalk sm:text-3xl">
+        <h1 className="mt-6 font-display text-2xl font-bold text-chalk sm:text-3xl">
+          <span className="sr-only">404 — </span>
           This one&apos;s not on the list.
         </h1>
         <p className="lede mx-auto mt-3 max-w-md">

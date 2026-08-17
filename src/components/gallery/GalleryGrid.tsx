@@ -1,8 +1,9 @@
 'use client';
 
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
+import { Globe } from '@/components/brand/Globe';
 import { TileArt } from './TileArt';
 
 export interface GalleryItem {
@@ -14,15 +15,18 @@ export interface GalleryItem {
 }
 
 const SPAN: Record<string, string> = {
-  tall: 'sm:row-span-2',
-  wide: 'sm:col-span-2',
+  tall: 'row-span-2',
+  wide: 'col-span-2',
   normal: '',
 };
+
+const EASE = [0.16, 1, 0.3, 1] as const;
 
 export function GalleryGrid({ items }: { items: GalleryItem[] }) {
   const [active, setActive] = useState<GalleryItem | null>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
   const openerRef = useRef<HTMLButtonElement | null>(null);
+  const reduce = useReducedMotion();
 
   const close = useCallback(() => {
     setActive(null);
@@ -56,37 +60,58 @@ export function GalleryGrid({ items }: { items: GalleryItem[] }) {
 
   return (
     <>
-      <div className="mt-14 grid auto-rows-[220px] grid-cols-1 gap-3 sm:grid-cols-3 lg:auto-rows-[260px]">
+      <ul className="perspective-1000 grid auto-rows-[150px] grid-cols-2 gap-3 sm:auto-rows-[230px] sm:grid-cols-3 lg:auto-rows-[280px]">
         {items.map((item, index) => (
-          <motion.button
-            key={item.id}
-            type="button"
-            initial={{ opacity: 0, y: 24 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: '-60px' }}
-            transition={{ duration: 0.6, delay: (index % 6) * 0.06, ease: [0.16, 1, 0.3, 1] }}
-            onClick={(event) => {
-              openerRef.current = event.currentTarget;
-              setActive(item);
-            }}
-            className={cn(
-              'group relative overflow-hidden rounded-2xl border border-hairline text-left',
-              SPAN[item.span] ?? '',
-            )}
-            aria-label={`${item.caption} — ${item.event}. Open larger view.`}
-          >
-            <TileArt
-              hue={item.hue}
-              seed={item.id}
-              className="h-full w-full transition-transform duration-700 group-hover:scale-[1.06]"
-            />
-            <span className="absolute inset-x-0 bottom-0 translate-y-2 bg-gradient-to-t from-void via-void/70 to-transparent p-4 opacity-0 transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100 group-focus-visible:translate-y-0 group-focus-visible:opacity-100">
-              <span className="block text-[13px] font-medium text-chalk">{item.caption}</span>
-              <span className="block text-[11px] text-dim">{item.event}</span>
-            </span>
-          </motion.button>
+          <li key={item.id} className={cn('preserve-3d', SPAN[item.span] ?? '')}>
+            <motion.button
+              type="button"
+              initial={
+                reduce ? undefined : { opacity: 0, y: 40, rotateX: -14, scale: 0.94 }
+              }
+              whileInView={reduce ? undefined : { opacity: 1, y: 0, rotateX: 0, scale: 1 }}
+              whileHover={reduce ? undefined : { y: -8, scale: 1.015 }}
+              viewport={{ once: true, margin: '-70px' }}
+              transition={{
+                duration: 0.75,
+                delay: (index % 3) * 0.09 + Math.floor(index / 3) * 0.04,
+                ease: EASE,
+              }}
+              onClick={(event) => {
+                openerRef.current = event.currentTarget;
+                setActive(item);
+              }}
+              className="group relative block h-full w-full origin-bottom overflow-hidden rounded-2xl border border-hairline text-left transition-[border-color,box-shadow] duration-500 hover:border-vybe-600 hover:shadow-glow focus-visible:border-vybe-500"
+              aria-label={`${item.caption} — ${item.event}. Open larger view.`}
+            >
+              <TileArt
+                hue={item.hue}
+                seed={item.id}
+                className="h-full w-full transition-transform ease-out [transition-duration:900ms] group-hover:scale-[1.09]"
+              />
+
+              {/* Sheen sweeps once on hover — reads as light passing over glass. */}
+              <span
+                aria-hidden
+                className="pointer-events-none absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-vybe-200/12 to-transparent transition-transform duration-700 ease-out group-hover:translate-x-full"
+              />
+
+              <span
+                aria-hidden
+                className="absolute left-3 top-3 font-mono text-[10px] tracking-[0.2em] text-chalk/45 transition-colors duration-300 group-hover:text-vybe-200"
+              >
+                {String(index + 1).padStart(2, '0')}
+              </span>
+
+              <span className="absolute inset-x-0 bottom-0 translate-y-3 bg-gradient-to-t from-void via-void/75 to-transparent p-3 opacity-0 transition-all duration-500 ease-out group-hover:translate-y-0 group-hover:opacity-100 group-focus-visible:translate-y-0 group-focus-visible:opacity-100 sm:p-4">
+                <span className="block text-[12px] font-medium text-chalk sm:text-[13px]">
+                  {item.caption}
+                </span>
+                <span className="block text-[10px] text-dim sm:text-[11px]">{item.event}</span>
+              </span>
+            </motion.button>
+          </li>
         ))}
-      </div>
+      </ul>
 
       <AnimatePresence>
         {active && (
@@ -99,18 +124,29 @@ export function GalleryGrid({ items }: { items: GalleryItem[] }) {
             exit={{ opacity: 0 }}
             transition={{ duration: 0.22 }}
             onClick={close}
-            className="fixed inset-0 z-[60] flex items-center justify-center bg-void/92 p-5 backdrop-blur-xl"
+            className="fixed inset-0 z-[60] flex items-center justify-center overflow-hidden bg-void/92 p-5 backdrop-blur-xl"
           >
+            <Globe
+              spin
+              strokeWidth={0.7}
+              className="pointer-events-none absolute left-1/2 top-1/2 h-[720px] w-[720px] -translate-x-1/2 -translate-y-1/2 text-vybe-500/8 [animation-duration:120s]"
+            />
+
             <motion.figure
-              initial={{ scale: 0.94, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
+              initial={{ scale: 0.94, opacity: 0, y: 14 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.96, opacity: 0 }}
-              transition={{ duration: 0.32, ease: [0.16, 1, 0.3, 1] }}
+              transition={{ duration: 0.36, ease: EASE }}
               onClick={(event) => event.stopPropagation()}
-              className="w-full max-w-3xl"
+              className="relative w-full max-w-3xl"
             >
-              <div className="overflow-hidden rounded-2xl border border-hairline">
-                <TileArt hue={active.hue} seed={active.id} variant="detail" className="aspect-[16/10] w-full" />
+              <div className="overflow-hidden rounded-2xl border border-hairline shadow-glow-lg">
+                <TileArt
+                  hue={active.hue}
+                  seed={active.id}
+                  variant="detail"
+                  className="aspect-[16/10] w-full"
+                />
               </div>
               <figcaption className="mt-4 flex items-center justify-between gap-4">
                 <span>
@@ -119,7 +155,12 @@ export function GalleryGrid({ items }: { items: GalleryItem[] }) {
                   </span>
                   <span className="block text-[12px] text-dim">{active.event}</span>
                 </span>
-                <button ref={closeRef} type="button" onClick={close} className="btn-ghost px-5 py-2.5 text-[12px]">
+                <button
+                  ref={closeRef}
+                  type="button"
+                  onClick={close}
+                  className="btn-ghost px-5 py-2.5 text-[12px]"
+                >
                   Close
                 </button>
               </figcaption>

@@ -2,9 +2,13 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import { getBookingByReference } from '@/lib/bookings';
+import { getSiteUrl } from '@/lib/site-url';
 import { formatEventDate, formatEventTime, formatInr, maskEmail, formatDateTime } from '@/lib/utils';
+import { Globe } from '@/components/brand/Globe';
 import { Reveal } from '@/components/ui/Reveal';
+import { ShareCrew } from '@/components/game/ShareCrew';
 import { TicketCard } from '@/components/booking/TicketCard';
+import { BookingCelebration } from '@/components/booking/BookingCelebration';
 import { ResendButton } from '@/components/booking/ResendButton';
 import { PrintButton } from '@/components/booking/PrintButton';
 
@@ -26,131 +30,163 @@ export default async function BookingConfirmationPage({
 
   const { booking, event, tier, tickets } = detail;
   const cancelled = booking.status === 'cancelled' || booking.status === 'refunded';
+  const shareUrl = `${getSiteUrl()}/events/${event.slug}`;
 
   return (
-    <div className="container-hov pb-24 pt-28 sm:pt-32">
-      <Reveal>
-        <div className="mx-auto max-w-2xl text-center">
-          {cancelled ? (
-            <>
-              <p className="eyebrow mb-3 text-red-300">Booking {booking.status}</p>
-              <h1 className="display-2">This booking is no longer valid</h1>
-              <p className="lede mt-4">
-                The passes below have been voided. Contact us if you think this is a mistake.
-              </p>
-            </>
-          ) : (
-            <>
-              <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full border border-vybe-500/40 bg-vybe-500/15">
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2.2"
-                  className="h-7 w-7 text-vybe-300"
-                  aria-hidden
-                >
-                  <path d="M4 12.5l5.5 5.5L20 7" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </div>
-              <p className="eyebrow mb-3">You&apos;re on the list</p>
-              <h1 className="display-2">
-                See you at <span className="text-gradient">{event.name}</span>
-              </h1>
-              <p className="lede mt-4">
-                {booking.quantity === 1 ? 'Your pass is' : `All ${booking.quantity} passes are`}{' '}
-                below. Screenshot the QR before you arrive — venue signal is unreliable.
-              </p>
-            </>
-          )}
-        </div>
-      </Reveal>
+    <div className="relative">
+      {/* Only a live booking is worth celebrating. */}
+      {!cancelled && <BookingCelebration reference={booking.reference} />}
 
-      <Reveal delay={0.1} className="mx-auto mt-10 max-w-2xl">
-        <div className="card card-lit p-6 sm:p-7">
-          <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <p className="text-[11px] uppercase tracking-wider text-dim">Booking reference</p>
-              <p className="font-mono text-xl font-bold tracking-wide text-vybe-200">
-                {booking.reference}
-              </p>
-            </div>
-            <span className="badge">{booking.status}</span>
-          </div>
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 top-0 h-[520px] bg-radial-vybe print:hidden"
+      />
 
-          <dl className="grid gap-x-6 gap-y-3 text-[13px] sm:grid-cols-2">
-            <Row label="Name" value={booking.customer_name} />
-            <Row label="Email" value={maskEmail(booking.customer_email)} />
-            <Row label="Date" value={formatEventDate(event.starts_at)} />
-            <Row label="Doors" value={formatEventTime(event.doors_at ?? event.starts_at)} />
-            <Row label="Venue" value={event.venue_name} />
-            <Row label="Ticket" value={`${tier?.name ?? 'General Entry'} × ${booking.quantity}`} />
-            <Row
-              label="Amount"
-              value={booking.amount_paise === 0 ? 'Complimentary entry' : formatInr(booking.amount_paise)}
-            />
-            <Row label="Age policy" value={`${event.age_limit}+ · photo ID required`} />
-          </dl>
+      <div className="container-hov relative pb-24 pt-28 sm:pt-32">
+        <Reveal>
+          <div className="relative mx-auto max-w-2xl text-center">
+            {/* Positioning stays on the wrapper: `spin` animates `transform`, and
+                a translate utility on the same element would be overwritten. */}
+            <span
+              aria-hidden
+              className="pointer-events-none absolute left-1/2 top-[-60px] block h-[280px] w-[280px] -translate-x-1/2 print:hidden"
+            >
+              <Globe className="h-full w-full text-flare/[0.07]" strokeWidth={1.2} spin />
+            </span>
 
-          <div className="divider my-6" />
-
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-[12px] leading-relaxed text-haze">
-              {booking.email_sent_at ? (
+            <div className="relative">
+              {cancelled ? (
                 <>
-                  Ticket emailed to{' '}
-                  <span className="text-chalk">{maskEmail(booking.customer_email)}</span> at{' '}
-                  {formatDateTime(booking.email_sent_at)}.
+                  <p className="eyebrow mb-3 text-flare-300">Booking {booking.status}</p>
+                  <h1 className="display-2">This booking is no longer valid</h1>
+                  <p className="lede mt-4">
+                    The passes below have been voided. Contact us if you think this is a mistake.
+                  </p>
                 </>
               ) : (
                 <>
-                  We haven&apos;t confirmed delivery to{' '}
-                  <span className="text-chalk">{maskEmail(booking.customer_email)}</span> yet. It may
-                  still be on its way — check spam, or resend it.
+                  <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full border border-vybe-500/40 bg-vybe-500/15 shadow-glow">
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2.2"
+                      className="h-7 w-7 text-vybe-300"
+                      aria-hidden
+                    >
+                      <path d="M4 12.5l5.5 5.5L20 7" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </div>
+                  <p className="eyebrow mb-3">You&apos;re on the list</p>
+                  <h1 className="display-2">
+                    See you at <span className="text-gradient">{event.name}</span>
+                  </h1>
+                  <p className="lede mt-4">
+                    {booking.quantity === 1 ? 'Your pass is' : `All ${booking.quantity} passes are`}{' '}
+                    below. Screenshot the QR before you arrive — venue signal is unreliable.
+                  </p>
                 </>
               )}
-            </p>
-            <div className="no-print flex shrink-0 gap-2">
-              <ResendButton reference={booking.reference} />
-              <PrintButton />
             </div>
           </div>
-        </div>
-      </Reveal>
+        </Reveal>
 
-      <div className="mx-auto mt-10 max-w-2xl space-y-5">
-        {tickets.map((ticket, index) => (
-          <Reveal key={ticket.id} delay={0.05 * index}>
-            <TicketCard
-              ticket={ticket}
-              event={event}
-              tier={tier}
-              index={index + 1}
-              total={tickets.length}
-            />
-          </Reveal>
-        ))}
-      </div>
+        <Reveal delay={0.12} className="mx-auto mt-10 max-w-2xl">
+          <div className="card card-lit p-6 sm:p-7">
+            <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="text-[11px] uppercase tracking-wider text-dim">Booking reference</p>
+                <p className="font-mono text-xl font-bold tracking-wide text-vybe-200">
+                  {booking.reference}
+                </p>
+              </div>
+              <span className="badge">{booking.status}</span>
+            </div>
 
-      <Reveal delay={0.1} className="no-print mx-auto mt-10 max-w-2xl">
-        <div className="card p-6">
-          <h2 className="mb-3 font-display text-base font-semibold text-chalk">Before you come</h2>
-          <ul className="space-y-2 text-[13px] leading-relaxed text-haze">
-            <li>· Carry a government photo ID matching the booking name. No ID, no entry.</li>
-            <li>· Each QR admits one person and works exactly once.</li>
-            <li>· Entry closes 90 minutes before the event ends.</li>
-            <li>· Management reserves the right of admission.</li>
-          </ul>
-          <div className="mt-6 flex flex-wrap gap-3">
-            <Link href={`/events/${event.slug}`} className="btn-secondary px-6 py-3 text-[13px]">
-              Event details
-            </Link>
-            <Link href="/contact" className="btn-ghost px-6 py-3 text-[13px]">
-              Need help?
-            </Link>
+            <dl className="grid gap-x-6 gap-y-3 text-[13px] sm:grid-cols-2">
+              <Row label="Name" value={booking.customer_name} />
+              <Row label="Email" value={maskEmail(booking.customer_email)} />
+              <Row label="Date" value={formatEventDate(event.starts_at)} />
+              <Row label="Doors" value={formatEventTime(event.doors_at ?? event.starts_at)} />
+              <Row label="Venue" value={event.venue_name} />
+              <Row label="Ticket" value={`${tier?.name ?? 'General Entry'} × ${booking.quantity}`} />
+              <Row
+                label="Amount"
+                value={
+                  booking.amount_paise === 0 ? 'Complimentary entry' : formatInr(booking.amount_paise)
+                }
+              />
+              <Row label="Age policy" value={`${event.age_limit}+ · photo ID required`} />
+            </dl>
+
+            <div className="divider my-6" />
+
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-[12px] leading-relaxed text-haze">
+                {booking.email_sent_at ? (
+                  <>
+                    Ticket emailed to{' '}
+                    <span className="text-chalk">{maskEmail(booking.customer_email)}</span> at{' '}
+                    {formatDateTime(booking.email_sent_at)}.
+                  </>
+                ) : (
+                  <>
+                    We haven&apos;t confirmed delivery to{' '}
+                    <span className="text-chalk">{maskEmail(booking.customer_email)}</span> yet. It
+                    may still be on its way — check spam, or resend it.
+                  </>
+                )}
+              </p>
+              <div className="no-print flex shrink-0 gap-2">
+                <ResendButton reference={booking.reference} />
+                <PrintButton />
+              </div>
+            </div>
           </div>
+        </Reveal>
+
+        {!cancelled && (
+          <Reveal delay={0.2} className="no-print mx-auto mt-6 max-w-2xl">
+            <ShareCrew reference={booking.reference} url={shareUrl} />
+          </Reveal>
+        )}
+
+        <div className="mx-auto mt-10 max-w-2xl space-y-5">
+          {tickets.map((ticket, index) => (
+            // Passes land one after another, so a four-ticket booking reads as a
+            // stack being dealt rather than a wall appearing at once.
+            <Reveal key={ticket.id} delay={0.28 + 0.09 * index}>
+              <TicketCard
+                ticket={ticket}
+                event={event}
+                tier={tier}
+                index={index + 1}
+                total={tickets.length}
+              />
+            </Reveal>
+          ))}
         </div>
-      </Reveal>
+
+        <Reveal delay={0.1} className="no-print mx-auto mt-10 max-w-2xl">
+          <div className="card p-6">
+            <h2 className="mb-3 font-display text-base font-semibold text-chalk">Before you come</h2>
+            <ul className="space-y-2 text-[13px] leading-relaxed text-haze">
+              <li>· Carry a government photo ID matching the booking name. No ID, no entry.</li>
+              <li>· Each QR admits one person and works exactly once.</li>
+              <li>· Entry closes 90 minutes before the event ends.</li>
+              <li>· Management reserves the right of admission.</li>
+            </ul>
+            <div className="mt-6 flex flex-wrap gap-3">
+              <Link href={`/events/${event.slug}`} className="btn-secondary px-6 py-3 text-[13px]">
+                Event details
+              </Link>
+              <Link href="/contact" className="btn-ghost px-6 py-3 text-[13px]">
+                Need help?
+              </Link>
+            </div>
+          </div>
+        </Reveal>
+      </div>
     </div>
   );
 }

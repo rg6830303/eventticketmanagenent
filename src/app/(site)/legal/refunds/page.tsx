@@ -11,6 +11,7 @@ export const metadata: Metadata = {
 export default function RefundsPage() {
   return (
     <LegalLayout
+      current="/legal/refunds"
       eyebrow="Legal"
       title="Refunds & cancellations"
       lede="When you get your money back, when you don't, and how transfers work."

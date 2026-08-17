@@ -34,6 +34,16 @@ const config: Config = {
           500: '#12c2e9',
           600: '#0a9cc0',
         },
+        // The red from the logo's globe. Signal colour only — the mark, live
+        // indicators, scarcity and destructive actions. Never a large fill, or
+        // it fights the blue instead of punctuating it.
+        flare: {
+          DEFAULT: '#F5242B',
+          300: '#FF6B70',
+          400: '#FF3F45',
+          500: '#F5242B',
+          600: '#C81419',
+        },
         // Text ramp.
         chalk: '#e9eefc',
         haze: '#9aa8cc',
@@ -86,6 +96,14 @@ const config: Config = {
           '0%': { transform: 'translateY(-100%)' },
           '100%': { transform: 'translateY(100%)' },
         },
+        orbit: {
+          from: { transform: 'rotate(0deg)' },
+          to: { transform: 'rotate(360deg)' },
+        },
+        tick: {
+          '0%,100%': { transform: 'translateY(0) scale(1)' },
+          '50%': { transform: 'translateY(-2px) scale(1.06)' },
+        },
       },
       animation: {
         'fade-up': 'fade-up 0.7s cubic-bezier(0.16,1,0.3,1) both',
@@ -94,6 +112,8 @@ const config: Config = {
         'pulse-ring': 'pulseRing 2.4s cubic-bezier(0.4,0,0.6,1) infinite',
         float: 'float 6s ease-in-out infinite',
         scanline: 'scanline 2.2s ease-in-out infinite',
+        orbit: 'orbit 44s linear infinite',
+        tick: 'tick 1.6s ease-in-out infinite',
       },
     },
   },

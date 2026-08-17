@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { cn } from '@/lib/utils';
+import { Globe } from '@/components/brand/Globe';
 
 export interface LegalSection {
   /** Anchor id — also the fragment other pages link to. */
@@ -19,7 +20,15 @@ interface LegalLayoutProps {
   sections: LegalSection[];
   /** Rendered under the last section — usually a contact or grievance block. */
   footnote?: ReactNode;
+  /** Own href, so the cross-document links can mark this page as the current one. */
+  current?: string;
 }
+
+const LEGAL_DOCS = [
+  { href: '/legal/terms', label: 'Terms' },
+  { href: '/legal/privacy', label: 'Privacy' },
+  { href: '/legal/refunds', label: 'Refunds' },
+] as const;
 
 /**
  * The project has no @tailwindcss/typography, so prose rules are declared once
@@ -89,6 +98,7 @@ export function LegalLayout({
   lastUpdated,
   sections,
   footnote,
+  current,
 }: LegalLayoutProps) {
   const [activeId, setActiveId] = useState<string>(sections[0]?.id ?? '');
   const [progress, setProgress] = useState(0);
@@ -151,24 +161,35 @@ export function LegalLayout({
           reading as a bare document. */}
       <div
         aria-hidden="true"
-        className="perspective-1000 pointer-events-none absolute inset-x-0 top-0 h-[460px] overflow-hidden"
+        className="perspective-1000 pointer-events-none absolute inset-x-0 top-0 h-[560px] overflow-hidden"
       >
         <div
           className="grid-overlay absolute -inset-x-[60%] top-[42%] h-[560px] opacity-70"
           style={{ transform: 'rotateX(74deg)' }}
         />
         <div className="absolute inset-0 bg-radial-vybe opacity-70" />
+        {/* The mark, sized to the header block and turning behind it. */}
+        <div className="absolute -right-32 -top-40 aspect-square w-[min(90vw,620px)] sm:-right-24">
+          <Globe spin strokeWidth={1.5} className="h-full w-full text-flare/[0.07]" />
+        </div>
       </div>
 
       <div className="container-hov relative pb-24 pt-16 sm:pt-24 lg:pb-32">
         <header className="max-w-3xl">
-          <p className="eyebrow mb-4">{eyebrow}</p>
+          <p className="eyebrow mb-4 flex items-center gap-2.5">
+            <span aria-hidden="true" className="h-px w-6 bg-vybe-500/60" />
+            {eyebrow}
+          </p>
           <h1 className="display-2">{title}</h1>
-          <p className="lede mt-5">{lede}</p>
-          <p className="mt-6 flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[12px] uppercase tracking-[0.18em] text-dim">
+          <p className="lede mt-5 max-w-2xl">{lede}</p>
+          <p className="mt-7 flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[12px] uppercase tracking-[0.18em] text-dim">
             <span>Last updated</span>
             <span aria-hidden="true" className="h-3 w-px bg-hairline" />
             <span className="text-haze">{lastUpdated}</span>
+            <span aria-hidden="true" className="h-3 w-px bg-hairline" />
+            <span>
+              {sections.length} section{sections.length === 1 ? '' : 's'}
+            </span>
           </p>
         </header>
 
@@ -193,7 +214,7 @@ export function LegalLayout({
 
         <div className="mt-14 grid gap-12 lg:mt-16 lg:grid-cols-[236px_minmax(0,1fr)] lg:gap-16">
           <nav aria-label="On this page" className="hidden lg:block">
-            <div className="sticky top-28">
+            <div className="sticky top-28 max-h-[calc(100dvh-9rem)] overflow-y-auto pr-1">
               <p className="eyebrow mb-5">On this page</p>
               <div className="relative pl-5">
                 <span
@@ -265,33 +286,49 @@ export function LegalLayout({
 
             <div ref={articleRef} className="max-w-[68ch]">
               {sections.map((section, index) => (
-                <section key={section.id} className="scroll-mt-32 border-t border-hairline py-9 first:border-t-0 first:pt-0">
+                <section
+                  key={section.id}
+                  className="scroll-mt-32 border-t border-hairline py-10 first:border-t-0 first:pt-0 sm:py-12"
+                >
                   <h2
                     id={section.id}
-                    className="mb-5 flex scroll-mt-32 items-baseline gap-3 font-display text-xl font-semibold tracking-tight text-chalk sm:text-2xl"
+                    className="mb-6 flex scroll-mt-32 items-start gap-3.5 font-display text-xl font-semibold tracking-tight text-chalk sm:text-[26px]"
                   >
-                    <span aria-hidden="true" className="font-mono text-[13px] font-normal text-vybe-500">
+                    <span
+                      aria-hidden="true"
+                      className="mt-1 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md border border-vybe-500/25 bg-vybe-500/10 font-mono text-[11px] font-medium tabular-nums text-vybe-300"
+                    >
                       {String(index + 1).padStart(2, '0')}
                     </span>
-                    {section.title}
+                    <span className="min-w-0">{section.title}</span>
                   </h2>
                   <div className={PROSE}>{section.body}</div>
                 </section>
               ))}
 
-              {footnote && <div className="mt-4 border-t border-hairline pt-9">{footnote}</div>}
+              {footnote && <div className="mt-4 border-t border-hairline pt-10">{footnote}</div>}
 
-              <div className="divider mt-12" />
-              <div className="mt-8 flex flex-wrap gap-3">
-                <Link href="/legal/terms" className="btn-ghost">
-                  Terms
-                </Link>
-                <Link href="/legal/privacy" className="btn-ghost">
-                  Privacy
-                </Link>
-                <Link href="/legal/refunds" className="btn-ghost">
-                  Refunds
-                </Link>
+              <div className="divider mt-14" />
+              <p className="mt-8 font-mono text-[11px] uppercase tracking-[0.22em] text-dim">
+                The rest of the paperwork
+              </p>
+              <div className="mt-4 flex flex-wrap gap-3">
+                {LEGAL_DOCS.map((doc) => {
+                  const active = doc.href === current;
+                  return (
+                    <Link
+                      key={doc.href}
+                      href={doc.href}
+                      aria-current={active ? 'page' : undefined}
+                      className={cn(
+                        'btn-ghost',
+                        active && 'border-vybe-500/45 bg-vybe-500/10 text-chalk',
+                      )}
+                    >
+                      {doc.label}
+                    </Link>
+                  );
+                })}
               </div>
             </div>
           </div>

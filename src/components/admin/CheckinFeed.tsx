@@ -1,7 +1,8 @@
 'use client';
 
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { Globe } from '@/components/brand/Globe';
 import { cn, formatDateTime, timeAgo } from '@/lib/utils';
 import type { ScanLogRow } from '@/app/api/admin/checkins/route';
 
@@ -14,8 +15,8 @@ const TONE: Record<string, string> = {
   wrong_event: 'border-l-amber-400 text-amber-300',
   void: 'border-l-amber-400 text-amber-300',
   refunded: 'border-l-amber-400 text-amber-300',
-  invalid_signature: 'border-l-red-500 text-red-300',
-  not_found: 'border-l-red-500 text-red-300',
+  invalid_signature: 'border-l-flare-500 text-flare-300',
+  not_found: 'border-l-flare-500 text-flare-300',
 };
 
 export function CheckinFeed({ initialRows }: { initialRows: ScanLogRow[] }) {
@@ -23,6 +24,7 @@ export function CheckinFeed({ initialRows }: { initialRows: ScanLogRow[] }) {
   const [paused, setPaused] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const sinceRef = useRef<string>(initialRows[0]?.created_at ?? new Date(0).toISOString());
+  const reduce = useReducedMotion();
 
   const poll = useCallback(async () => {
     try {
@@ -55,36 +57,53 @@ export function CheckinFeed({ initialRows }: { initialRows: ScanLogRow[] }) {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <span className="relative flex h-2 w-2">
+        <div className="flex min-w-0 items-center gap-2">
+          <span className="relative flex h-2.5 w-2.5 shrink-0">
             {!paused && (
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-pulse-400 opacity-75" />
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-flare-500 opacity-75" />
             )}
             <span
               className={cn(
-                'relative inline-flex h-2 w-2 rounded-full',
-                paused ? 'bg-dim' : 'bg-pulse-400',
+                'relative inline-flex h-2.5 w-2.5 rounded-full',
+                paused ? 'bg-dim' : 'bg-flare-500',
               )}
             />
           </span>
           <span className="font-mono text-[11px] uppercase tracking-wider text-haze">
             {paused ? 'Paused' : 'Live'}
           </span>
-          {error && <span className="text-[11px] text-amber-300">{error}</span>}
+          {error && (
+            <span className="truncate font-mono text-[11px] uppercase tracking-wider text-flare-300">
+              {error}
+            </span>
+          )}
         </div>
 
         <button
           type="button"
           onClick={() => setPaused((p) => !p)}
-          className="btn-ghost px-4 py-2 text-[12px]"
+          aria-pressed={paused}
+          className="btn-ghost shrink-0 px-4 py-2 text-[12px]"
         >
           {paused ? 'Resume' : 'Pause'}
         </button>
       </div>
 
+      {/* The count is the only thing worth announcing — the rows themselves are
+          far too chatty for a screen reader at a working door. */}
+      <p aria-live="polite" className="sr-only">
+        {rows.length} scans in the log
+      </p>
+
       {rows.length === 0 ? (
-        <div className="card p-10 text-center">
-          <p className="text-[13px] text-haze">No scans recorded yet.</p>
+        <div className="card flex flex-col items-center justify-center p-12 text-center">
+          <Globe spin strokeWidth={1.8} className="h-14 w-14 text-flare/20 [animation-duration:18s]" />
+          <p className="mt-4 text-[14px] font-medium text-haze">No scans recorded yet</p>
+          <p className="mt-1 max-w-[40ch] text-[12px] leading-relaxed text-dim">
+            {paused
+              ? 'The feed is paused. Resume it to pick up new scans.'
+              : 'The feed is live. Every scan appears here the moment it happens.'}
+          </p>
         </div>
       ) : (
         <ul className="space-y-2">
@@ -92,9 +111,9 @@ export function CheckinFeed({ initialRows }: { initialRows: ScanLogRow[] }) {
             {rows.map((row) => (
               <motion.li
                 key={row.id}
-                initial={{ opacity: 0, y: -12, height: 0 }}
-                animate={{ opacity: 1, y: 0, height: 'auto' }}
-                transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+                initial={reduce ? { opacity: 0 } : { opacity: 0, y: -12, height: 0 }}
+                animate={reduce ? { opacity: 1 } : { opacity: 1, y: 0, height: 'auto' }}
+                transition={{ duration: reduce ? 0.15 : 0.35, ease: [0.16, 1, 0.3, 1] }}
                 className={cn(
                   'card border-l-4 p-3.5',
                   TONE[row.result] ?? 'border-l-hairline text-haze',
@@ -112,7 +131,9 @@ export function CheckinFeed({ initialRows }: { initialRows: ScanLogRow[] }) {
                     </p>
                   </div>
                   <div className="shrink-0 text-right">
-                    <p className="font-mono text-[11px] uppercase">{row.result.replace(/_/g, ' ')}</p>
+                    <p className="font-mono text-[11px] font-semibold uppercase tracking-wide">
+                      {row.result.replace(/_/g, ' ')}
+                    </p>
                     <p className="text-[10px] text-dim" title={formatDateTime(row.created_at)}>
                       {timeAgo(row.created_at)}
                     </p>

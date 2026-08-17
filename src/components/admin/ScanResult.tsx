@@ -1,120 +1,226 @@
 'use client';
 
+import { useRef } from 'react';
+import {
+  AnimatePresence,
+  motion,
+  useReducedMotion,
+  type MotionProps,
+  type Transition,
+} from 'framer-motion';
+import { Globe } from '@/components/brand/Globe';
 import { cn, formatDateTime } from '@/lib/utils';
 import type { ScanOutcome, ScanResult as ScanResultCode } from '@/lib/types';
 
+type Tone = 'go' | 'hold' | 'stop';
+
 /** Verdict → visual treatment. Blue means go; amber means stop and talk; red means refuse. */
-const TONE: Record<ScanResultCode, { ring: string; text: string; chip: string; verdict: string }> = {
-  admitted: {
-    ring: 'border-vybe-400/70 bg-vybe-500/12',
-    text: 'text-vybe-200',
+const TONE: Record<ScanResultCode, { tone: Tone; verdict: string }> = {
+  admitted: { tone: 'go', verdict: 'ADMITTED' },
+  duplicate: { tone: 'hold', verdict: 'ALREADY USED' },
+  wrong_event: { tone: 'hold', verdict: 'WRONG EVENT' },
+  void: { tone: 'hold', verdict: 'CANCELLED' },
+  refunded: { tone: 'hold', verdict: 'REFUNDED' },
+  invalid_signature: { tone: 'stop', verdict: 'INVALID' },
+  not_found: { tone: 'stop', verdict: 'NOT FOUND' },
+};
+
+const SKIN: Record<Tone, { shell: string; text: string; chip: string; flash: string; note: string }> = {
+  go: {
+    shell: 'border-vybe-400/70 bg-vybe-500/[0.14]',
+    text: 'text-vybe-100',
     chip: 'bg-vybe-500 text-white',
-    verdict: 'ADMITTED',
+    flash: 'bg-vybe-400',
+    note: 'bg-vybe-500/12 text-vybe-100',
   },
-  duplicate: {
-    ring: 'border-amber-400/60 bg-amber-400/10',
-    text: 'text-amber-200',
+  hold: {
+    shell: 'border-amber-400/70 bg-amber-400/[0.12]',
+    text: 'text-amber-100',
     chip: 'bg-amber-400 text-black',
-    verdict: 'ALREADY USED',
+    flash: 'bg-amber-300',
+    note: 'bg-amber-400/12 text-amber-100',
   },
-  wrong_event: {
-    ring: 'border-amber-400/60 bg-amber-400/10',
-    text: 'text-amber-200',
-    chip: 'bg-amber-400 text-black',
-    verdict: 'WRONG EVENT',
-  },
-  void: {
-    ring: 'border-amber-400/60 bg-amber-400/10',
-    text: 'text-amber-200',
-    chip: 'bg-amber-400 text-black',
-    verdict: 'CANCELLED',
-  },
-  refunded: {
-    ring: 'border-amber-400/60 bg-amber-400/10',
-    text: 'text-amber-200',
-    chip: 'bg-amber-400 text-black',
-    verdict: 'REFUNDED',
-  },
-  invalid_signature: {
-    ring: 'border-red-500/60 bg-red-500/10',
-    text: 'text-red-200',
-    chip: 'bg-red-500 text-white',
-    verdict: 'INVALID',
-  },
-  not_found: {
-    ring: 'border-red-500/60 bg-red-500/10',
-    text: 'text-red-200',
-    chip: 'bg-red-500 text-white',
-    verdict: 'NOT FOUND',
+  stop: {
+    shell: 'border-flare-500/70 bg-flare-500/[0.12]',
+    text: 'text-flare-300',
+    chip: 'bg-flare-500 text-white',
+    flash: 'bg-flare-400',
+    note: 'bg-flare-500/12 text-flare-300',
   },
 };
 
+const SPRING: Transition = { type: 'spring', stiffness: 460, damping: 24, mass: 0.7 };
+
+type Entrance = Required<Pick<MotionProps, 'initial' | 'animate' | 'exit' | 'transition'>>;
+
 export function ScanResult({ outcome, mode }: { outcome: ScanOutcome | null; mode: 'check' | 'admit' }) {
-  if (!outcome) {
-    return (
-      <div className="card flex min-h-[190px] flex-col items-center justify-center p-6 text-center">
-        <p className="font-display text-lg font-semibold text-haze">Ready to scan</p>
-        <p className="mt-1.5 max-w-[34ch] text-[13px] leading-relaxed text-dim">
-          Hold the guest&apos;s QR inside the frame. The result appears here.
-        </p>
-      </div>
-    );
+  const reduce = useReducedMotion();
+
+  // A guest can present the same failing pass twice in a row. Keying off the
+  // outcome's identity rather than its contents makes every scan re-animate, so
+  // the second attempt still visibly resolves.
+  const seenRef = useRef<ScanOutcome | null>(null);
+  const nonceRef = useRef(0);
+  if (outcome !== seenRef.current) {
+    seenRef.current = outcome;
+    nonceRef.current += 1;
   }
 
-  const tone = TONE[outcome.result];
+  const meta = outcome ? TONE[outcome.result] : null;
+  const skin = meta ? SKIN[meta.tone] : null;
   // In preview mode nothing was consumed, so "ADMITTED" would be a lie.
-  const verdict = outcome.ok && mode === 'check' ? 'VALID' : tone.verdict;
-  const ticket = outcome.ticket;
+  const verdict = outcome && meta ? (outcome.ok && mode === 'check' ? 'VALID' : meta.verdict) : '';
+  const ticket = outcome?.ticket;
+
+  const entrance = (tone: Tone): Entrance => {
+    if (reduce) {
+      return {
+        initial: { opacity: 0 },
+        animate: { opacity: 1 },
+        exit: { opacity: 0 },
+        transition: { duration: 0.15 },
+      };
+    }
+    if (tone === 'go') {
+      return {
+        initial: { opacity: 0, scale: 0.9, y: 10 },
+        animate: { opacity: 1, scale: 1, y: 0 },
+        exit: { opacity: 0, scale: 0.98 },
+        transition: SPRING,
+      };
+    }
+    // A refusal should feel like a refusal: the card physically recoils.
+    const travel = tone === 'stop' ? [0, -16, 13, -8, 5, 0] : [0, -10, 8, -4, 0];
+    return {
+      initial: { opacity: 0, scale: 0.97 },
+      animate: { opacity: 1, scale: 1, x: travel },
+      exit: { opacity: 0, scale: 0.98 },
+      transition: { duration: tone === 'stop' ? 0.5 : 0.4, ease: 'easeOut' },
+    };
+  };
 
   return (
-    <div
-      role="status"
-      aria-live="assertive"
-      className={cn('card border-2 p-5 transition-colors sm:p-6', tone.ring)}
-    >
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className={cn('font-display text-3xl font-extrabold leading-none sm:text-4xl', tone.text)}>
-            {verdict}
-          </p>
-          <p className="mt-2 text-[13px] leading-relaxed text-haze">{outcome.message}</p>
-        </div>
-        <span
-          className={cn(
-            'shrink-0 rounded-full px-2.5 py-1 font-mono text-[10px] font-bold uppercase tracking-wider',
-            tone.chip,
-          )}
-        >
-          {mode === 'check' ? 'preview' : 'live'}
-        </span>
-      </div>
-
-      {ticket && (
-        <div className="mt-5 space-y-3 border-t border-hairline pt-4">
-          {/* Sized to be readable at arm's length while the guest holds the phone. */}
-          <p className="font-display text-2xl font-bold leading-tight text-chalk">
-            {ticket.holderName}
-          </p>
-
-          <dl className="grid grid-cols-2 gap-x-4 gap-y-2.5 text-[13px]">
-            <Row label="Ticket" value={ticket.code} mono />
-            <Row label="Booking" value={ticket.bookingReference} mono />
-            {ticket.tierName && <Row label="Tier" value={ticket.tierName} />}
-            {ticket.seatLabel && <Row label="Pass" value={ticket.seatLabel} mono />}
-            {ticket.quantity > 1 && (
-              <Row label="In booking" value={`${ticket.quantity} tickets`} />
-            )}
-            {outcome.event && <Row label="Event" value={outcome.event.name} />}
-          </dl>
-
-          {outcome.result === 'duplicate' && ticket.checkedInAt && (
-            <p className="rounded-lg bg-amber-400/10 px-3 py-2 text-[12px] font-medium text-amber-200">
-              First scanned {formatDateTime(ticket.checkedInAt)}
+    <div role="status" aria-live="assertive" aria-atomic="true">
+      <AnimatePresence mode="wait" initial={false}>
+        {!outcome || !meta || !skin ? (
+          <motion.div
+            key="idle"
+            initial={reduce ? false : { opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={reduce ? undefined : { opacity: 0 }}
+            // Short on purpose: a verdict must never wait on an idle card fading.
+            transition={{ duration: 0.14 }}
+            className="card flex min-h-[220px] flex-col items-center justify-center p-6 text-center"
+          >
+            <Globe
+              spin
+              strokeWidth={2}
+              className="h-14 w-14 text-flare/25 [animation-duration:14s]"
+            />
+            <p className="mt-4 font-display text-lg font-semibold text-haze">Ready to scan</p>
+            <p className="mt-1.5 max-w-[34ch] text-[13px] leading-relaxed text-dim">
+              Hold the guest&apos;s QR inside the frame. The verdict appears here.
             </p>
-          )}
-        </div>
-      )}
+          </motion.div>
+        ) : (
+          <motion.div
+            key={nonceRef.current}
+            {...entrance(meta.tone)}
+            className={cn('card relative border-2 p-5 sm:p-6', skin.shell)}
+          >
+            {/* One-shot wash of the verdict colour. Reads as "resolved" from across
+                a dark doorway, before anyone has parsed the words. */}
+            {!reduce && (
+              <motion.span
+                aria-hidden
+                className={cn('pointer-events-none absolute inset-0', skin.flash)}
+                initial={{ opacity: 0.4 }}
+                animate={{ opacity: 0 }}
+                transition={{ duration: 0.55, ease: 'easeOut' }}
+              />
+            )}
+
+            <div className="relative flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <div className="flex items-center gap-3">
+                  <Verdict tone={meta.tone} className={cn('h-9 w-9 shrink-0 sm:h-11 sm:w-11', skin.text)} />
+                  <p
+                    className={cn(
+                      'font-display font-extrabold uppercase leading-[0.9] tracking-tight',
+                      'text-[42px] sm:text-6xl',
+                      skin.text,
+                    )}
+                  >
+                    {verdict}
+                  </p>
+                </div>
+                <p className="mt-3 text-[14px] leading-relaxed text-haze">{outcome.message}</p>
+              </div>
+
+              <span
+                className={cn(
+                  'shrink-0 rounded-full px-2.5 py-1 font-mono text-[10px] font-bold uppercase tracking-wider',
+                  skin.chip,
+                )}
+              >
+                {mode === 'check' ? 'preview' : 'live'}
+              </span>
+            </div>
+
+            {ticket && (
+              <div className="relative mt-5 space-y-3 border-t border-hairline pt-4">
+                {/* Sized to be readable at arm's length while the guest holds the phone. */}
+                <p className="font-display text-2xl font-bold leading-tight text-chalk sm:text-3xl">
+                  {ticket.holderName}
+                </p>
+
+                <dl className="grid grid-cols-2 gap-x-4 gap-y-2.5 text-[13px]">
+                  <Row label="Ticket" value={ticket.code} mono />
+                  <Row label="Booking" value={ticket.bookingReference} mono />
+                  {ticket.tierName && <Row label="Tier" value={ticket.tierName} />}
+                  {ticket.seatLabel && <Row label="Pass" value={ticket.seatLabel} mono />}
+                  {ticket.quantity > 1 && <Row label="In booking" value={`${ticket.quantity} tickets`} />}
+                  {outcome.event && <Row label="Event" value={outcome.event.name} />}
+                </dl>
+
+                {outcome.result === 'duplicate' && ticket.checkedInAt && (
+                  <p className={cn('rounded-lg px-3 py-2 text-[13px] font-medium', skin.note)}>
+                    First scanned {formatDateTime(ticket.checkedInAt)}
+                  </p>
+                )}
+              </div>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
+  );
+}
+
+/** One glyph per tone. Shape carries the verdict even before colour registers. */
+function Verdict({ tone, className }: { tone: Tone; className?: string }) {
+  if (tone === 'go') {
+    return (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" className={className} aria-hidden>
+        <circle cx="12" cy="12" r="9.5" strokeWidth="1.6" opacity="0.5" />
+        <path d="m7.5 12.4 3.2 3.2 6-6.8" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    );
+  }
+  if (tone === 'hold') {
+    return (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" className={className} aria-hidden>
+        <path d="M12 3.2 22 20H2Z" strokeWidth="1.8" strokeLinejoin="round" opacity="0.6" />
+        <path d="M12 9.5v4.6" strokeLinecap="round" />
+        <circle cx="12" cy="17.1" r="1.15" fill="currentColor" stroke="none" />
+      </svg>
+    );
+  }
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" className={className} aria-hidden>
+      <circle cx="12" cy="12" r="9.5" strokeWidth="1.6" opacity="0.5" />
+      <path d="m8.4 8.4 7.2 7.2M15.6 8.4l-7.2 7.2" strokeLinecap="round" />
+    </svg>
   );
 }
 

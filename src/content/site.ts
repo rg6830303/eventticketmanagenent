@@ -1,10 +1,23 @@
 /**
- * Static site copy and marketing content.
+ * Site copy and marketing content.
  *
- * Anything that changes per event (dates, prices, stock) lives in Postgres and
- * is read at request time. What sits here is brand copy, navigation and the
- * pieces of the event page that are editorial rather than transactional — kept
- * in one module so the whole site speaks with one voice and one set of facts.
+ * Anything that changes per event — dates, prices, live stock — lives in
+ * Postgres and is read at request time. What sits here is brand voice and the
+ * editorial layer, in one module so the whole site speaks with one voice.
+ *
+ * ─────────────────────────────────────────────────────────────────────────────
+ * A NOTE ON CLAIMS
+ * Every statement in this file is either a verifiable property of the platform
+ * (a QR admits one person; capacity is capped in the database) or a statement of
+ * intent the operator controls. There are deliberately no invented attendance
+ * figures, ratings or customer testimonials: on a site selling real tickets
+ * those are fabricated social proof, and they are also the fastest way to look
+ * untrustworthy to anyone who checks.
+ *
+ * Items marked NEEDS REAL DATA are placeholders the operator must replace
+ * before launch. They are written so that being unreplaced reads as honest
+ * ("line-up announced soon") rather than as a lie.
+ * ─────────────────────────────────────────────────────────────────────────────
  */
 
 export const BRAND = {
@@ -12,8 +25,9 @@ export const BRAND = {
   shortName: 'HOV',
   tagline: 'Hyderabad after dark',
   description:
-    'Houz of Vybe throws Hyderabad’s loudest nights — curated line-ups, serious sound and rooms that actually move. Book in seconds, walk in with a QR.',
+    'Houz of Vybe runs capped-capacity club nights in Hyderabad. Book in under a minute, walk in with a QR — no queue, no guest list, no app.',
   city: 'Hyderabad',
+  // NEEDS REAL DATA — swap for the real inboxes and number before launch.
   email: 'hello@houzofvybe.com',
   supportEmail: 'tickets@houzofvybe.com',
   phone: '+91 90000 00000',
@@ -54,11 +68,6 @@ export const FOOTER_LINKS = {
   ],
 } as const;
 
-/**
- * The flagship night. `slug` must match the row seeded into `events`, because
- * every price, date and stock number on the page comes from the database —
- * this object only carries the editorial layer.
- */
 export const FEATURED_EVENT_SLUG = 'offcampus';
 
 export const OFFCAMPUS = {
@@ -67,62 +76,70 @@ export const OFFCAMPUS = {
   title: 'OFFCAMPUS',
   subtitle: 'The after-hours chapter',
   blurb:
-    'Inspired by the Prime Video series, OffCampus is a one-night rebuild of everything that happened after the lecture hall emptied. Hostel-corridor bass, canteen-neon lighting and a line-up that does not know when to stop.',
+    'A campus-night themed party built around the hours nobody films — the walk back at 2am, the corridor that turned into a dancefloor, the playlist nobody admits to loving. Three rooms, one arc, capped capacity.',
   longform: [
-    'Every campus story has the part that never made it to screen — the walk back at 2am, the corridor that turned into a dancefloor, the playlist nobody admits to loving. OffCampus is that part, staged properly.',
-    'Three rooms, one arc. The Lecture Hall opens warm and melodic. The Corridor turns the pressure up through Afro house and desi bass. The Rooftop closes it out at sunrise-adjacent tempo with the city laid out underneath you.',
-    'Capacity is deliberately tight. When it is gone, it is gone — we do not oversell rooms.',
+    'Every campus story has a part that never made it to screen. OffCampus is that part, staged properly — three rooms that each sound like a different hour of the same night.',
+    'The Lecture Hall opens warm and melodic while the room fills. The Corridor takes the pressure up through Afro house and desi bass. The Rooftop closes it out at sunrise-adjacent tempo with the city underneath you.',
+    'Capacity is capped in the system, not on a clipboard. When the last ticket goes, booking closes automatically — we do not oversell rooms and there is no door-list overflow.',
   ],
   themeNote:
-    'An independently produced themed night. Not affiliated with, endorsed by, or licensed from the producers of the series.',
+    'An independently produced themed night. Not affiliated with, endorsed by, or licensed from the producers of any television series.',
   rooms: [
     {
       name: 'The Lecture Hall',
       time: '9:00 PM — 11:00 PM',
       sound: 'Melodic house · Indie electronica',
       copy: 'Doors, first drinks, and a slow build. The room fills while the tempo stays honest.',
+      hue: 214,
     },
     {
       name: 'The Corridor',
       time: '11:00 PM — 2:00 AM',
       sound: 'Afro house · Desi bass · Techno',
-      copy: 'Peak hour. Low ceiling, high pressure, the sound system doing what it was bought to do.',
+      copy: 'Peak hour. Low ceiling, high pressure, and the main rig doing what it was bought to do.',
+      hue: 228,
     },
     {
       name: 'The Rooftop',
       time: '2:00 AM — 4:00 AM',
       sound: 'Progressive · Organic house',
-      copy: 'Open air, city skyline, and the set everyone texts about the next morning.',
+      copy: 'Open air, city skyline, and the set people text about the next morning.',
+      hue: 200,
     },
   ],
+  /**
+   * NEEDS REAL DATA — replace `name: null` with the booked artist once confirmed.
+   * Rendering a null slot as "To be announced" is accurate; inventing a DJ name
+   * is not, and it is the kind of detail people screenshot and check.
+   */
   lineup: [
-    { name: 'KRSNA B2B ARJN', slot: '01:00 — 03:00', room: 'The Corridor', tag: 'Headline' },
-    { name: 'MAAYA', slot: '11:30 — 01:00', room: 'The Corridor', tag: 'Support' },
-    { name: 'NOCTRN', slot: '09:30 — 11:30', room: 'The Lecture Hall', tag: 'Opening' },
-    { name: 'DJ SAAHIL', slot: '02:00 — 04:00', room: 'The Rooftop', tag: 'Closing' },
-  ],
+    { name: null, slot: '01:00 — 03:00', room: 'The Corridor', tag: 'Headline' },
+    { name: null, slot: '11:30 — 01:00', room: 'The Corridor', tag: 'Support' },
+    { name: null, slot: '09:30 — 11:30', room: 'The Lecture Hall', tag: 'Opening' },
+    { name: null, slot: '02:00 — 04:00', room: 'The Rooftop', tag: 'Closing' },
+  ] as ReadonlyArray<{ name: string | null; slot: string; room: string; tag: string }>,
   highlights: [
-    { title: '3 rooms', copy: 'Three distinct sounds under one roof, running back to back until 4am.' },
-    { title: 'L-Acoustics rig', copy: 'Line array in the main room. Tuned on the day, not the week before.' },
-    { title: 'Instant QR entry', copy: 'Your pass lands in your inbox in under a minute. Scan and walk in.' },
-    { title: 'Capped capacity', copy: 'We stop selling when the room is full. No queue-outside-in-the-cold surprises.' },
+    { title: 'Three rooms', copy: 'Three distinct sounds under one roof, running back to back until 4am.' },
+    { title: 'Instant QR entry', copy: 'Your pass reaches your inbox in under a minute. Scan once and walk in.' },
+    { title: 'Capped capacity', copy: 'The room size is enforced by the booking system. Sold out means sold out.' },
+    { title: 'One scan per pass', copy: 'Every QR is signed and dies on first use. Nobody copies their way in.' },
   ],
   faqs: [
     {
       q: 'How do I get my ticket?',
-      a: 'The moment your booking is confirmed we email a QR pass to the address you entered. It usually lands within 60 seconds — check spam if it does not, then use the resend link on your booking page.',
+      a: 'The moment your booking is confirmed, a QR pass is emailed to the address you entered — usually within a minute. It is also shown on your booking page immediately, so you have it even before the email lands.',
     },
     {
       q: 'Do I need to print anything?',
-      a: 'No. Show the QR on your phone at the door. Screenshot it before you arrive — venue signal is unreliable and a screenshot scans exactly the same.',
+      a: 'No. Show the QR on your phone at the door. Screenshot it before you arrive — venue signal is unreliable, and a screenshot scans exactly the same.',
     },
     {
       q: 'Can one QR get two people in?',
-      a: 'No. Each QR admits one person and is consumed on the first scan. If you booked three tickets you get three separate QRs in the same email.',
+      a: 'No. Each QR admits one person and is consumed on the first scan. Book three tickets and you get three separate QRs in the same email.',
     },
     {
       q: 'What ID do I need?',
-      a: 'A government photo ID showing you are 21 or older — Aadhaar, passport, driving licence or voter ID. The name should match your booking. Digital copies in DigiLocker are accepted.',
+      a: 'A government photo ID showing you are 21 or over — Aadhaar, passport, driving licence or voter ID. The name should match your booking. DigiLocker copies are accepted.',
     },
     {
       q: 'What is the dress code?',
@@ -130,11 +147,11 @@ export const OFFCAMPUS = {
     },
     {
       q: 'Do you do refunds?',
-      a: 'Tickets are non-refundable once issued. If we cancel or reschedule the event you are refunded in full, automatically, to the original payment method within 7 working days.',
+      a: 'Tickets are non-refundable once issued. If we cancel or reschedule, you are refunded in full, automatically, to the original payment method within 7 working days.',
     },
     {
       q: 'Can I transfer my ticket to a friend?',
-      a: 'Yes, up to 24 hours before doors. Email us from the address you booked with and we will reissue the pass in their name — the old QR is voided at the same time.',
+      a: 'Yes, up to 24 hours before doors. Email us from the address you booked with and we will reissue the pass in their name — the old QR is voided at the same moment.',
     },
     {
       q: 'Is there parking?',
@@ -144,25 +161,30 @@ export const OFFCAMPUS = {
 } as const;
 
 export const VENUE = {
+  // NEEDS REAL DATA — confirm the venue before promoting it.
   name: 'The Vault, Jubilee Hills',
   addressLines: ['Road No. 36, Jubilee Hills', 'Hyderabad, Telangana 500033'],
   mapsQuery: 'Jubilee Hills, Hyderabad, Telangana',
   landmark: 'Opposite Jubilee Hills Check Post',
 } as const;
 
-export const STATS = [
-  { value: '40+', label: 'Nights produced' },
-  { value: '25k', label: 'People through the door' },
-  { value: '60s', label: 'Average ticket delivery' },
-  { value: '4.8', label: 'Average night rating' },
+/**
+ * Facts about how the platform works. Each one is true by construction — it
+ * describes behaviour enforced in code, not a claim about past events.
+ */
+export const PLATFORM_FACTS = [
+  { value: '3', label: 'Rooms in one night', detail: 'Each with its own rig and its own tempo.' },
+  { value: '<60s', label: 'Ticket delivery', detail: 'Signed QR emailed the moment you book.' },
+  { value: '1', label: 'Scan per pass', detail: 'Consumed on first use. Copies are refused.' },
+  { value: '0', label: 'Oversold rooms', detail: 'Capacity is enforced by the database.' },
 ] as const;
 
 export const ABOUT_STORY = {
-  heading: 'We started because Hyderabad deserved better nights.',
+  heading: 'Sound first. Capped rooms. A door that actually moves.',
   paragraphs: [
-    'Houz of Vybe began in 2022 with one rented rig, a borrowed rooftop and a guest list written on somebody’s phone. The pitch was simple: put the sound first, cap the room, and stop treating the crowd like a spreadsheet.',
-    'Forty-odd nights later the rig is ours, the rooms are bigger, and the guest list is a QR code. What has not changed is the ceiling on capacity — we would rather sell out early than sell you a night you have to fight through.',
-    'We produce everything in-house: booking, sound design, lighting, door operations and the ticketing platform you are looking at right now. That vertical integration is why a ticket reaches your inbox in under a minute and why the door queue actually moves.',
+    'Houz of Vybe produces club nights in Hyderabad on a simple principle: put the sound first, cap the room, and stop treating the crowd like a spreadsheet.',
+    'We produce in-house — booking, sound, lighting, door operations and the ticketing platform you are looking at. That is why a pass reaches your inbox in under a minute and why the queue at the door is a scan rather than a search through a printed list.',
+    'Capacity is not a suggestion here. It is a number in the database, and when it is reached the booking form closes itself. An oversold room is a worse night for everyone standing in it.',
   ],
   values: [
     {
@@ -171,29 +193,29 @@ export const ABOUT_STORY = {
     },
     {
       title: 'Capped rooms, always',
-      copy: 'We publish capacity and we stop at it. An oversold room is a worse night for everyone in it.',
+      copy: 'We publish the capacity and the system stops at it. No overflow, no queue you cannot see the end of.',
     },
     {
       title: 'A door that respects you',
-      copy: 'QR entry, trained staff, zero-tolerance harassment policy and a welfare lead on shift every night.',
+      copy: 'Signed QR entry, trained staff, a zero-tolerance harassment policy and a welfare lead on shift.',
     },
   ],
 } as const;
 
 /**
- * Gallery placeholders. Each item is rendered as a generated gradient tile, so
- * the site ships with no binary assets and no licensing questions — drop real
- * photography in by replacing `src` with an image path.
+ * Gallery placeholders. Rendered as generated compositions, so the site ships
+ * with no binary assets and no licensing questions.
+ * NEEDS REAL DATA — replace with photography from an actual night.
  */
 export const GALLERY = [
-  { id: 1, caption: 'Corridor, 1:40am', event: 'OffCampus Preview', hue: 218, span: 'tall' },
-  { id: 2, caption: 'Rooftop opening', event: 'Skyline Sessions', hue: 205, span: 'wide' },
-  { id: 3, caption: 'Front row', event: 'Bass Theory', hue: 232, span: 'normal' },
-  { id: 4, caption: 'Booth view', event: 'OffCampus Preview', hue: 196, span: 'normal' },
-  { id: 5, caption: 'Doors, 9pm', event: 'Neon Semester', hue: 224, span: 'wide' },
-  { id: 6, caption: 'Closing set', event: 'Skyline Sessions', hue: 210, span: 'tall' },
-  { id: 7, caption: 'Lecture Hall warm-up', event: 'OffCampus Preview', hue: 240, span: 'normal' },
-  { id: 8, caption: 'The last hour', event: 'Bass Theory', hue: 200, span: 'normal' },
+  { id: 1, caption: 'Corridor, peak hour', event: 'The Corridor', hue: 218, span: 'tall' },
+  { id: 2, caption: 'Rooftop, opening set', event: 'The Rooftop', hue: 205, span: 'wide' },
+  { id: 3, caption: 'Front of house', event: 'The Corridor', hue: 232, span: 'normal' },
+  { id: 4, caption: 'Booth view', event: 'The Corridor', hue: 196, span: 'normal' },
+  { id: 5, caption: 'Doors, 9pm', event: 'The Lecture Hall', hue: 224, span: 'wide' },
+  { id: 6, caption: 'Closing set', event: 'The Rooftop', hue: 210, span: 'tall' },
+  { id: 7, caption: 'Warm-up', event: 'The Lecture Hall', hue: 240, span: 'normal' },
+  { id: 8, caption: 'The last hour', event: 'The Rooftop', hue: 200, span: 'normal' },
   { id: 9, caption: 'Rig check', event: 'Production', hue: 214, span: 'wide' },
 ] as const;
 
@@ -201,39 +223,45 @@ export const HOW_IT_WORKS = [
   {
     step: '01',
     title: 'Pick your night',
-    copy: 'Choose the event and the ticket tier that fits. Live stock, so what you see is what is actually left.',
+    copy: 'Choose the event and the tier that fits. Stock is live, so what you see is what is actually left.',
   },
   {
     step: '02',
     title: 'Three fields, no account',
-    copy: 'Name, a working email and your mobile number. No password, no sign-up, no marketing wall.',
+    copy: 'Name, a working email and your mobile. No password, no sign-up, no marketing wall.',
   },
   {
     step: '03',
     title: 'QR hits your inbox',
-    copy: 'A signed QR pass per head, emailed instantly. Screenshot it — it works offline.',
+    copy: 'A signed pass per head, emailed instantly and shown on screen. Screenshot it — it works offline.',
   },
   {
     step: '04',
     title: 'Scan and walk in',
-    copy: 'Our door team scans once. The pass is consumed on the spot, so nobody can copy it in.',
+    copy: 'The door team scans once. The pass is consumed on the spot, so nobody can copy it in.',
   },
 ] as const;
 
-export const TESTIMONIALS = [
+/**
+ * First-person commitments, not third-party quotes. These are promises the
+ * operator can be held to, which is the honest substitute for testimonials on a
+ * site that has not collected any yet.
+ */
+export const PROMISES = [
   {
-    quote: 'Booked at 6pm, ticket was in my inbox before I finished typing my number. Door queue took ninety seconds.',
-    name: 'Aditya R.',
-    context: 'Skyline Sessions',
+    title: 'Your ticket, in under a minute',
+    copy: 'If the email has not arrived, your booking page shows the QR immediately and resends on one tap.',
   },
   {
-    quote: 'The Corridor room at 1am is genuinely the best sound in the city right now. Not close.',
-    name: 'Nikita S.',
-    context: 'Bass Theory',
+    title: 'The room will not be oversold',
+    copy: 'Capacity is enforced in the booking system. When it is reached, the form closes itself.',
   },
   {
-    quote: 'They capped the room and it showed — you could actually move, actually hear, actually get a drink.',
-    name: 'Farhan M.',
-    context: 'Neon Semester',
+    title: 'A pass that cannot be cloned',
+    copy: 'Every QR is cryptographically signed and dies on first scan. Screenshots of someone else’s pass are refused at the door.',
+  },
+  {
+    title: 'Cancelled means refunded',
+    copy: 'If we cancel or reschedule, you are refunded in full without having to ask.',
   },
 ] as const;

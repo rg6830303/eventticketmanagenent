@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { BRAND, VENUE } from '@/content/site';
-import { Reveal } from '@/components/ui/Reveal';
+import { Globe } from '@/components/brand/Globe';
+import { Reveal, Stagger, StaggerItem } from '@/components/ui/Reveal';
 import { SectionHeading } from '@/components/ui/SectionHeading';
 import { ContactForm } from '@/components/contact/ContactForm';
 
@@ -14,106 +15,145 @@ const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComp
 
 export default function ContactPage() {
   return (
-    <div className="container-hov pb-24 pt-32 sm:pt-40">
-      <SectionHeading
-        eyebrow="Contact"
-        title="Talk to a human."
-        lede="Ticket problems, table bookings, press, or you want to play — this reaches the crew directly."
-      />
+    <div className="relative overflow-hidden pb-24 pt-32 sm:pt-40">
+      <div aria-hidden className="pointer-events-none absolute inset-0 -z-10">
+        <div className="absolute inset-0 grid-overlay" />
+        <div className="absolute left-[-8%] top-[-14%] h-[440px] w-[440px] rounded-full bg-vybe-600/15 blur-[140px]" />
+        <Globe
+          spin
+          strokeWidth={0.8}
+          className="absolute right-[-20%] top-[4%] h-[440px] w-[440px] text-vybe-500/[0.08] [animation-duration:115s] sm:h-[600px] sm:w-[600px]"
+        />
+      </div>
 
-      <div className="mt-14 grid gap-10 lg:grid-cols-[380px_1fr] lg:gap-16">
-        <Reveal>
-          <div className="space-y-8">
-            <div>
-              <h2 className="mb-4 font-mono text-[11px] uppercase tracking-[0.22em] text-vybe-300">
-                Reach us
-              </h2>
-              <dl className="space-y-4 text-[14px]">
-                <div>
-                  <dt className="text-[12px] text-dim">Ticket support</dt>
-                  <dd>
-                    <a
-                      href={`mailto:${BRAND.supportEmail}`}
-                      className="text-chalk transition-colors hover:text-vybe-300"
-                    >
-                      {BRAND.supportEmail}
-                    </a>
-                  </dd>
-                </div>
-                <div>
-                  <dt className="text-[12px] text-dim">Everything else</dt>
-                  <dd>
-                    <a
-                      href={`mailto:${BRAND.email}`}
-                      className="text-chalk transition-colors hover:text-vybe-300"
-                    >
-                      {BRAND.email}
-                    </a>
-                  </dd>
-                </div>
-                <div>
-                  <dt className="text-[12px] text-dim">Phone</dt>
-                  <dd>
-                    <a
-                      href={`tel:${BRAND.phone.replace(/\s/g, '')}`}
-                      className="text-chalk transition-colors hover:text-vybe-300"
-                    >
-                      {BRAND.phone}
-                    </a>
-                  </dd>
-                </div>
-              </dl>
-            </div>
+      <div className="container-hov">
+        <SectionHeading
+          eyebrow="Contact"
+          title="Talk to a human."
+          lede="Ticket problems, tables, press, or you want to play — this reaches the crew directly."
+        />
 
-            <div>
-              <h2 className="mb-4 font-mono text-[11px] uppercase tracking-[0.22em] text-vybe-300">
-                Where we are
-              </h2>
-              <address className="not-italic text-[14px] leading-relaxed text-haze">
-                <span className="block font-medium text-chalk">{VENUE.name}</span>
-                {VENUE.addressLines.map((line) => (
-                  <span key={line} className="block">
-                    {line}
-                  </span>
-                ))}
-                <span className="mt-1 block text-[12px] text-dim">{VENUE.landmark}</span>
-              </address>
-              <a
-                href={mapsUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn-ghost mt-5 px-6 py-3 text-[12px]"
-              >
-                Get directions
-              </a>
-            </div>
+        <div className="mt-14 grid gap-10 lg:grid-cols-[minmax(0,360px)_1fr] lg:gap-16">
+          <Stagger className="space-y-4" amount={0.1}>
+            <StaggerItem>
+              <div className="card card-lit p-6">
+                <h2 className="font-mono text-[10px] uppercase tracking-[0.26em] text-vybe-300">
+                  Reach us
+                </h2>
+                <dl className="mt-5 space-y-5 text-[14px]">
+                  <div>
+                    <dt className="text-[11px] uppercase tracking-[0.16em] text-dim">
+                      Ticket support
+                    </dt>
+                    <dd className="mt-1">
+                      <a
+                        href={`mailto:${BRAND.supportEmail}`}
+                        className="break-all text-chalk underline-offset-4 transition-colors hover:text-vybe-300 hover:underline"
+                      >
+                        {BRAND.supportEmail}
+                      </a>
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-[11px] uppercase tracking-[0.16em] text-dim">
+                      Everything else
+                    </dt>
+                    <dd className="mt-1">
+                      <a
+                        href={`mailto:${BRAND.email}`}
+                        className="break-all text-chalk underline-offset-4 transition-colors hover:text-vybe-300 hover:underline"
+                      >
+                        {BRAND.email}
+                      </a>
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-[11px] uppercase tracking-[0.16em] text-dim">Phone</dt>
+                    <dd className="mt-1">
+                      <a
+                        href={`tel:${BRAND.phone.replace(/\s/g, '')}`}
+                        className="text-chalk underline-offset-4 transition-colors hover:text-vybe-300 hover:underline"
+                      >
+                        {BRAND.phone}
+                      </a>
+                    </dd>
+                  </div>
+                </dl>
+              </div>
+            </StaggerItem>
 
-            <div>
-              <h2 className="mb-4 font-mono text-[11px] uppercase tracking-[0.22em] text-vybe-300">
-                Follow
-              </h2>
-              <div className="flex flex-wrap gap-2">
-                {BRAND.socials.map((social) => (
+            <StaggerItem>
+              <div className="card card-lit relative overflow-hidden p-6">
+                <Globe
+                  spin
+                  strokeWidth={1.6}
+                  className="pointer-events-none absolute -bottom-12 -right-10 h-40 w-40 text-flare/12 [animation-duration:70s]"
+                />
+                <div className="relative">
+                  <h2 className="font-mono text-[10px] uppercase tracking-[0.26em] text-vybe-300">
+                    Where we are
+                  </h2>
+                  <address className="mt-5 not-italic text-[14px] leading-relaxed text-haze">
+                    <span className="block font-display text-base font-semibold text-chalk">
+                      {VENUE.name}
+                    </span>
+                    {VENUE.addressLines.map((line) => (
+                      <span key={line} className="block">
+                        {line}
+                      </span>
+                    ))}
+                    <span className="mt-1.5 block text-[12px] text-dim">{VENUE.landmark}</span>
+                  </address>
                   <a
-                    key={social.label}
-                    href={social.href}
+                    href={mapsUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="rounded-full border border-hairline px-4 py-2 text-[12px] text-haze transition-colors hover:border-vybe-600 hover:text-chalk"
+                    className="btn-ghost mt-5 px-6 py-3 text-[12px]"
                   >
-                    {social.label}
+                    Get directions
+                    <svg
+                      viewBox="0 0 20 20"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.7"
+                      className="h-3.5 w-3.5"
+                      aria-hidden
+                    >
+                      <path d="M7 13L13 7M13 7H8M13 7v5" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
                   </a>
-                ))}
+                </div>
               </div>
-            </div>
-          </div>
-        </Reveal>
+            </StaggerItem>
 
-        <Reveal delay={0.1} direction="left">
-          <div className="card card-lit p-6 sm:p-8">
-            <ContactForm />
-          </div>
-        </Reveal>
+            <StaggerItem>
+              <div className="card card-lit p-6">
+                <h2 className="font-mono text-[10px] uppercase tracking-[0.26em] text-vybe-300">
+                  Follow
+                </h2>
+                <div className="mt-5 flex flex-wrap gap-2">
+                  {BRAND.socials.map((social) => (
+                    <a
+                      key={social.label}
+                      href={social.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="rounded-full border border-hairline px-4 py-2 text-[12px] text-haze transition-all duration-300 hover:-translate-y-0.5 hover:border-vybe-600 hover:text-chalk"
+                    >
+                      {social.label}
+                    </a>
+                  ))}
+                </div>
+              </div>
+            </StaggerItem>
+          </Stagger>
+
+          <Reveal delay={0.1} direction="left">
+            <div className="card card-lit p-6 sm:p-8">
+              <ContactForm />
+            </div>
+          </Reveal>
+        </div>
       </div>
     </div>
   );

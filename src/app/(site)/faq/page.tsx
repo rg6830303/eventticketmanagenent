@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
-import { OFFCAMPUS } from '@/content/site';
+import { BRAND, OFFCAMPUS } from '@/content/site';
+import { Globe } from '@/components/brand/Globe';
 import { SectionHeading } from '@/components/ui/SectionHeading';
 import { Reveal } from '@/components/ui/Reveal';
 import { Accordion } from '@/components/events/Accordion';
@@ -57,46 +58,99 @@ export default function FaqPage() {
   };
 
   return (
-    <div className="container-hov pb-24 pt-32 sm:pt-40">
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
-
-      <SectionHeading
-        eyebrow="FAQ"
-        title="Everything about tickets, entry and the door."
-        lede="If it isn't here, ask us — we answer within a working day."
+    <div className="relative overflow-hidden pb-24 pt-32 sm:pt-40">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
 
-      <div className="mt-14 grid gap-12 lg:grid-cols-[1fr_300px] lg:gap-16">
-        <div className="space-y-14">
-          <section>
-            <h2 className="mb-6 font-display text-lg font-semibold text-vybe-300">
-              Tickets &amp; booking
-            </h2>
-            <Accordion items={PLATFORM_FAQS.map((f) => ({ question: f.q, answer: f.a }))} />
-          </section>
+      {/* The mark, used as the page's ground texture. */}
+      <div aria-hidden className="pointer-events-none absolute inset-0 -z-10">
+        <div className="absolute inset-0 grid-overlay" />
+        <Globe
+          spin
+          strokeWidth={0.7}
+          className="absolute left-1/2 top-[8%] h-[560px] w-[560px] -translate-x-1/2 text-vybe-500/[0.07] [animation-duration:130s] sm:h-[760px] sm:w-[760px]"
+        />
+        <Globe
+          spin
+          strokeWidth={0.9}
+          className="absolute right-[-22%] bottom-[6%] hidden h-[420px] w-[420px] text-pulse-400/[0.05] [animation-direction:reverse] [animation-duration:95s] lg:block"
+        />
+      </div>
 
-          <section>
-            <h2 className="mb-6 font-display text-lg font-semibold text-vybe-300">
-              On the night
-            </h2>
-            <Accordion items={OFFCAMPUS.faqs.map((f) => ({ question: f.q, answer: f.a }))} />
-          </section>
+      <div className="container-hov">
+        <SectionHeading
+          eyebrow="FAQ"
+          title="Everything about tickets, entry and the door."
+          lede={`${all.length} answers, written plainly. If yours is not here, ask — we reply within a working day.`}
+        />
+
+        <div className="mt-14 grid gap-12 lg:grid-cols-[1fr_320px] lg:gap-16">
+          <div className="space-y-14">
+            <section aria-labelledby="faq-platform">
+              <div className="mb-6 flex items-center gap-4">
+                <h2
+                  id="faq-platform"
+                  className="font-display text-lg font-semibold text-chalk"
+                >
+                  Tickets &amp; booking
+                </h2>
+                <span aria-hidden className="h-px flex-1 bg-gradient-to-r from-vybe-600/50 to-transparent" />
+                <span className="font-mono text-[11px] text-dim">
+                  {String(PLATFORM_FAQS.length).padStart(2, '0')}
+                </span>
+              </div>
+              <Accordion items={PLATFORM_FAQS.map((f) => ({ question: f.q, answer: f.a }))} />
+            </section>
+
+            <section aria-labelledby="faq-night">
+              <div className="mb-6 flex items-center gap-4">
+                <h2 id="faq-night" className="font-display text-lg font-semibold text-chalk">
+                  On the night
+                </h2>
+                <span aria-hidden className="h-px flex-1 bg-gradient-to-r from-vybe-600/50 to-transparent" />
+                <span className="font-mono text-[11px] text-dim">
+                  {String(OFFCAMPUS.faqs.length).padStart(2, '0')}
+                </span>
+              </div>
+              <Accordion items={OFFCAMPUS.faqs.map((f) => ({ question: f.q, answer: f.a }))} />
+            </section>
+          </div>
+
+          <Reveal delay={0.1} direction="left" className="lg:sticky lg:top-28 lg:h-fit">
+            <aside className="card card-lit relative overflow-hidden p-6">
+              <Globe
+                spin
+                strokeWidth={1.4}
+                className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 text-flare/12 [animation-duration:60s]"
+              />
+              <div className="relative">
+                <h2 className="font-display text-lg font-semibold text-chalk">Still stuck?</h2>
+                <p className="mt-2.5 text-[13px] leading-relaxed text-haze">
+                  Send your booking reference and what went wrong. A human reads every message and
+                  replies within one working day.
+                </p>
+                <Link href="/contact" className="btn-primary mt-6 w-full py-3 text-[13px]">
+                  Contact us
+                </Link>
+                <Link href="/book" className="btn-ghost mt-2.5 w-full py-3 text-[13px]">
+                  Book tickets
+                </Link>
+                <div className="divider my-6" />
+                <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-dim">
+                  Ticket support
+                </p>
+                <a
+                  href={`mailto:${BRAND.supportEmail}`}
+                  className="mt-2 block break-all text-[13px] text-chalk transition-colors hover:text-vybe-300"
+                >
+                  {BRAND.supportEmail}
+                </a>
+              </div>
+            </aside>
+          </Reveal>
         </div>
-
-        <Reveal delay={0.1} direction="left">
-          <aside className="card card-lit p-6 lg:sticky lg:top-28">
-            <h2 className="font-display text-lg font-semibold text-chalk">Still stuck?</h2>
-            <p className="mt-2.5 text-[13px] leading-relaxed text-haze">
-              Send us your booking reference and what went wrong. A human reads every message.
-            </p>
-            <Link href="/contact" className="btn-primary mt-6 w-full py-3 text-[13px]">
-              Contact us
-            </Link>
-            <Link href="/book" className="btn-ghost mt-2.5 w-full py-3 text-[13px]">
-              Book tickets
-            </Link>
-          </aside>
-        </Reveal>
       </div>
     </div>
   );

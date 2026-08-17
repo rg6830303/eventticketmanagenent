@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { motion, useReducedMotion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 
 const ITEMS = [
@@ -13,9 +14,14 @@ const ITEMS = [
 
 export function AdminNav({ variant = 'bar' }: { variant?: 'bar' | 'tabs' }) {
   const pathname = usePathname();
+  const reduce = useReducedMotion();
 
   const isActive = (href: string, exact?: boolean) =>
     exact ? pathname === href : pathname === href || pathname.startsWith(`${href}/`);
+
+  // Distinct ids per variant: both navs are in the DOM at once (one hidden by a
+  // breakpoint) and a shared id would make the indicators chase each other.
+  const indicatorId = `admin-nav-indicator-${variant}`;
 
   if (variant === 'tabs') {
     return (
@@ -30,11 +36,25 @@ export function AdminNav({ variant = 'bar' }: { variant?: 'bar' | 'tabs' }) {
               // Tall targets: this is tapped with a thumb, often while holding a phone
               // in one hand and a guest's screen in the other.
               className={cn(
-                'flex min-h-[60px] flex-col items-center justify-center gap-1 text-[10px] font-medium transition-colors',
-                active ? 'text-vybe-300' : 'text-dim',
+                'relative flex min-h-[60px] flex-col items-center justify-center gap-1 text-[10px] font-medium',
+                'transition-colors duration-200 active:bg-vybe-500/10',
+                active ? 'text-vybe-200' : 'text-dim',
               )}
             >
-              <item.icon className="h-5 w-5" active={active} />
+              {active && !reduce && (
+                <motion.span
+                  layoutId={indicatorId}
+                  aria-hidden
+                  className="absolute inset-x-4 top-0 h-0.5 rounded-full bg-vybe-400"
+                  transition={{ type: 'spring', stiffness: 500, damping: 38 }}
+                />
+              )}
+              {active && reduce && (
+                <span aria-hidden className="absolute inset-x-4 top-0 h-0.5 rounded-full bg-vybe-400" />
+              )}
+              <item.icon
+                className={cn('h-5 w-5 transition-transform duration-200', active && 'scale-110')}
+              />
               {item.label}
             </Link>
           );
@@ -53,13 +73,23 @@ export function AdminNav({ variant = 'bar' }: { variant?: 'bar' | 'tabs' }) {
             href={item.href}
             aria-current={active ? 'page' : undefined}
             className={cn(
-              'flex items-center gap-2 whitespace-nowrap border-b-2 px-3 py-2.5 text-[13px] font-medium transition-colors',
-              active
-                ? 'border-vybe-500 text-chalk'
-                : 'border-transparent text-haze hover:text-chalk',
+              'relative flex items-center gap-2 whitespace-nowrap px-3 py-2.5 text-[13px] font-medium',
+              'transition-colors duration-200',
+              active ? 'text-chalk' : 'text-haze hover:text-chalk',
             )}
           >
-            <item.icon className="h-4 w-4" active={active} />
+            {active && !reduce && (
+              <motion.span
+                layoutId={indicatorId}
+                aria-hidden
+                className="absolute inset-x-0 bottom-0 h-0.5 rounded-full bg-vybe-500"
+                transition={{ type: 'spring', stiffness: 500, damping: 38 }}
+              />
+            )}
+            {active && reduce && (
+              <span aria-hidden className="absolute inset-x-0 bottom-0 h-0.5 rounded-full bg-vybe-500" />
+            )}
+            <item.icon className="h-4 w-4" />
             {item.label}
           </Link>
         );
@@ -68,7 +98,7 @@ export function AdminNav({ variant = 'bar' }: { variant?: 'bar' | 'tabs' }) {
   );
 }
 
-type IconProps = { className?: string; active?: boolean };
+type IconProps = { className?: string };
 
 function GridIcon({ className }: IconProps) {
   return (

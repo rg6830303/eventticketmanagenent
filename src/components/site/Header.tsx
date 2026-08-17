@@ -2,11 +2,18 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { AnimatePresence, motion, useScroll, useMotionValueEvent } from 'framer-motion';
+import {
+  AnimatePresence,
+  motion,
+  useScroll,
+  useSpring,
+  useMotionValueEvent,
+} from 'framer-motion';
 import { useEffect, useState } from 'react';
 import { NAV_LINKS } from '@/content/site';
 import { cn } from '@/lib/utils';
-import { Logo } from './Logo';
+import { Logo } from '@/components/brand/Logo';
+import { Globe } from '@/components/brand/Globe';
 
 /**
  * Sticky header.
@@ -19,7 +26,11 @@ export function Header() {
   const pathname = usePathname();
   const [condensed, setCondensed] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
-  const { scrollY } = useScroll();
+  const { scrollY, scrollYProgress } = useScroll();
+
+  // Spring the raw ratio so the line eases into place instead of tracking every
+  // wheel tick — a bare scrollYProgress reads as jitter on trackpads.
+  const progress = useSpring(scrollYProgress, { stiffness: 180, damping: 32, mass: 0.35 });
 
   useMotionValueEvent(scrollY, 'change', (latest) => {
     setCondensed(latest > 40);
@@ -38,6 +49,8 @@ export function Header() {
     };
   }, [menuOpen]);
 
+  const isActive = (href: string) => (href === '/' ? pathname === '/' : pathname.startsWith(href));
+
   return (
     <>
       <motion.header
@@ -51,15 +64,24 @@ export function Header() {
             : 'border-b border-transparent bg-transparent',
         )}
       >
-        <nav className="container-hov flex h-[68px] items-center justify-between gap-4" aria-label="Main">
-          <Link href="/" className="shrink-0" aria-label="Houz of Vybe — home">
-            <Logo />
+        <nav
+          className={cn(
+            'container-hov flex items-center justify-between gap-4 transition-[height] duration-300',
+            condensed ? 'h-[60px]' : 'h-[74px]',
+          )}
+          aria-label="Main"
+        >
+          <Link
+            href="/"
+            className="shrink-0 rounded-full transition-opacity hover:opacity-90"
+            aria-label="Houz of Vybe — home"
+          >
+            <Logo variant="inline" />
           </Link>
 
           <ul className="hidden items-center gap-1 lg:flex">
             {NAV_LINKS.map((link) => {
-              const active =
-                link.href === '/' ? pathname === '/' : pathname.startsWith(link.href);
+              const active = isActive(link.href);
               return (
                 <li key={link.href}>
                   <Link
@@ -75,7 +97,7 @@ export function Header() {
                     {active && (
                       <motion.span
                         layoutId="nav-pill"
-                        className="absolute inset-0 rounded-full border border-vybe-500/30 bg-vybe-500/10"
+                        className="absolute inset-0 rounded-full border border-vybe-500/35 bg-vybe-500/10 shadow-inset"
                         transition={{ type: 'spring', stiffness: 340, damping: 30 }}
                       />
                     )}
@@ -87,7 +109,10 @@ export function Header() {
           </ul>
 
           <div className="flex items-center gap-2">
-            <Link href="/book" className="btn-primary hidden px-6 py-2.5 text-[13px] sm:inline-flex">
+            <Link
+              href="/book"
+              className="btn-primary hidden px-6 py-2.5 text-[13px] sm:inline-flex"
+            >
               Book tickets
             </Link>
 
@@ -97,7 +122,7 @@ export function Header() {
               aria-expanded={menuOpen}
               aria-controls="mobile-nav"
               aria-label={menuOpen ? 'Close menu' : 'Open menu'}
-              className="flex h-10 w-10 items-center justify-center rounded-full border border-hairline text-chalk lg:hidden"
+              className="flex h-10 w-10 items-center justify-center rounded-full border border-hairline text-chalk transition-colors hover:border-vybe-600 lg:hidden"
             >
               <span className="relative block h-3.5 w-5">
                 <span
@@ -122,6 +147,14 @@ export function Header() {
             </button>
           </div>
         </nav>
+
+        {/* Reading position along the bottom edge. Driven by scroll, so it holds
+            still for anyone who has asked for reduced motion. */}
+        <motion.div
+          aria-hidden
+          style={{ scaleX: progress }}
+          className="absolute inset-x-0 bottom-0 h-[2px] origin-left bg-gradient-to-r from-vybe-600 via-vybe-400 to-pulse-400"
+        />
       </motion.header>
 
       <AnimatePresence>
@@ -132,25 +165,46 @@ export function Header() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.25 }}
-            className="fixed inset-0 z-40 bg-void/95 backdrop-blur-2xl lg:hidden"
+            className="fixed inset-0 z-40 overflow-hidden bg-void/95 backdrop-blur-2xl lg:hidden"
           >
-            <div className="container-hov flex h-full flex-col pt-24">
+            <div
+              aria-hidden
+              className="pointer-events-none absolute -right-24 top-16 h-[420px] w-[420px] text-flare/[0.07]"
+            >
+              <Globe spin strokeWidth={2.6} className="h-full w-full" />
+            </div>
+
+            <div className="container-hov relative flex h-full flex-col pt-24">
               <ul className="flex flex-col gap-1">
-                {NAV_LINKS.map((link, index) => (
-                  <motion.li
-                    key={link.href}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.05 + index * 0.05, duration: 0.4 }}
-                  >
-                    <Link
-                      href={link.href}
-                      className="block border-b border-hairline/60 py-4 font-display text-2xl font-semibold text-chalk"
+                {NAV_LINKS.map((link, index) => {
+                  const active = isActive(link.href);
+                  return (
+                    <motion.li
+                      key={link.href}
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.05 + index * 0.05, duration: 0.4 }}
                     >
-                      {link.label}
-                    </Link>
-                  </motion.li>
-                ))}
+                      <Link
+                        href={link.href}
+                        aria-current={active ? 'page' : undefined}
+                        className={cn(
+                          'flex items-center gap-3 border-b border-hairline/60 py-4 font-display text-2xl font-semibold transition-colors',
+                          active ? 'text-chalk' : 'text-haze',
+                        )}
+                      >
+                        <span
+                          aria-hidden
+                          className={cn(
+                            'h-1.5 w-1.5 shrink-0 rounded-full transition-colors',
+                            active ? 'bg-flare' : 'bg-transparent',
+                          )}
+                        />
+                        {link.label}
+                      </Link>
+                    </motion.li>
+                  );
+                })}
               </ul>
               <motion.div
                 initial={{ opacity: 0, y: 20 }}

@@ -1,18 +1,25 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
 import { getEventBySlug, listTiers } from '@/lib/bookings';
-import { BRAND, FEATURED_EVENT_SLUG, HOW_IT_WORKS, OFFCAMPUS, STATS, TESTIMONIALS, VENUE } from '@/content/site';
+import { BRAND, FEATURED_EVENT_SLUG, OFFCAMPUS, VENUE } from '@/content/site';
 import { formatEventDate, formatEventTime, formatInr } from '@/lib/utils';
-import { Reveal, Stagger, StaggerItem } from '@/components/ui/Reveal';
+import { Reveal } from '@/components/ui/Reveal';
 import { SectionHeading } from '@/components/ui/SectionHeading';
 import { Marquee } from '@/components/ui/Marquee';
 import { Magnetic } from '@/components/ui/Magnetic';
 import { Countdown } from '@/components/ui/Countdown';
-import { TiltCard, TiltLayer } from '@/components/ui/TiltCard';
 // Client component that renders null until it has mounted and confirmed WebGL,
 // so it contributes nothing to SSR and never blocks the hero's first paint.
 import { HeroScene } from '@/components/three/HeroScene';
 import { SafeDecoration } from '@/components/ui/SafeDecoration';
+import { Globe } from '@/components/brand/Globe';
+import { Ticket3D } from '@/components/game/Ticket3D';
+import { ScarcityMeter } from '@/components/game/ScarcityMeter';
+import { VibeQuiz } from '@/components/game/VibeQuiz';
+import { HeroParallax } from '@/components/home/HeroParallax';
+import { HowItWorks } from '@/components/home/HowItWorks';
+import { PlatformFacts } from '@/components/home/PlatformFacts';
+import { Promises } from '@/components/home/Promises';
 
 export const dynamic = 'force-dynamic';
 
@@ -26,25 +33,51 @@ const MARQUEE = [
   'HYDERABAD',
   'AFTER DARK',
   'THREE ROOMS',
-  'LIVE SOUND',
   'OFFCAMPUS',
-  'NO OVERSELLING',
+  'QR AT THE DOOR',
+  'CAPPED CAPACITY',
 ];
 
 export default async function HomePage() {
   const event = await getEventBySlug(FEATURED_EVENT_SLUG).catch(() => null);
   const tiers = event ? await listTiers(event.id).catch(() => []) : [];
-  const lowestPrice = tiers.length
-    ? Math.min(...tiers.filter((t) => t.quantity > t.sold).map((t) => t.price_paise))
+
+  const available = tiers.filter((tier) => tier.quantity > tier.sold);
+  // Math.min() with no arguments is Infinity, so an all-sold-out event has to
+  // fall through to null rather than quietly advertising an impossible price.
+  const lowestPrice = available.length
+    ? Math.min(...available.map((tier) => tier.price_paise))
     : null;
   const remaining = tiers.reduce((sum, tier) => sum + Math.max(0, tier.quantity - tier.sold), 0);
+  const stock = tiers.map((tier) => ({
+    code: tier.code,
+    name: tier.name,
+    remaining: Math.max(0, tier.quantity - tier.sold),
+    total: tier.quantity,
+  }));
+
+  const priceLine =
+    lowestPrice === null ? '' : lowestPrice > 0 ? `From ${formatInr(lowestPrice)} · ` : 'Free entry · ';
 
   return (
     <>
       {/* ------------------------------------------------------------------ */}
       {/* Hero                                                               */}
       {/* ------------------------------------------------------------------ */}
-      <section className="relative flex min-h-[92dvh] items-center overflow-hidden">
+      <section className="relative flex min-h-[100dvh] items-center overflow-hidden">
+        {/* The mark itself, blown up and turning behind the headline. Red at
+            8% is a watermark; any louder and it competes with the blue. */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 -z-10 flex items-center justify-center"
+        >
+          <Globe
+            spin
+            strokeWidth={0.7}
+            className="h-[120vmin] w-[120vmin] max-w-none text-flare/[0.08]"
+          />
+        </div>
+
         {/* Ornamental only — if WebGL fails on the visitor's machine the hero
             must still render, so it can never reach the root boundary. */}
         <SafeDecoration label="hero-webgl">
@@ -56,10 +89,10 @@ export default async function HomePage() {
           className="pointer-events-none absolute inset-x-0 bottom-0 -z-10 h-48 bg-gradient-to-t from-void to-transparent"
         />
 
-        <div className="container-hov relative pt-28">
+        <HeroParallax className="container-hov relative w-full pt-28">
           <Reveal>
             <p className="eyebrow mb-5">
-              {BRAND.city} · Est. 2022 · {STATS[0].value} nights
+              {BRAND.city} · Season One · 21+
             </p>
           </Reveal>
 
@@ -88,13 +121,10 @@ export default async function HomePage() {
 
           <Reveal delay={0.32}>
             <p className="mt-6 text-[12px] text-dim">
-              {lowestPrice !== null && lowestPrice > 0
-                ? `From ${formatInr(lowestPrice)} · `
-                : 'Free entry right now · '}
-              QR ticket emailed instantly · 21+
+              {priceLine}QR ticket emailed instantly · One scan per pass
             </p>
           </Reveal>
-        </div>
+        </HeroParallax>
 
         <div
           aria-hidden
@@ -105,15 +135,15 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <div className="border-y border-hairline bg-ink/40">
-        <Marquee items={MARQUEE} speedSeconds={38} />
+      <div className="border-y border-hairline bg-ink/50">
+        <Marquee items={MARQUEE} speedSeconds={42} />
       </div>
 
       {/* ------------------------------------------------------------------ */}
       {/* Featured event                                                     */}
       {/* ------------------------------------------------------------------ */}
-      <section className="section container-hov">
-        <div className="grid items-center gap-12 lg:grid-cols-2 lg:gap-16">
+      <section className="section container-hov" aria-label="Next event">
+        <div className="grid items-center gap-14 lg:grid-cols-2 lg:gap-16">
           <div>
             <Reveal>
               <p className="eyebrow mb-4">{OFFCAMPUS.eyebrow}</p>
@@ -144,6 +174,13 @@ export default async function HomePage() {
                     <Countdown target={event.starts_at} />
                   </div>
                 </Reveal>
+                {stock.length > 0 && (
+                  <Reveal delay={0.3}>
+                    <div className="mt-8">
+                      <ScarcityMeter tiers={stock} />
+                    </div>
+                  </Reveal>
+                )}
               </>
             ) : (
               <Reveal delay={0.18}>
@@ -153,7 +190,7 @@ export default async function HomePage() {
               </Reveal>
             )}
 
-            <Reveal delay={0.3}>
+            <Reveal delay={0.36}>
               <div className="mt-9 flex flex-wrap gap-3">
                 <Link href="/events/offcampus" className="btn-primary">
                   Full line-up
@@ -167,86 +204,73 @@ export default async function HomePage() {
             </Reveal>
           </div>
 
-          <Reveal delay={0.14} direction="left">
-            <TiltCard intensity={11} className="group">
-              <Poster
-                title={OFFCAMPUS.title}
-                subtitle={OFFCAMPUS.subtitle}
-                date={event ? formatEventDate(event.starts_at) : 'Dates soon'}
-                venue={VENUE.name}
-              />
-            </TiltCard>
+          {/* Entrance travels on Y, not X: a horizontal offset on a full-bleed
+              column pushes past the container edge and scrolls the page. */}
+          <Reveal delay={0.14}>
+            <Ticket3D
+              eventName={OFFCAMPUS.title}
+              date={event ? formatEventDate(event.starts_at) : 'Date being confirmed'}
+              venue={event?.venue_name ?? VENUE.name}
+              tierName={tiers[0]?.name ?? 'General entry'}
+            />
+            <p className="mt-4 text-center text-[12px] text-dim">
+              A preview of the pass. The real one carries your name and a scannable code.
+            </p>
           </Reveal>
+        </div>
+      </section>
+
+      {/* ------------------------------------------------------------------ */}
+      {/* Vibe quiz — the lead magnet                                        */}
+      {/* ------------------------------------------------------------------ */}
+      <section className="section border-y border-hairline bg-ink/40" aria-label="Room finder">
+        <div className="container-hov">
+          <SectionHeading
+            eyebrow="Room finder"
+            title="Not sure which ticket?"
+            lede="Three rooms, three tempos, one night. Answer a few questions and we will tell you where you are going to spend most of it — then book the pass that gets you in."
+            align="center"
+          />
+          <div className="mt-12">
+            <VibeQuiz rooms={OFFCAMPUS.rooms} />
+          </div>
         </div>
       </section>
 
       {/* ------------------------------------------------------------------ */}
       {/* How it works                                                       */}
       {/* ------------------------------------------------------------------ */}
-      <section className="section border-y border-hairline bg-ink/40">
-        <div className="container-hov">
-          <SectionHeading
-            eyebrow="How it works"
-            title="Four steps from browsing to inside."
-            lede="No account, no app, no queue at a will-call desk. Book, get your QR, walk in."
-          />
+      <section className="section container-hov" aria-label="How booking works">
+        <SectionHeading
+          eyebrow="How it works"
+          title="Four steps from browsing to inside."
+          lede="No account, no app, no queue at a will-call desk. Book, get your QR, walk in."
+        />
+        <HowItWorks />
+      </section>
 
-          <Stagger className="relative mt-14 grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
-            {/* Connector runs behind the cards on wide screens only. */}
-            <div
-              aria-hidden
-              className="absolute left-0 top-6 hidden h-px w-full bg-gradient-to-r from-transparent via-hairline to-transparent lg:block"
-            />
-            {HOW_IT_WORKS.map((step) => (
-              <StaggerItem key={step.step} className="relative">
-                <div className="flex h-12 w-12 items-center justify-center rounded-full border border-vybe-500/40 bg-void font-mono text-[13px] font-bold text-vybe-300">
-                  {step.step}
-                </div>
-                <h3 className="mt-5 font-display text-lg font-semibold text-chalk">{step.title}</h3>
-                <p className="mt-2 text-[13px] leading-relaxed text-haze">{step.copy}</p>
-              </StaggerItem>
-            ))}
-          </Stagger>
+      {/* ------------------------------------------------------------------ */}
+      {/* Platform facts                                                     */}
+      {/* ------------------------------------------------------------------ */}
+      <section
+        className="border-y border-hairline bg-ink/40 py-16 sm:py-20"
+        aria-label="How the platform works"
+      >
+        <div className="container-hov">
+          <PlatformFacts />
         </div>
       </section>
 
       {/* ------------------------------------------------------------------ */}
-      {/* Stats                                                              */}
+      {/* Promises                                                           */}
       {/* ------------------------------------------------------------------ */}
-      <section className="container-hov py-16 sm:py-20">
-        <Stagger className="grid grid-cols-2 gap-6 lg:grid-cols-4">
-          {STATS.map((stat) => (
-            <StaggerItem key={stat.label} className="text-center">
-              <p className="font-display text-4xl font-extrabold text-gradient sm:text-5xl">
-                {stat.value}
-              </p>
-              <p className="mt-2 text-[12px] uppercase tracking-wider text-dim">{stat.label}</p>
-            </StaggerItem>
-          ))}
-        </Stagger>
-      </section>
-
-      {/* ------------------------------------------------------------------ */}
-      {/* Testimonials                                                       */}
-      {/* ------------------------------------------------------------------ */}
-      <section className="section container-hov">
-        <SectionHeading eyebrow="From the floor" title="What people say the morning after." />
-
-        <Stagger className="mt-12 grid gap-5 lg:grid-cols-3">
-          {TESTIMONIALS.map((testimonial) => (
-            <StaggerItem key={testimonial.name}>
-              <figure className="card card-lit h-full p-6 transition-transform duration-300 hover:-translate-y-1.5">
-                <blockquote className="text-[15px] leading-relaxed text-chalk">
-                  “{testimonial.quote}”
-                </blockquote>
-                <figcaption className="mt-5 border-t border-hairline pt-4">
-                  <p className="text-[13px] font-medium text-chalk">{testimonial.name}</p>
-                  <p className="text-[11px] text-dim">{testimonial.context}</p>
-                </figcaption>
-              </figure>
-            </StaggerItem>
-          ))}
-        </Stagger>
+      <section className="section container-hov" aria-label="Our commitments">
+        <SectionHeading
+          eyebrow="Commitments"
+          title="Four promises we can be held to."
+          lede="Not reviews, not ratings — the things the booking system does on every single order."
+        />
+        <Promises />
       </section>
 
       {/* ------------------------------------------------------------------ */}
@@ -256,6 +280,16 @@ export default async function HomePage() {
         <Reveal>
           <div className="card card-lit relative overflow-hidden px-6 py-16 text-center sm:px-12 sm:py-20">
             <div aria-hidden className="absolute inset-0 grid-overlay opacity-70" />
+            <div
+              aria-hidden
+              className="pointer-events-none absolute inset-0 flex items-center justify-center"
+            >
+              <Globe
+                spin
+                strokeWidth={0.8}
+                className="h-[520px] w-[520px] max-w-none text-vybe-300/[0.07]"
+              />
+            </div>
             <div
               aria-hidden
               className="absolute left-1/2 top-0 h-72 w-72 -translate-x-1/2 -translate-y-1/2 rounded-full bg-vybe-500/25 blur-[100px]"
@@ -288,69 +322,6 @@ function Detail({ label, value }: { label: string; value: string }) {
     <div>
       <dt className="text-[11px] uppercase tracking-wider text-dim">{label}</dt>
       <dd className="mt-1 font-medium text-chalk">{value}</dd>
-    </div>
-  );
-}
-
-/** Event poster drawn entirely in CSS — no image assets, no licensing questions. */
-function Poster({
-  title,
-  subtitle,
-  date,
-  venue,
-}: {
-  title: string;
-  subtitle: string;
-  date: string;
-  venue: string;
-}) {
-  return (
-    <div className="card card-lit relative aspect-[3/4] overflow-hidden">
-      <div className="absolute inset-0 bg-gradient-to-br from-vybe-800 via-vybe-950 to-void" />
-      <div aria-hidden className="absolute inset-0 grid-overlay opacity-80" />
-      <div
-        aria-hidden
-        className="absolute -right-16 top-8 h-56 w-56 rounded-full bg-pulse-500/25 blur-[70px]"
-      />
-      <div
-        aria-hidden
-        className="absolute -bottom-12 -left-10 h-52 w-52 rounded-full bg-vybe-400/25 blur-[70px]"
-      />
-
-      {/* Concentric rings — reads as a speaker cone under the type. */}
-      <div aria-hidden className="absolute inset-0 flex items-center justify-center">
-        {[0, 1, 2].map((ring) => (
-          <span
-            key={ring}
-            className="absolute rounded-full border border-pulse-400/20"
-            style={{
-              width: `${45 + ring * 22}%`,
-              aspectRatio: '1',
-              animation: `float ${7 + ring * 1.5}s ease-in-out infinite`,
-              animationDelay: `${ring * 0.4}s`,
-            }}
-          />
-        ))}
-      </div>
-
-      <TiltLayer z={55} className="absolute inset-0 flex flex-col justify-between p-7">
-        <div className="flex items-start justify-between">
-          <span className="badge">Season One</span>
-          <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-chalk/60">
-            HOV·001
-          </span>
-        </div>
-
-        <div>
-          <p className="font-display text-5xl font-extrabold leading-none tracking-tight text-white sm:text-6xl">
-            {title}
-          </p>
-          <p className="mt-2 font-display text-lg text-pulse-300">{subtitle}</p>
-          <div className="mt-6 h-px w-full bg-gradient-to-r from-white/40 to-transparent" />
-          <p className="mt-4 text-[13px] font-medium text-white/85">{date}</p>
-          <p className="text-[12px] text-white/55">{venue}</p>
-        </div>
-      </TiltLayer>
     </div>
   );
 }

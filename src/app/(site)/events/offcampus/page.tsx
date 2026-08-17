@@ -6,8 +6,14 @@ import { formatEventDate, formatEventTime, formatInr } from '@/lib/utils';
 import { Reveal, Stagger, StaggerItem } from '@/components/ui/Reveal';
 import { SectionHeading } from '@/components/ui/SectionHeading';
 import { Countdown } from '@/components/ui/Countdown';
-import { TiltCard, TiltLayer } from '@/components/ui/TiltCard';
+import { Magnetic } from '@/components/ui/Magnetic';
+import { Globe } from '@/components/brand/Globe';
 import { Accordion } from '@/components/events/Accordion';
+import { HeroOrbit, HeroParallax } from '@/components/events/HeroMotion';
+import { RoomCards } from '@/components/events/RoomCards';
+import { LineupTable } from '@/components/events/LineupTable';
+import { ScarcityMeter } from '@/components/game/ScarcityMeter';
+import { VibeQuiz } from '@/components/game/VibeQuiz';
 
 export const dynamic = 'force-dynamic';
 
@@ -24,7 +30,9 @@ export default async function OffCampusPage() {
   const event = await getEventBySlug(OFFCAMPUS.slug).catch(() => null);
   const tiers = event ? await listTiers(event.id).catch(() => []) : [];
   const remaining = tiers.reduce((sum, tier) => sum + Math.max(0, tier.quantity - tier.sold), 0);
+  const released = tiers.reduce((sum, tier) => sum + tier.quantity, 0);
   const onSale = Boolean(event) && remaining > 0 && event?.status !== 'cancelled';
+  const lowStock = released > 0 && remaining > 0 && remaining / released <= 0.15;
 
   const jsonLd = event
     ? {
@@ -75,32 +83,37 @@ export default async function OffCampusPage() {
 
       {/* Hero ------------------------------------------------------------- */}
       <section className="relative overflow-hidden pb-16 pt-32 sm:pt-40">
-        <div aria-hidden className="pointer-events-none absolute inset-0 -z-10">
-          <div className="absolute inset-0 grid-overlay" />
-          <div className="absolute left-1/4 top-0 h-[520px] w-[520px] -translate-y-1/2 rounded-full bg-vybe-600/25 blur-[130px]" />
-          <div className="absolute right-0 top-40 h-[380px] w-[380px] rounded-full bg-pulse-500/15 blur-[120px]" />
-        </div>
+        <HeroOrbit />
 
         <div className="container-hov">
-          <Reveal>
-            <p className="eyebrow mb-5">{OFFCAMPUS.eyebrow}</p>
-          </Reveal>
-          <Reveal delay={0.06}>
-            <h1 className="display-1">{OFFCAMPUS.title}</h1>
-          </Reveal>
-          <Reveal delay={0.12}>
-            <p className="mt-3 font-display text-2xl text-vybe-300 sm:text-3xl">
-              {OFFCAMPUS.subtitle}
-            </p>
-          </Reveal>
-          <Reveal delay={0.18}>
-            <p className="lede mt-7 max-w-2xl">{OFFCAMPUS.blurb}</p>
-          </Reveal>
+          <HeroParallax>
+            <Reveal>
+              <p className="eyebrow mb-5">{OFFCAMPUS.eyebrow}</p>
+            </Reveal>
+            <Reveal delay={0.06}>
+              <h1 className="display-1">{OFFCAMPUS.title}</h1>
+            </Reveal>
+            <Reveal delay={0.12}>
+              <p className="mt-3 font-display text-2xl text-vybe-300 sm:text-3xl">
+                {OFFCAMPUS.subtitle}
+              </p>
+            </Reveal>
+            <Reveal delay={0.18}>
+              <p className="lede mt-7 max-w-2xl">{OFFCAMPUS.blurb}</p>
+            </Reveal>
+          </HeroParallax>
 
           {event ? (
             <>
               <Reveal delay={0.24}>
                 <div className="mt-10 max-w-lg">
+                  <p className="mb-3 flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.22em] text-dim">
+                    <span className="relative flex h-1.5 w-1.5">
+                      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-flare-400 opacity-70" />
+                      <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-flare-500" />
+                    </span>
+                    Doors in
+                  </p>
                   <Countdown target={event.starts_at} />
                 </div>
               </Reveal>
@@ -112,7 +125,7 @@ export default async function OffCampusPage() {
                   <Fact
                     label="Tickets left"
                     value={remaining > 0 ? String(remaining) : 'Sold out'}
-                    accent={remaining > 0 && remaining <= 50}
+                    accent={lowStock}
                   />
                 </dl>
               </Reveal>
@@ -129,11 +142,16 @@ export default async function OffCampusPage() {
           <Reveal delay={0.36}>
             <div className="mt-10 flex flex-wrap gap-3">
               {onSale ? (
-                <Link href="/book?event=offcampus" className="btn-primary px-8 py-4 text-[15px]">
-                  Book tickets
-                </Link>
+                <Magnetic>
+                  <Link href="/book?event=offcampus" className="btn-primary px-8 py-4 text-[15px]">
+                    Book tickets
+                  </Link>
+                </Magnetic>
               ) : (
-                <span className="btn-primary pointer-events-none px-8 py-4 text-[15px] opacity-45">
+                <span
+                  aria-disabled="true"
+                  className="btn-primary pointer-events-none px-8 py-4 text-[15px] opacity-45"
+                >
                   {event ? 'Sold out' : 'Booking opens soon'}
                 </span>
               )}
@@ -171,106 +189,112 @@ export default async function OffCampusPage() {
             title="One night, three completely different rooms."
             lede="Move between them as the night turns. Each has its own rig, its own tempo and its own crowd."
           />
-
-          <Stagger className="mt-14 grid gap-5 lg:grid-cols-3">
-            {OFFCAMPUS.rooms.map((room, index) => (
-              <StaggerItem key={room.name}>
-                <TiltCard intensity={8} className="group h-full">
-                  <article className="card card-lit relative h-full overflow-hidden p-7">
-                    <div
-                      aria-hidden
-                      className="absolute inset-0 opacity-70"
-                      style={{
-                        background: `linear-gradient(160deg, hsl(${218 + index * 8} 70% 16% / 0.9), transparent 60%)`,
-                      }}
-                    />
-                    <TiltLayer z={35} className="relative">
-                      <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-pulse-300">
-                        {room.time}
-                      </p>
-                      <h3 className="mt-3 font-display text-2xl font-bold text-chalk">
-                        {room.name}
-                      </h3>
-                      <p className="mt-1.5 text-[12px] font-medium text-vybe-300">{room.sound}</p>
-                      <p className="mt-4 text-[14px] leading-relaxed text-haze">{room.copy}</p>
-                    </TiltLayer>
-                  </article>
-                </TiltCard>
-              </StaggerItem>
-            ))}
-          </Stagger>
+          <RoomCards rooms={OFFCAMPUS.rooms} />
         </div>
       </section>
 
       {/* Line-up ---------------------------------------------------------- */}
       <section id="lineup" className="section container-hov scroll-mt-24">
-        <SectionHeading eyebrow="Line-up" title="Who's playing, and when." />
+        <SectionHeading
+          eyebrow="Line-up"
+          title="Who's playing, and when."
+          lede="The timetable is fixed. Names go up here the day each booking is signed — not before."
+        />
+        <LineupTable acts={OFFCAMPUS.lineup} />
+      </section>
 
-        <div className="mt-12 divide-y divide-hairline border-y border-hairline">
-          {OFFCAMPUS.lineup.map((act, index) => {
-            const headline = act.tag === 'Headline';
-            return (
-              <Reveal key={act.name} delay={0.05 * index}>
-                <div className="grid grid-cols-[auto_1fr] items-baseline gap-x-6 gap-y-1 py-6 sm:grid-cols-[140px_1fr_auto]">
-                  <p className="font-mono text-[12px] text-dim">{act.slot}</p>
-                  <div>
-                    <p
-                      className={
-                        headline
-                          ? 'font-display text-3xl font-extrabold text-chalk sm:text-4xl'
-                          : 'font-display text-xl font-semibold text-chalk sm:text-2xl'
-                      }
-                    >
-                      {act.name}
-                    </p>
-                    <p className="mt-0.5 text-[12px] text-haze">{act.room}</p>
-                  </div>
-                  <span className="badge col-start-2 justify-self-start sm:col-start-3 sm:justify-self-end">
-                    {act.tag}
-                  </span>
-                </div>
-              </Reveal>
-            );
-          })}
+      {/* Vibe quiz -------------------------------------------------------- */}
+      <section className="section border-y border-hairline bg-ink/40">
+        <div className="container-hov">
+          <SectionHeading
+            eyebrow="Find your room"
+            title="Three questions. One room."
+            lede="Answer honestly and we'll point you at the room — and the ticket — that fits the night you actually want."
+          />
+          <Reveal className="mt-12">
+            <VibeQuiz rooms={OFFCAMPUS.rooms} eventSlug={OFFCAMPUS.slug} />
+          </Reveal>
         </div>
       </section>
 
       {/* Tiers ------------------------------------------------------------ */}
-      <section className="section border-y border-hairline bg-ink/40">
-        <div className="container-hov">
-          <SectionHeading
-            eyebrow="Tickets"
-            title="Pick your entry."
-            lede="Live stock — what you see is what is actually left."
-          />
+      <section className="section container-hov">
+        <SectionHeading
+          eyebrow="Tickets"
+          title="Pick your entry."
+          lede="Live stock — what you see is what is actually left."
+        />
 
-          {tiers.length === 0 ? (
-            <div className="card mt-12 p-10 text-center">
-              <p className="text-[14px] text-haze">
-                Ticket tiers haven&apos;t been published yet. Check back shortly.
-              </p>
-            </div>
-          ) : (
-            <Stagger className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+        {tiers.length === 0 ? (
+          <div className="card mt-12 p-10 text-center">
+            <p className="text-[14px] text-haze">
+              Ticket tiers haven&apos;t been published yet. Check back shortly.
+            </p>
+          </div>
+        ) : (
+          <>
+            <Reveal className="mt-12">
+              <ScarcityMeter
+                tiers={tiers.map((tier) => ({
+                  code: tier.code,
+                  name: tier.name,
+                  remaining: Math.max(0, tier.quantity - tier.sold),
+                  total: tier.quantity,
+                }))}
+              />
+            </Reveal>
+
+            <Stagger className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
               {tiers.map((tier) => {
                 const left = Math.max(0, tier.quantity - tier.sold);
+                const soldOut = left === 0;
                 const perks = Array.isArray(tier.perks) ? tier.perks : [];
                 return (
                   <StaggerItem key={tier.id}>
                     <div
-                      className={`card card-lit flex h-full flex-col p-6 ${left === 0 ? 'opacity-50' : ''}`}
+                      aria-disabled={soldOut || undefined}
+                      className={`card card-lit flex h-full flex-col p-6 transition-transform duration-300 ${
+                        soldOut ? 'opacity-55 saturate-50' : 'hover:-translate-y-1'
+                      }`}
                     >
-                      <h3 className="font-display text-lg font-semibold text-chalk">{tier.name}</h3>
-                      <p className="mt-2 font-display text-3xl font-extrabold text-gradient">
+                      {soldOut && (
+                        <span
+                          aria-hidden
+                          className="pointer-events-none absolute inset-0 opacity-[0.16]"
+                          style={{
+                            backgroundImage:
+                              'repeating-linear-gradient(135deg, rgba(154,168,204,0.5) 0 1px, transparent 1px 11px)',
+                          }}
+                        />
+                      )}
+
+                      <div className="relative flex items-start justify-between gap-3">
+                        <h3 className="font-display text-lg font-semibold text-chalk">
+                          {tier.name}
+                        </h3>
+                        {soldOut && (
+                          <span className="badge border-hairline bg-elevated text-dim">
+                            Sold out
+                          </span>
+                        )}
+                      </div>
+
+                      <p
+                        className={`relative mt-2 font-display text-3xl font-extrabold ${
+                          soldOut ? 'text-dim line-through decoration-1' : 'text-gradient'
+                        }`}
+                      >
                         {tier.price_paise === 0 ? 'Free' : formatInr(tier.price_paise)}
                       </p>
+
                       {tier.description && (
-                        <p className="mt-3 text-[13px] leading-relaxed text-haze">
+                        <p className="relative mt-3 text-[13px] leading-relaxed text-haze">
                           {tier.description}
                         </p>
                       )}
+
                       {perks.length > 0 && (
-                        <ul className="mt-4 space-y-1.5">
+                        <ul className="relative mt-4 space-y-1.5">
                           {perks.map((perk) => (
                             <li key={perk} className="flex gap-2 text-[12px] text-haze">
                               <span aria-hidden className="text-vybe-400">
@@ -281,21 +305,34 @@ export default async function OffCampusPage() {
                           ))}
                         </ul>
                       )}
-                      <p className="mt-4 text-[11px] text-dim">
-                        {left === 0 ? 'Sold out' : left <= 20 ? `Only ${left} left` : `${left} available`}
+
+                      <p
+                        className={`relative mt-4 text-[11px] ${
+                          left > 0 && left <= 20 ? 'text-flare-300' : 'text-dim'
+                        }`}
+                      >
+                        {soldOut
+                          ? 'No tickets left in this tier'
+                          : left <= 20
+                            ? `Only ${left} left`
+                            : `${left} available`}
                       </p>
-                      <div className="mt-6 pt-2">
-                        {left > 0 ? (
+
+                      <div className="relative mt-6 pt-2">
+                        {soldOut ? (
+                          <span
+                            aria-disabled="true"
+                            className="btn-ghost pointer-events-none w-full cursor-not-allowed py-3 text-[13px]"
+                          >
+                            Sold out
+                          </span>
+                        ) : (
                           <Link
                             href={`/book?event=offcampus&tier=${tier.code}`}
                             className="btn-secondary w-full py-3 text-[13px]"
                           >
                             Book {tier.name}
                           </Link>
-                        ) : (
-                          <span className="btn-ghost pointer-events-none w-full py-3 text-[13px]">
-                            Sold out
-                          </span>
                         )}
                       </div>
                     </div>
@@ -303,12 +340,12 @@ export default async function OffCampusPage() {
                 );
               })}
             </Stagger>
-          )}
-        </div>
+          </>
+        )}
       </section>
 
       {/* Highlights ------------------------------------------------------- */}
-      <section className="section container-hov">
+      <section className="section container-hov border-t border-hairline">
         <Stagger className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
           {OFFCAMPUS.highlights.map((item) => (
             <StaggerItem key={item.title}>
@@ -349,19 +386,28 @@ export default async function OffCampusPage() {
             <div className="card card-lit relative aspect-[4/3] overflow-hidden">
               <div className="absolute inset-0 bg-gradient-to-br from-vybe-900 via-surface to-void" />
               <div aria-hidden className="absolute inset-0 grid-overlay" />
-              {/* Abstract floorplan — three rooms as nested blocks. */}
+              {/* Abstract floorplan — three rooms as nested blocks, each in its
+                  own hue so the colour language matches the room cards above. */}
               <div aria-hidden className="absolute inset-0 flex items-center justify-center p-10">
                 <div className="grid h-full w-full grid-rows-3 gap-2">
-                  {OFFCAMPUS.rooms.map((room, index) => (
+                  {OFFCAMPUS.rooms.map((room) => (
                     <div
                       key={room.name}
-                      className="flex items-center justify-between rounded-lg border border-vybe-500/25 px-4"
-                      style={{ background: `rgba(31,107,255,${0.05 + index * 0.05})` }}
+                      className="flex items-center justify-between rounded-lg border px-4"
+                      style={{
+                        borderColor: `hsl(${room.hue} 84% 62% / 0.3)`,
+                        background: `hsl(${room.hue} 84% 50% / 0.08)`,
+                      }}
                     >
-                      <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-vybe-300">
+                      <span
+                        className="font-mono text-[10px] uppercase tracking-[0.2em]"
+                        style={{ color: `hsl(${room.hue} 84% 78% / 0.95)` }}
+                      >
                         {room.name}
                       </span>
-                      <span className="font-mono text-[10px] text-dim">{room.time.split(' — ')[0]}</span>
+                      <span className="font-mono text-[10px] text-dim">
+                        {room.time.split(' — ')[0]}
+                      </span>
                     </div>
                   ))}
                 </div>
@@ -386,15 +432,23 @@ export default async function OffCampusPage() {
         <Reveal>
           <div className="card card-lit relative overflow-hidden px-6 py-14 text-center sm:px-12">
             <div aria-hidden className="absolute inset-0 grid-overlay opacity-70" />
+            <div
+              aria-hidden
+              className="pointer-events-none absolute left-1/2 top-1/2 h-[420px] w-[420px] -translate-x-1/2 -translate-y-1/2 text-vybe-500/[0.06]"
+            >
+              <Globe className="h-full w-full" strokeWidth={1.2} spin />
+            </div>
             <div className="relative">
               <h2 className="display-2">Doors open once.</h2>
               <p className="lede mx-auto mt-4 max-w-md">
                 Capacity is capped. When the room is full we stop selling.
               </p>
               {onSale && (
-                <Link href="/book?event=offcampus" className="btn-primary mt-8 px-10 py-4">
-                  Book tickets
-                </Link>
+                <Magnetic className="mt-8">
+                  <Link href="/book?event=offcampus" className="btn-primary px-10 py-4">
+                    Book tickets
+                  </Link>
+                </Magnetic>
               )}
             </div>
           </div>
@@ -413,7 +467,7 @@ function Fact({ label, value, accent }: { label: string; value: string; accent?:
   return (
     <div>
       <dt className="text-[11px] uppercase tracking-wider text-dim">{label}</dt>
-      <dd className={accent ? 'mt-1 font-semibold text-pulse-300' : 'mt-1 font-semibold text-chalk'}>
+      <dd className={accent ? 'mt-1 font-semibold text-flare-300' : 'mt-1 font-semibold text-chalk'}>
         {value}
       </dd>
     </div>

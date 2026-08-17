@@ -1,9 +1,9 @@
 'use client';
 
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useEffect, useMemo, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react';
 import { cn, formatInr } from '@/lib/utils';
 import { suggestEmailCorrection } from '@/lib/validation';
 
@@ -29,6 +29,8 @@ type Field = 'name' | 'email' | 'phone';
 
 const PROGRESS_STEPS = ['Reserving your spot…', 'Issuing tickets…', 'Sending your QR…'];
 
+const EASE = [0.16, 1, 0.3, 1] as const;
+
 export function BookingForm({
   eventSlug,
   eventName,
@@ -38,6 +40,7 @@ export function BookingForm({
   onChange,
 }: BookingFormProps) {
   const router = useRouter();
+  const reduce = useReducedMotion();
 
   const available = useMemo(() => tiers.filter((tier) => tier.remaining > 0), [tiers]);
   const [tierCode, setTierCode] = useState(
@@ -89,12 +92,16 @@ export function BookingForm({
   const normalisedPhone = phone.replace(/[\s\-()]/g, '').replace(/^(\+91|0091|91|0)/, '');
   const emailSuggestion = email.includes('@') ? suggestEmailCorrection(email) : null;
 
+  const nameValid = name.trim().length >= 2;
+  const emailValid = /^[^\s@]+@[^\s@]+\.[a-z]{2,}$/i.test(email);
+  const phoneValid = /^[6-9]\d{9}$/.test(normalisedPhone);
+
   const localErrors: Partial<Record<Field, string>> = {};
-  if (touched.name && name.trim().length < 2) localErrors.name = 'Enter your full name';
-  if (touched.email && !/^[^\s@]+@[^\s@]+\.[a-z]{2,}$/i.test(email)) {
+  if (touched.name && !nameValid) localErrors.name = 'Enter your full name';
+  if (touched.email && !emailValid) {
     localErrors.email = 'Enter a valid email address';
   }
-  if (touched.phone && !/^[6-9]\d{9}$/.test(normalisedPhone)) {
+  if (touched.phone && !phoneValid) {
     localErrors.phone = 'Enter a valid 10-digit Indian mobile number';
   }
 
@@ -104,12 +111,19 @@ export function BookingForm({
 
   const canSubmit =
     Boolean(tierCode) &&
-    name.trim().length >= 2 &&
-    /^[^\s@]+@[^\s@]+\.[a-z]{2,}$/i.test(email) &&
-    /^[6-9]\d{9}$/.test(normalisedPhone) &&
+    nameValid &&
+    emailValid &&
+    phoneValid &&
     consent &&
     quantity >= 1 &&
     !pending;
+
+  const detailsDone = nameValid && emailValid && phoneValid && consent;
+  const steps = [
+    { label: 'Ticket', done: Boolean(tierCode) },
+    { label: 'Quantity', done: Boolean(tierCode) && quantity >= 1 && quantity <= ceiling },
+    { label: 'Details', done: detailsDone },
+  ];
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -177,6 +191,8 @@ export function BookingForm({
 
   return (
     <form onSubmit={handleSubmit} noValidate className="space-y-7">
+      <ProgressRail steps={steps} reduce={Boolean(reduce)} />
+
       <div className="rounded-xl border border-vybe-500/30 bg-vybe-500/[0.08] px-4 py-3.5">
         <p className="text-[13px] font-medium text-vybe-100">No payment required right now</p>
         <p className="mt-1 text-[12px] leading-relaxed text-haze">
@@ -185,204 +201,271 @@ export function BookingForm({
         </p>
       </div>
 
-      <fieldset disabled={pending} className="space-y-7">
-        <section>
-          <legend className="eyebrow mb-3">01 — Choose your ticket</legend>
-          <div className="space-y-2.5">
-            {tiers.map((tier) => {
-              const soldOut = tier.remaining <= 0;
-              const selected = tier.code === tierCode;
-              return (
-                <label
-                  key={tier.code}
-                  className={cn(
-                    'flex cursor-pointer items-start gap-3 rounded-xl border p-4 transition-colors',
-                    selected
-                      ? 'border-vybe-500 bg-vybe-500/10'
-                      : 'border-hairline hover:border-vybe-700',
-                    soldOut && 'cursor-not-allowed opacity-45 hover:border-hairline',
-                  )}
+      <fieldset disabled={pending} className="min-w-0">
+        <legend className="sr-only">Booking details</legend>
+
+        <motion.div layout={reduce ? false : 'position'} className="space-y-7">
+          <motion.section layout={reduce ? false : true} aria-labelledby="step-tier">
+            <StepHeading id="step-tier" number="01" title="Choose your ticket" done={steps[0].done} />
+            <div role="radiogroup" aria-labelledby="step-tier" className="mt-3 space-y-2.5">
+              {tiers.map((tier) => {
+                const soldOut = tier.remaining <= 0;
+                const selected = tier.code === tierCode;
+                const scarce = !soldOut && tier.remaining <= 20;
+                return (
+                  <label
+                    key={tier.code}
+                    className={cn(
+                      'relative flex cursor-pointer items-start gap-3 rounded-xl border p-4 transition-colors',
+                      selected
+                        ? 'border-vybe-500 bg-vybe-500/10'
+                        : 'border-hairline hover:border-vybe-700',
+                      soldOut && 'cursor-not-allowed opacity-45 hover:border-hairline',
+                    )}
+                  >
+                    {/* One travelling highlight rather than four static ones, so the
+                        selection reads as a move instead of a repaint. */}
+                    {selected && !reduce && (
+                      <motion.span
+                        aria-hidden
+                        layoutId="tier-highlight"
+                        transition={{ type: 'spring', stiffness: 380, damping: 34 }}
+                        className="pointer-events-none absolute inset-0 rounded-xl ring-1 ring-vybe-400/70 shadow-glow"
+                      />
+                    )}
+                    <input
+                      type="radio"
+                      name="tier"
+                      value={tier.code}
+                      checked={selected}
+                      disabled={soldOut}
+                      onChange={() => setTierCode(tier.code)}
+                      className="relative mt-1 h-4 w-4 shrink-0 accent-vybe-500"
+                    />
+                    <span className="relative min-w-0 flex-1">
+                      <span className="flex flex-wrap items-baseline justify-between gap-2">
+                        <span className="font-display text-[15px] font-semibold text-chalk">
+                          {tier.name}
+                        </span>
+                        <span className="font-display text-[15px] font-bold text-vybe-200">
+                          {tier.pricePaise === 0 ? 'Free' : formatInr(tier.pricePaise)}
+                        </span>
+                      </span>
+                      {tier.description && (
+                        <span className="mt-1 block text-[12px] leading-relaxed text-haze">
+                          {tier.description}
+                        </span>
+                      )}
+                      {tier.perks.length > 0 && (
+                        <span className="mt-2 flex flex-wrap gap-1.5">
+                          {tier.perks.map((perk) => (
+                            <span
+                              key={perk}
+                              className="rounded-full border border-hairline px-2 py-0.5 text-[10px] text-haze"
+                            >
+                              {perk}
+                            </span>
+                          ))}
+                        </span>
+                      )}
+                      <span
+                        className={cn(
+                          'mt-2 block text-[11px]',
+                          scarce ? 'font-medium text-flare-300' : 'text-dim',
+                        )}
+                      >
+                        {soldOut
+                          ? 'Sold out'
+                          : scarce
+                            ? `Only ${tier.remaining} left`
+                            : `${tier.remaining} available`}
+                      </span>
+                    </span>
+                  </label>
+                );
+              })}
+            </div>
+          </motion.section>
+
+          <motion.section layout={reduce ? false : true} aria-labelledby="step-qty">
+            <StepHeading id="step-qty" number="02" title="How many?" done={steps[1].done} />
+            <div className="mt-3 flex flex-wrap items-center gap-4">
+              <div className="flex items-center gap-1 rounded-full border border-hairline p-1">
+                <StepButton
+                  label="Remove one ticket"
+                  onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+                  disabled={quantity <= 1}
                 >
-                  <input
-                    type="radio"
-                    name="tier"
-                    value={tier.code}
-                    checked={selected}
-                    disabled={soldOut}
-                    onChange={() => setTierCode(tier.code)}
-                    className="mt-1 h-4 w-4 shrink-0 accent-vybe-500"
-                  />
-                  <span className="min-w-0 flex-1">
-                    <span className="flex flex-wrap items-baseline justify-between gap-2">
-                      <span className="font-display text-[15px] font-semibold text-chalk">
-                        {tier.name}
-                      </span>
-                      <span className="font-display text-[15px] font-bold text-vybe-200">
-                        {tier.pricePaise === 0 ? 'Free' : formatInr(tier.pricePaise)}
-                      </span>
-                    </span>
-                    {tier.description && (
-                      <span className="mt-1 block text-[12px] leading-relaxed text-haze">
-                        {tier.description}
-                      </span>
-                    )}
-                    {tier.perks.length > 0 && (
-                      <span className="mt-2 flex flex-wrap gap-1.5">
-                        {tier.perks.map((perk) => (
-                          <span
-                            key={perk}
-                            className="rounded-full border border-hairline px-2 py-0.5 text-[10px] text-haze"
-                          >
-                            {perk}
-                          </span>
-                        ))}
-                      </span>
-                    )}
-                    <span className="mt-2 block text-[11px] text-dim">
-                      {soldOut
-                        ? 'Sold out'
-                        : tier.remaining <= 20
-                          ? `Only ${tier.remaining} left`
-                          : `${tier.remaining} available`}
-                    </span>
-                  </span>
+                  −
+                </StepButton>
+                <span className="relative block h-8 w-12 overflow-hidden">
+                  <AnimatePresence initial={false} mode="popLayout">
+                    <motion.span
+                      key={quantity}
+                      initial={reduce ? { opacity: 1 } : { opacity: 0, y: 14 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={reduce ? { opacity: 0 } : { opacity: 0, y: -14 }}
+                      transition={{ duration: reduce ? 0 : 0.25, ease: EASE }}
+                      className="absolute inset-0 grid place-items-center font-display text-xl font-bold tabular-nums text-chalk"
+                    >
+                      {quantity}
+                    </motion.span>
+                  </AnimatePresence>
+                </span>
+                <StepButton
+                  label="Add one ticket"
+                  onClick={() => setQuantity((q) => Math.min(ceiling, q + 1))}
+                  disabled={quantity >= ceiling}
+                >
+                  +
+                </StepButton>
+              </div>
+              <p className="text-[12px] text-dim">
+                Up to {ceiling} per booking. Each person gets their own QR.
+              </p>
+            </div>
+          </motion.section>
+
+          <motion.section layout={reduce ? false : true} aria-labelledby="step-details">
+            <StepHeading
+              id="step-details"
+              number="03"
+              title="Where do we send the tickets?"
+              done={steps[2].done}
+            />
+
+            <div className="mt-3 space-y-4">
+              <div>
+                <label htmlFor="name" className="label">
+                  Full name
                 </label>
-              );
-            })}
-          </div>
-        </section>
+                <div className="relative">
+                  <input
+                    id="name"
+                    value={name}
+                    onChange={(event) => setName(event.target.value)}
+                    onBlur={() => setTouched((t) => ({ ...t, name: true }))}
+                    autoComplete="name"
+                    className={cn('field pr-11', errorFor('name') && 'field-error')}
+                    placeholder="As it appears on your ID"
+                  />
+                  <FieldTick show={nameValid && !errorFor('name')} reduce={Boolean(reduce)} />
+                </div>
+                <Collapse show={Boolean(errorFor('name'))} reduce={Boolean(reduce)}>
+                  <p className="error-text">{errorFor('name')}</p>
+                </Collapse>
+                <p className="help">Door staff check this against your photo ID.</p>
+              </div>
 
-        <section>
-          <legend className="eyebrow mb-3">02 — How many?</legend>
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-1 rounded-full border border-hairline p-1">
-              <StepButton
-                label="Remove one ticket"
-                onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-                disabled={quantity <= 1}
+              <div>
+                <label htmlFor="email" className="label">
+                  Email address
+                </label>
+                <div className="relative">
+                  <input
+                    id="email"
+                    type="email"
+                    value={email}
+                    onChange={(event) => setEmail(event.target.value)}
+                    onBlur={() => setTouched((t) => ({ ...t, email: true }))}
+                    autoComplete="email"
+                    inputMode="email"
+                    className={cn('field pr-11', errorFor('email') && 'field-error')}
+                    placeholder="you@example.com"
+                  />
+                  <FieldTick
+                    show={emailValid && !errorFor('email') && !emailSuggestion}
+                    reduce={Boolean(reduce)}
+                  />
+                </div>
+                <Collapse show={Boolean(errorFor('email'))} reduce={Boolean(reduce)}>
+                  <p className="error-text">{errorFor('email')}</p>
+                </Collapse>
+                {/* A typo'd domain means the ticket is simply lost, so offer the fix. */}
+                <Collapse
+                  show={Boolean(emailSuggestion) && !errorFor('email')}
+                  reduce={Boolean(reduce)}
+                >
+                  <button
+                    type="button"
+                    onClick={() => emailSuggestion && setEmail(emailSuggestion)}
+                    className="mt-1.5 text-[12px] text-vybe-300 underline underline-offset-2"
+                  >
+                    Did you mean {emailSuggestion}?
+                  </button>
+                </Collapse>
+                <p className="help">Your QR ticket goes here. Double-check it.</p>
+              </div>
+
+              <div>
+                <label htmlFor="phone" className="label">
+                  Mobile number
+                </label>
+                <div className="flex">
+                  <span className="flex items-center rounded-l-xl border border-r-0 border-hairline bg-elevated px-3.5 text-[15px] text-haze">
+                    +91
+                  </span>
+                  <div className="relative min-w-0 flex-1">
+                    <input
+                      id="phone"
+                      value={phone}
+                      onChange={(event) => setPhone(event.target.value)}
+                      onBlur={() => setTouched((t) => ({ ...t, phone: true }))}
+                      autoComplete="tel-national"
+                      inputMode="numeric"
+                      maxLength={14}
+                      className={cn(
+                        'field rounded-l-none pr-11',
+                        errorFor('phone') && 'field-error',
+                      )}
+                      placeholder="98765 43210"
+                    />
+                    <FieldTick show={phoneValid && !errorFor('phone')} reduce={Boolean(reduce)} />
+                  </div>
+                </div>
+                <Collapse show={Boolean(errorFor('phone'))} reduce={Boolean(reduce)}>
+                  <p className="error-text">{errorFor('phone')}</p>
+                </Collapse>
+                <p className="help">Used only if we need to reach you about this event.</p>
+              </div>
+
+              {/* Honeypot — hidden from people, irresistible to bots. */}
+              <div aria-hidden className="absolute h-0 w-0 overflow-hidden opacity-0">
+                <label htmlFor="company">Company</label>
+                <input
+                  id="company"
+                  name="company"
+                  tabIndex={-1}
+                  autoComplete="off"
+                  value={company}
+                  onChange={(event) => setCompany(event.target.value)}
+                />
+              </div>
+
+              <label
+                className={cn(
+                  'relative flex cursor-pointer items-start gap-3 rounded-xl border p-4 transition-colors',
+                  consent ? 'border-vybe-500/60 bg-vybe-500/[0.07]' : 'border-hairline',
+                )}
               >
-                −
-              </StepButton>
-              <span className="w-12 text-center font-display text-xl font-bold tabular-nums text-chalk">
-                {quantity}
-              </span>
-              <StepButton
-                label="Add one ticket"
-                onClick={() => setQuantity((q) => Math.min(ceiling, q + 1))}
-                disabled={quantity >= ceiling}
-              >
-                +
-              </StepButton>
+                <input
+                  type="checkbox"
+                  checked={consent}
+                  onChange={(event) => setConsent(event.target.checked)}
+                  className="mt-0.5 h-4 w-4 shrink-0 accent-vybe-500"
+                />
+                <span className="text-[12px] leading-relaxed text-haze">
+                  I&apos;m 21 or older, I&apos;ll bring a government photo ID matching this name,
+                  and I accept the{' '}
+                  <Link href="/legal/terms" className="text-vybe-300 underline underline-offset-2">
+                    entry terms
+                  </Link>
+                  .
+                </span>
+              </label>
             </div>
-            <p className="text-[12px] text-dim">
-              Up to {ceiling} per booking. Each person gets their own QR.
-            </p>
-          </div>
-        </section>
-
-        <section className="space-y-4">
-          <legend className="eyebrow mb-3">03 — Where do we send the tickets?</legend>
-
-          <div>
-            <label htmlFor="name" className="label">
-              Full name
-            </label>
-            <input
-              id="name"
-              value={name}
-              onChange={(event) => setName(event.target.value)}
-              onBlur={() => setTouched((t) => ({ ...t, name: true }))}
-              autoComplete="name"
-              className={cn('field', errorFor('name') && 'field-error')}
-              placeholder="As it appears on your ID"
-            />
-            {errorFor('name') && <p className="error-text">{errorFor('name')}</p>}
-            <p className="help">Door staff check this against your photo ID.</p>
-          </div>
-
-          <div>
-            <label htmlFor="email" className="label">
-              Email address
-            </label>
-            <input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              onBlur={() => setTouched((t) => ({ ...t, email: true }))}
-              autoComplete="email"
-              inputMode="email"
-              className={cn('field', errorFor('email') && 'field-error')}
-              placeholder="you@example.com"
-            />
-            {errorFor('email') && <p className="error-text">{errorFor('email')}</p>}
-            {/* A typo'd domain means the ticket is simply lost, so offer the fix. */}
-            {emailSuggestion && !errorFor('email') && (
-              <button
-                type="button"
-                onClick={() => setEmail(emailSuggestion)}
-                className="mt-1.5 text-[12px] text-vybe-300 underline underline-offset-2"
-              >
-                Did you mean {emailSuggestion}?
-              </button>
-            )}
-            <p className="help">Your QR ticket goes here. Double-check it.</p>
-          </div>
-
-          <div>
-            <label htmlFor="phone" className="label">
-              Mobile number
-            </label>
-            <div className="flex">
-              <span className="flex items-center rounded-l-xl border border-r-0 border-hairline bg-elevated px-3.5 text-[15px] text-haze">
-                +91
-              </span>
-              <input
-                id="phone"
-                value={phone}
-                onChange={(event) => setPhone(event.target.value)}
-                onBlur={() => setTouched((t) => ({ ...t, phone: true }))}
-                autoComplete="tel-national"
-                inputMode="numeric"
-                maxLength={14}
-                className={cn('field rounded-l-none', errorFor('phone') && 'field-error')}
-                placeholder="98765 43210"
-              />
-            </div>
-            {errorFor('phone') && <p className="error-text">{errorFor('phone')}</p>}
-            <p className="help">Used only if we need to reach you about this event.</p>
-          </div>
-
-          {/* Honeypot — hidden from people, irresistible to bots. */}
-          <div aria-hidden className="absolute h-0 w-0 overflow-hidden opacity-0">
-            <label htmlFor="company">Company</label>
-            <input
-              id="company"
-              name="company"
-              tabIndex={-1}
-              autoComplete="off"
-              value={company}
-              onChange={(event) => setCompany(event.target.value)}
-            />
-          </div>
-
-          <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-hairline p-4">
-            <input
-              type="checkbox"
-              checked={consent}
-              onChange={(event) => setConsent(event.target.checked)}
-              className="mt-0.5 h-4 w-4 shrink-0 accent-vybe-500"
-            />
-            <span className="text-[12px] leading-relaxed text-haze">
-              I&apos;m 21 or older, I&apos;ll bring a government photo ID matching this name, and I
-              accept the{' '}
-              <Link href="/legal/terms" className="text-vybe-300 underline underline-offset-2">
-                entry terms
-              </Link>
-              .
-            </span>
-          </label>
-        </section>
+          </motion.section>
+        </motion.div>
       </fieldset>
 
       <div aria-live="assertive" className="min-h-[20px]">
@@ -394,7 +477,18 @@ export function BookingForm({
         )}
       </div>
 
-      <button type="submit" disabled={!canSubmit} className="btn-primary w-full py-4 text-[15px]">
+      <button
+        type="submit"
+        disabled={!canSubmit}
+        className="btn-primary relative w-full overflow-hidden py-4 text-[15px]"
+      >
+        {pending && (
+          <span
+            aria-hidden
+            className="pointer-events-none absolute inset-0 animate-sheen bg-sheen"
+            style={{ backgroundSize: '200% 100%' }}
+          />
+        )}
         <AnimatePresence mode="wait" initial={false}>
           <motion.span
             key={pending ? PROGRESS_STEPS[progress] : 'idle'}
@@ -402,6 +496,7 @@ export function BookingForm({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -6 }}
             transition={{ duration: 0.2 }}
+            className="relative"
           >
             {pending
               ? PROGRESS_STEPS[progress]
@@ -416,6 +511,176 @@ export function BookingForm({
         No account needed. We only use your details to issue and deliver this ticket.
       </p>
     </form>
+  );
+}
+
+function ProgressRail({
+  steps,
+  reduce,
+}: {
+  steps: Array<{ label: string; done: boolean }>;
+  reduce: boolean;
+}) {
+  const completed = steps.filter((step) => step.done).length;
+
+  return (
+    <div>
+      <ol className="flex items-center">
+        {steps.map((step, index) => (
+          <li key={step.label} className={cn('flex items-center', index > 0 && 'min-w-0 flex-1')}>
+            {index > 0 && (
+              <span
+                aria-hidden
+                className="relative mx-2 h-px flex-1 overflow-hidden rounded-full bg-hairline sm:mx-3"
+              >
+                <motion.span
+                  className="absolute inset-y-0 left-0 bg-gradient-to-r from-vybe-500 to-pulse-400"
+                  initial={false}
+                  animate={{ width: step.done ? '100%' : '0%' }}
+                  transition={{ duration: reduce ? 0 : 0.55, ease: EASE }}
+                />
+              </span>
+            )}
+            <span className="flex shrink-0 items-center gap-2">
+              <span
+                className={cn(
+                  'grid h-6 w-6 place-items-center rounded-full border transition-colors duration-300',
+                  step.done
+                    ? 'border-vybe-400 bg-vybe-500/20 text-vybe-100'
+                    : 'border-hairline text-dim',
+                )}
+              >
+                <AnimatePresence mode="wait" initial={false}>
+                  {step.done ? (
+                    <motion.span
+                      key="done"
+                      initial={reduce ? { opacity: 1 } : { opacity: 0, scale: 0.5 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: reduce ? 0 : 0.2, ease: EASE }}
+                      className="block"
+                    >
+                      <Tick className="h-3.5 w-3.5" />
+                    </motion.span>
+                  ) : (
+                    <motion.span
+                      key="idle"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: reduce ? 0 : 0.15 }}
+                      className="block font-mono text-[10px] font-semibold tabular-nums"
+                    >
+                      {index + 1}
+                    </motion.span>
+                  )}
+                </AnimatePresence>
+              </span>
+              <span
+                className={cn(
+                  'hidden text-[11px] font-medium tracking-wide transition-colors sm:inline',
+                  step.done ? 'text-chalk' : 'text-dim',
+                )}
+              >
+                {step.label}
+              </span>
+            </span>
+          </li>
+        ))}
+      </ol>
+      <p className="sr-only" aria-live="polite">
+        {completed} of {steps.length} booking steps complete.
+      </p>
+    </div>
+  );
+}
+
+function StepHeading({
+  id,
+  number,
+  title,
+  done,
+}: {
+  id: string;
+  number: string;
+  title: string;
+  done: boolean;
+}) {
+  return (
+    <h2 id={id} className="eyebrow flex items-center gap-2">
+      <span>
+        {number} — {title}
+      </span>
+      {done && <Tick className="h-3.5 w-3.5 text-pulse-300" />}
+    </h2>
+  );
+}
+
+function Tick({ className }: { className?: string }) {
+  const reduce = useReducedMotion();
+  return (
+    <motion.svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden>
+      <motion.path
+        d="M4 12.5l5.5 5.5L20 7"
+        stroke="currentColor"
+        strokeWidth={2.8}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        initial={reduce ? false : { pathLength: 0 }}
+        animate={{ pathLength: 1 }}
+        transition={{ duration: reduce ? 0 : 0.35, ease: 'easeOut' }}
+      />
+    </motion.svg>
+  );
+}
+
+function FieldTick({ show, reduce }: { show: boolean; reduce: boolean }) {
+  return (
+    <span className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2">
+      <AnimatePresence initial={false}>
+        {show && (
+          <motion.span
+            key="tick"
+            aria-hidden
+            className="block text-pulse-300"
+            initial={reduce ? { opacity: 1 } : { opacity: 0, scale: 0.5 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={reduce ? { opacity: 0 } : { opacity: 0, scale: 0.5 }}
+            transition={{ duration: reduce ? 0 : 0.24, ease: EASE }}
+          >
+            <Tick className="h-4 w-4" />
+          </motion.span>
+        )}
+      </AnimatePresence>
+    </span>
+  );
+}
+
+/** Height-animated slot so a message appearing does not snap the layout. */
+function Collapse({
+  show,
+  reduce,
+  children,
+}: {
+  show: boolean;
+  reduce: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <AnimatePresence initial={false}>
+      {show && (
+        <motion.div
+          key="slot"
+          className="overflow-hidden"
+          initial={reduce ? { height: 'auto', opacity: 1 } : { height: 0, opacity: 0 }}
+          animate={{ height: 'auto', opacity: 1 }}
+          exit={{ height: 0, opacity: 0 }}
+          transition={{ duration: reduce ? 0 : 0.28, ease: EASE }}
+        >
+          {children}
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }
 
