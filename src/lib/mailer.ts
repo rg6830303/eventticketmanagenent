@@ -92,7 +92,13 @@ async function sendMail(args: SendArgs): Promise<SendResult> {
   }
 
   try {
-    const info = await getTransport().sendMail({
+    // Marks the message as transactional so Gmail does not file it under
+    // Promotions. Undefined values are omitted rather than sent as empty
+    // headers, which some MTAs reject.
+    const headers: Record<string, string> = { 'Auto-Submitted': 'auto-generated' };
+    if (args.bookingId) headers['X-Entity-Ref-ID'] = args.bookingId;
+
+    const info = (await getTransport().sendMail({
       from: `"${smtp.fromName}" <${smtp.fromAddress}>`,
       to: args.to,
       bcc: smtp.bcc || undefined,
@@ -101,12 +107,9 @@ async function sendMail(args: SendArgs): Promise<SendResult> {
       html: args.html,
       text: args.text,
       attachments: args.attachments,
-      headers: {
-        'X-Entity-Ref-ID': args.bookingId ?? undefined,
-        // Marks this as transactional so Gmail does not bundle it in Promotions.
-        'Auto-Submitted': 'auto-generated',
-      },
-    });
+      headers,
+    })) as { messageId?: string };
+
     await logEmail(args, 'sent', info.messageId ?? null, null);
     return { ok: true, messageId: info.messageId };
   } catch (error) {

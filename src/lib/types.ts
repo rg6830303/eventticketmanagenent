@@ -63,6 +63,7 @@ export interface BookingRow {
   payment_order_id: string | null;
   payment_id: string | null;
   email_sent_at: string | null;
+  source: string;
   notes: string | null;
   created_at: string;
   updated_at: string;

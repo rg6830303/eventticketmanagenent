@@ -325,7 +325,9 @@ export function QrScanner({ events }: { events: EventOption[] }) {
     const track = streamRef.current?.getVideoTracks()[0];
     if (!track) return;
     try {
-      await track.applyConstraints({ advanced: [{ torch: !torchOn }] } as MediaTrackConstraints);
+      // `torch` is a real constraint on Android Chrome but is not in the DOM
+      // typings yet, so it has to be cast in.
+      await track.applyConstraints({ advanced: [{ torch: !torchOn }] } as unknown as MediaTrackConstraints);
       setTorchOn((on) => !on);
     } catch {
       setTorchAvailable(false);

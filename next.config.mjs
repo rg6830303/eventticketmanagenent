@@ -35,6 +35,9 @@ const securityHeaders = [
 ];
 
 const nextConfig = {
+  // An unrelated lockfile in the parent directory makes Next guess the wrong
+  // workspace root, which breaks file tracing on Vercel.
+  outputFileTracingRoot: import.meta.dirname,
   reactStrictMode: true,
   poweredByHeader: false,
   compress: true,

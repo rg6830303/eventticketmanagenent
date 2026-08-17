@@ -36,7 +36,7 @@ export async function checkEmailDeliverable(email: string): Promise<MxCheckResul
 
   const cached = mxCache.get(domain);
   if (cached && cached.expires > Date.now()) {
-    return cached.deliverable
+    return cached.ok
       ? { deliverable: true }
       : { deliverable: false, reason: `"${domain}" cannot receive email — check the spelling` };
   }
