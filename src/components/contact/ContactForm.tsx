@@ -77,7 +77,7 @@ export function ContactForm() {
         <Globe
           spin
           strokeWidth={1}
-          className="pointer-events-none absolute left-1/2 top-1/2 h-72 w-72 -translate-x-1/2 -translate-y-1/2 text-vybe-500/12 [animation-duration:50s]"
+          className="pointer-events-none absolute left-1/2 top-1/2 h-72 w-72 -translate-x-1/2 -translate-y-1/2 text-vybe-500/10 [animation-duration:50s]"
         />
         <div className="relative">
           <motion.div
@@ -88,14 +88,14 @@ export function ContactForm() {
           >
             <span
               aria-hidden
-              className="absolute inset-0 animate-pulse-ring rounded-full border border-vybe-400/40"
+              className="absolute inset-0 animate-ping2 rounded-full border border-vybe-400/40"
             />
             <svg
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
               strokeWidth="2.2"
-              className="h-7 w-7 text-vybe-300"
+              className="h-7 w-7 text-vybe-600"
               aria-hidden
             >
               <motion.path
@@ -108,8 +108,8 @@ export function ContactForm() {
               />
             </svg>
           </motion.div>
-          <h2 className="font-display text-2xl font-bold text-chalk">Message sent</h2>
-          <p className="mx-auto mt-3 max-w-sm text-[14px] leading-relaxed text-haze">
+          <h2 className="font-display text-2xl font-bold text-ink">Message sent</h2>
+          <p className="mx-auto mt-3 max-w-sm text-[14px] leading-relaxed text-slate">
             We&apos;ve got it, and a confirmation is on its way to your inbox. Someone from the crew
             replies within one working day.
           </p>
@@ -121,13 +121,13 @@ export function ContactForm() {
   return (
     <form onSubmit={handleSubmit} noValidate className="space-y-5">
       <div>
-        <h2 className="font-display text-xl font-bold text-chalk">Send us a message</h2>
-        <p className="mt-1.5 text-[13px] leading-relaxed text-dim">
+        <h2 className="font-display text-xl font-bold text-ink">Send us a message</h2>
+        <p className="mt-1.5 text-[13px] leading-relaxed text-muted">
           No account, no newsletter sign-up. A reply lands within one working day.
         </p>
       </div>
 
-      <div className="divider" />
+      <div className="rule" />
 
       <div className="grid gap-5 sm:grid-cols-2">
         <div>
@@ -177,7 +177,7 @@ export function ContactForm() {
       <div className="grid gap-5 sm:grid-cols-2">
         <div>
           <label htmlFor="c-phone" className="label">
-            Phone <span className="text-dim">(optional)</span>
+            Phone <span className="text-muted">(optional)</span>
           </label>
           <input
             id="c-phone"
@@ -218,7 +218,7 @@ export function ContactForm() {
           <label htmlFor="c-message" className="label">
             Message
           </label>
-          <span aria-hidden className="mb-2 font-mono text-[11px] text-dim">
+          <span aria-hidden className="mb-2 font-mono text-[11px] text-muted">
             {values.message.trim().length}
           </span>
         </div>
@@ -273,7 +273,7 @@ export function ContactForm() {
         <span className="relative">{pending ? 'Sending…' : 'Send message'}</span>
       </button>
 
-      <p className="text-center text-[11px] leading-relaxed text-dim">
+      <p className="text-center text-[11px] leading-relaxed text-muted">
         We use your details only to reply to this message.
       </p>
     </form>

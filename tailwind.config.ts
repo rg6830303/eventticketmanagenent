@@ -1,80 +1,100 @@
 import type { Config } from 'tailwindcss';
 
+/**
+ * Design tokens for Houz of Vybe.
+ *
+ * The palette is a daylight one — the flagship event runs from noon, and a
+ * midnight-black club site would be lying about what the afternoon feels like.
+ * Everything is built on a paper-white card surface floating over a pale blue
+ * canvas, with a single saturated azure carrying every action and one warm red
+ * reserved for scarcity and errors.
+ */
 const config: Config = {
-  darkMode: 'class',
   content: ['./src/**/*.{ts,tsx,mdx}'],
   theme: {
     extend: {
       colors: {
-        // Core surfaces — near-black with a blue cast.
-        void: '#03060f',
-        ink: '#060a18',
-        surface: '#0a1024',
-        elevated: '#0f1730',
-        hairline: '#1b2648',
+        // --- Surfaces, lightest content first ---
+        paper: '#ffffff',
+        canvas: '#f2f7fd',
+        frost: '#e9f1fb',
+        mist: '#dde9f7',
+        edge: '#cbdcef',
+        edgeStrong: '#adc8e4',
 
-        // Brand blues.
+        // --- Text ramp ---
+        ink: '#0a2138',
+        slate: '#3c5c7d',
+        muted: '#7891ad',
+
+        // --- Primary: azure ---
         vybe: {
-          50: '#eaf2ff',
-          100: '#d3e4ff',
-          200: '#a8caff',
-          300: '#74abff',
-          400: '#4189ff',
-          500: '#1f6bff',
-          600: '#0f4fe0',
-          700: '#0c3cad',
-          800: '#0d3080',
-          900: '#0f2a63',
-          950: '#08183d',
+          50: '#f0f7ff',
+          100: '#dfeeff',
+          200: '#bcdcff',
+          300: '#8ac3ff',
+          400: '#51a4fb',
+          500: '#2586ef',
+          600: '#1268cd',
+          700: '#0f53a4',
+          800: '#123f78',
+          900: '#14355f',
+          950: '#0b2a4d',
         },
-        // Electric accent used sparingly for highlights and glows.
+
+        // --- Secondary: a cooler cyan for gradients and data ---
         pulse: {
-          300: '#7df2ff',
-          400: '#38dcf5',
-          500: '#12c2e9',
-          600: '#0a9cc0',
+          200: '#b6f0f6',
+          300: '#7fe2ef',
+          400: '#3fcbe0',
+          500: '#18aec7',
+          600: '#0d8aa1',
         },
-        // The red from the logo's globe. Signal colour only — the mark, live
-        // indicators, scarcity and destructive actions. Never a large fill, or
-        // it fights the blue instead of punctuating it.
+
+        // --- Signal: the cherry red off the poster. Never a large fill. ---
         flare: {
-          DEFAULT: '#F5242B',
-          300: '#FF6B70',
-          400: '#FF3F45',
-          500: '#F5242B',
-          600: '#C81419',
+          DEFAULT: '#e1303c',
+          200: '#ffd4d7',
+          300: '#f88b93',
+          400: '#ef5a65',
+          500: '#e1303c',
+          600: '#bd1b26',
         },
-        // Text ramp.
-        chalk: '#e9eefc',
-        haze: '#9aa8cc',
-        dim: '#63719b',
+
+        // --- Success / confirmed ---
+        leaf: {
+          100: '#d9f5e8',
+          400: '#34c48c',
+          500: '#12a06c',
+          600: '#0b7d54',
+        },
       },
       fontFamily: {
-        display: ['var(--font-display)', 'system-ui', 'sans-serif'],
+        display: ['var(--font-display)', 'Georgia', 'serif'],
         sans: ['var(--font-sans)', 'system-ui', 'sans-serif'],
+        script: ['var(--font-script)', 'Georgia', 'serif'],
         mono: ['var(--font-mono)', 'ui-monospace', 'monospace'],
       },
-      fontSize: {
-        '10xl': ['9.5rem', { lineHeight: '0.85', letterSpacing: '-0.04em' }],
+      letterSpacing: {
+        tightest: '-0.045em',
       },
       backgroundImage: {
         'grid-blue':
-          'linear-gradient(to right, rgba(31,107,255,0.07) 1px, transparent 1px), linear-gradient(to bottom, rgba(31,107,255,0.07) 1px, transparent 1px)',
-        'radial-vybe':
-          'radial-gradient(ellipse 80% 60% at 50% -10%, rgba(31,107,255,0.28), transparent 65%)',
-        'sheen':
-          'linear-gradient(110deg, transparent 25%, rgba(122,178,255,0.35) 48%, transparent 70%)',
+          'linear-gradient(to right, rgba(37,134,239,0.09) 1px, transparent 1px), linear-gradient(to bottom, rgba(37,134,239,0.09) 1px, transparent 1px)',
+        sheen: 'linear-gradient(110deg, transparent 25%, rgba(255,255,255,0.55) 48%, transparent 70%)',
       },
       boxShadow: {
-        glow: '0 0 0 1px rgba(31,107,255,0.25), 0 12px 40px -12px rgba(31,107,255,0.55)',
-        'glow-lg': '0 0 0 1px rgba(31,107,255,0.3), 0 30px 90px -20px rgba(31,107,255,0.6)',
-        inset: 'inset 0 1px 0 0 rgba(255,255,255,0.06)',
+        // A blue-tinted shadow ramp. Neutral grey shadows go muddy on a blue
+        // canvas, so every level carries the same hue as the background.
+        low: '0 1px 2px rgba(12,45,80,0.05), 0 2px 8px -2px rgba(12,45,80,0.06)',
+        mid: '0 2px 4px rgba(12,45,80,0.04), 0 12px 28px -10px rgba(12,45,80,0.16)',
+        high: '0 4px 8px rgba(12,45,80,0.05), 0 28px 60px -20px rgba(12,45,80,0.24)',
+        lift: '0 10px 20px -8px rgba(12,45,80,0.16), 0 32px 64px -24px rgba(12,45,80,0.28)',
+        azure: '0 10px 24px -10px rgba(37,134,239,0.55)',
+        'azure-lg': '0 18px 40px -14px rgba(37,134,239,0.6)',
+        ring: 'inset 0 0 0 1px rgba(203,220,239,0.9)',
       },
       keyframes: {
-        'fade-up': {
-          from: { opacity: '0', transform: 'translateY(18px)' },
-          to: { opacity: '1', transform: 'translateY(0)' },
-        },
         marquee: {
           from: { transform: 'translateX(0)' },
           to: { transform: 'translateX(-50%)' },
@@ -83,37 +103,30 @@ const config: Config = {
           from: { backgroundPosition: '200% 0' },
           to: { backgroundPosition: '-200% 0' },
         },
-        pulseRing: {
-          '0%': { transform: 'scale(0.9)', opacity: '0.7' },
-          '70%': { transform: 'scale(1.35)', opacity: '0' },
-          '100%': { transform: 'scale(1.35)', opacity: '0' },
+        drift: {
+          '0%,100%': { transform: 'translate3d(0,0,0)' },
+          '50%': { transform: 'translate3d(0,-14px,0)' },
         },
-        float: {
-          '0%,100%': { transform: 'translateY(0)' },
-          '50%': { transform: 'translateY(-12px)' },
+        breathe: {
+          '0%,100%': { transform: 'scale(1)', opacity: '0.55' },
+          '50%': { transform: 'scale(1.08)', opacity: '0.85' },
         },
-        scanline: {
-          '0%': { transform: 'translateY(-100%)' },
-          '100%': { transform: 'translateY(100%)' },
+        ping2: {
+          '0%': { transform: 'scale(0.85)', opacity: '0.7' },
+          '75%,100%': { transform: 'scale(1.9)', opacity: '0' },
         },
-        orbit: {
+        spinSlow: {
           from: { transform: 'rotate(0deg)' },
           to: { transform: 'rotate(360deg)' },
         },
-        tick: {
-          '0%,100%': { transform: 'translateY(0) scale(1)' },
-          '50%': { transform: 'translateY(-2px) scale(1.06)' },
-        },
       },
       animation: {
-        'fade-up': 'fade-up 0.7s cubic-bezier(0.16,1,0.3,1) both',
-        marquee: 'marquee 32s linear infinite',
-        sheen: 'sheen 3.5s linear infinite',
-        'pulse-ring': 'pulseRing 2.4s cubic-bezier(0.4,0,0.6,1) infinite',
-        float: 'float 6s ease-in-out infinite',
-        scanline: 'scanline 2.2s ease-in-out infinite',
-        orbit: 'orbit 44s linear infinite',
-        tick: 'tick 1.6s ease-in-out infinite',
+        marquee: 'marquee 38s linear infinite',
+        sheen: 'sheen 2.6s linear infinite',
+        drift: 'drift 7s ease-in-out infinite',
+        breathe: 'breathe 6s ease-in-out infinite',
+        ping2: 'ping2 2.2s cubic-bezier(0,0,0.2,1) infinite',
+        'spin-slow': 'spinSlow 40s linear infinite',
       },
     },
   },

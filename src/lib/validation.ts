@@ -114,6 +114,9 @@ export const createBookingSchema = z.object({
     .int('Quantity must be a whole number')
     .min(1, 'At least 1 ticket')
     .max(20, 'Too many tickets in one booking'),
+  // Optional. A wrong code costs the discount, never the booking, so it is
+  // deliberately not validated to death here.
+  referralCode: z.string().trim().max(32).optional().or(z.literal('')),
   // Honeypot: real users never fill a hidden field.
   company: z.string().max(0, 'Rejected').optional().or(z.literal('')),
   consent: z.coerce

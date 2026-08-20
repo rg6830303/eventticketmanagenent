@@ -25,8 +25,8 @@ export default async function CheckinsPage() {
   return (
     <div className="space-y-5">
       <div>
-        <h1 className="font-display text-2xl font-bold text-chalk">Door log</h1>
-        <p className="mt-1 text-[13px] text-haze">
+        <h1 className="font-display text-2xl font-bold text-ink">Door log</h1>
+        <p className="mt-1 text-[13px] text-slate">
           Every scan attempt, including rejections. Nothing here is ever deleted.
         </p>
       </div>

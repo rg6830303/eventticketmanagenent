@@ -11,11 +11,11 @@ const STATUSES = ['', 'confirmed', 'pending', 'cancelled', 'refunded', 'failed']
 const PAGE_SIZE = 25;
 
 const STATUS_TONE: Record<string, string> = {
-  confirmed: 'border-vybe-500/40 bg-vybe-500/10 text-vybe-200',
-  pending: 'border-amber-400/40 bg-amber-400/10 text-amber-200',
-  cancelled: 'border-flare-500/40 bg-flare-500/10 text-flare-300',
-  refunded: 'border-flare-500/40 bg-flare-500/10 text-flare-300',
-  failed: 'border-flare-500/40 bg-flare-500/10 text-flare-300',
+  confirmed: 'border-vybe-500/40 bg-vybe-500/10 text-vybe-700',
+  pending: 'border-amber-400/40 bg-amber-400/10 text-amber-700',
+  cancelled: 'border-flare-500/40 bg-flare-500/10 text-flare-600',
+  refunded: 'border-flare-500/40 bg-flare-500/10 text-flare-600',
+  failed: 'border-flare-500/40 bg-flare-500/10 text-flare-600',
 };
 
 export function BookingsTable({
@@ -75,7 +75,7 @@ export function BookingsTable({
     <div className="space-y-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <div className="relative sm:max-w-sm sm:flex-1">
-          <SearchIcon className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-dim" />
+          <SearchIcon className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
           <input
             value={q}
             onChange={(event) => {
@@ -100,8 +100,8 @@ export function BookingsTable({
               className={cn(
                 'rounded-full border px-3 py-1.5 text-[11px] font-medium capitalize transition-colors',
                 status === value
-                  ? 'border-vybe-500 bg-vybe-500/15 text-chalk'
-                  : 'border-hairline text-haze hover:border-vybe-600 hover:text-chalk',
+                  ? 'border-vybe-500 bg-vybe-500/15 text-ink'
+                  : 'border-edge text-slate hover:border-vybe-600 hover:text-ink',
               )}
             >
               {value || 'all'}
@@ -111,7 +111,7 @@ export function BookingsTable({
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div aria-live="polite" className="flex items-center gap-2 text-[12px] text-dim">
+        <div aria-live="polite" className="flex items-center gap-2 text-[12px] text-muted">
           {loading && (
             <Globe
               spin
@@ -127,12 +127,12 @@ export function BookingsTable({
       {loading && rows.length === 0 ? (
         <SkeletonList />
       ) : rows.length === 0 ? (
-        <div className="card flex flex-col items-center justify-center p-12 text-center">
-          <Globe spin strokeWidth={1.8} className="h-14 w-14 text-flare/20 [animation-duration:18s]" />
-          <p className="mt-4 text-[14px] font-medium text-haze">
+        <div className="panel flex flex-col items-center justify-center p-12 text-center">
+          <Globe spin strokeWidth={1.8} className="h-14 w-14 text-vybe-500/20 [animation-duration:18s]" />
+          <p className="mt-4 text-[14px] font-medium text-slate">
             {filtered ? 'No bookings match that search' : 'No bookings yet'}
           </p>
-          <p className="mt-1 max-w-[40ch] text-[12px] leading-relaxed text-dim">
+          <p className="mt-1 max-w-[40ch] text-[12px] leading-relaxed text-muted">
             {filtered
               ? 'Check the reference, or clear the status filter and try again.'
               : 'Confirmed and pending bookings appear here the moment they are made.'}
@@ -141,11 +141,11 @@ export function BookingsTable({
       ) : (
         <div className={cn('transition-opacity duration-200', loading && 'opacity-50')}>
           {/* Desktop table */}
-          <div className="card hidden overflow-x-auto lg:block">
+          <div className="panel hidden overflow-x-auto lg:block">
             <table className="w-full text-left text-[13px]">
               <caption className="sr-only">Bookings, newest first</caption>
-              <thead className="border-b border-hairline">
-                <tr className="font-mono text-[10px] uppercase tracking-wider text-dim">
+              <thead className="border-b border-edge">
+                <tr className="font-mono text-[10px] uppercase tracking-wider text-muted">
                   <th scope="col" className="px-4 py-3 font-medium">Reference</th>
                   <th scope="col" className="px-4 py-3 font-medium">Guest</th>
                   <th scope="col" className="px-4 py-3 font-medium">Tier</th>
@@ -156,42 +156,42 @@ export function BookingsTable({
                   <th scope="col" className="px-4 py-3 font-medium">Created</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-hairline">
+              <tbody className="divide-y divide-edge">
                 {rows.map((row) => (
-                  <tr key={row.id} className="transition-colors hover:bg-elevated/40">
+                  <tr key={row.id} className="transition-colors hover:bg-frost/40">
                     <td className="px-4 py-3">
                       <Link
                         href={`/admin/bookings/${row.id}`}
-                        className="font-mono text-[12px] text-vybe-300 transition-colors hover:text-vybe-200"
+                        className="font-mono text-[12px] text-vybe-600 transition-colors hover:text-vybe-700"
                       >
                         {row.reference}
                       </Link>
                     </td>
                     <td className="px-4 py-3">
-                      <p className="text-chalk">{row.customer_name}</p>
-                      <p className="text-[11px] text-dim">
+                      <p className="text-ink">{row.customer_name}</p>
+                      <p className="text-[11px] text-muted">
                         {maskEmail(row.customer_email)} · {maskPhone(row.customer_phone)}
                       </p>
                     </td>
-                    <td className="px-4 py-3 text-haze">{row.tier_name ?? '—'}</td>
-                    <td className="px-4 py-3 tabular-nums text-haze">{row.quantity}</td>
-                    <td className="px-4 py-3 font-mono text-[12px] tabular-nums text-haze">
+                    <td className="px-4 py-3 text-slate">{row.tier_name ?? '—'}</td>
+                    <td className="px-4 py-3 tabular-nums text-slate">{row.quantity}</td>
+                    <td className="px-4 py-3 font-mono text-[12px] tabular-nums text-slate">
                       {row.tickets_used}/{row.tickets_total}
                     </td>
-                    <td className="px-4 py-3 tabular-nums text-haze">
+                    <td className="px-4 py-3 tabular-nums text-slate">
                       {row.amount_paise === 0 ? 'Free' : formatInr(row.amount_paise)}
                     </td>
                     <td className="px-4 py-3">
                       <span
                         className={cn(
                           'rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase',
-                          STATUS_TONE[row.status] ?? 'border-hairline text-haze',
+                          STATUS_TONE[row.status] ?? 'border-edge text-slate',
                         )}
                       >
                         {row.status}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-[11px] text-dim">{timeAgo(row.created_at)}</td>
+                    <td className="px-4 py-3 text-[11px] text-muted">{timeAgo(row.created_at)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -204,26 +204,26 @@ export function BookingsTable({
               <li key={row.id}>
                 <Link
                   href={`/admin/bookings/${row.id}`}
-                  className="card block p-4 transition-colors hover:border-vybe-600/60"
+                  className="panel block p-4 transition-colors hover:border-vybe-600/60"
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="font-mono text-[12px] text-vybe-300">{row.reference}</p>
-                      <p className="mt-1 truncate text-[14px] font-medium text-chalk">
+                      <p className="font-mono text-[12px] text-vybe-600">{row.reference}</p>
+                      <p className="mt-1 truncate text-[14px] font-medium text-ink">
                         {row.customer_name}
                       </p>
-                      <p className="truncate text-[11px] text-dim">{maskEmail(row.customer_email)}</p>
+                      <p className="truncate text-[11px] text-muted">{maskEmail(row.customer_email)}</p>
                     </div>
                     <span
                       className={cn(
                         'shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase',
-                        STATUS_TONE[row.status] ?? 'border-hairline text-haze',
+                        STATUS_TONE[row.status] ?? 'border-edge text-slate',
                       )}
                     >
                       {row.status}
                     </span>
                   </div>
-                  <div className="mt-3 flex items-center gap-4 text-[11px] text-haze">
+                  <div className="mt-3 flex items-center gap-4 text-[11px] text-slate">
                     <span className="tabular-nums">×{row.quantity}</span>
                     <span className="font-mono tabular-nums">
                       {row.tickets_used}/{row.tickets_total} in
@@ -231,7 +231,7 @@ export function BookingsTable({
                     <span className="tabular-nums">
                       {row.amount_paise === 0 ? 'Free' : formatInr(row.amount_paise)}
                     </span>
-                    <span className="ml-auto text-dim">{timeAgo(row.created_at)}</span>
+                    <span className="ml-auto text-muted">{timeAgo(row.created_at)}</span>
                   </div>
                 </Link>
               </li>
@@ -246,18 +246,18 @@ export function BookingsTable({
             type="button"
             onClick={() => setPage((p) => Math.max(1, p - 1))}
             disabled={page === 1}
-            className="btn-ghost px-4 py-2 text-[12px]"
+            className="btn-outline btn-sm px-4 py-2 text-[12px]"
           >
             Previous
           </button>
-          <span className="font-mono text-[11px] tabular-nums text-dim">
+          <span className="font-mono text-[11px] tabular-nums text-muted">
             {page} / {pages}
           </span>
           <button
             type="button"
             onClick={() => setPage((p) => Math.min(pages, p + 1))}
             disabled={page === pages}
-            className="btn-ghost px-4 py-2 text-[12px]"
+            className="btn-outline btn-sm px-4 py-2 text-[12px]"
           >
             Next
           </button>
@@ -272,12 +272,12 @@ function SkeletonList() {
   return (
     <div className="space-y-2.5" aria-hidden>
       {Array.from({ length: 6 }, (_, index) => (
-        <div key={index} className="card flex items-center gap-4 p-4">
+        <div key={index} className="panel flex items-center gap-4 p-4">
           <div className="min-w-0 flex-1 space-y-2">
-            <div className="h-2.5 w-24 animate-pulse rounded bg-elevated" />
-            <div className="h-3.5 w-40 animate-pulse rounded bg-elevated/80" />
+            <div className="h-2.5 w-24 animate-pulse rounded bg-frost" />
+            <div className="h-3.5 w-40 animate-pulse rounded bg-frost/80" />
           </div>
-          <div className="h-5 w-20 shrink-0 animate-pulse rounded-full bg-elevated" />
+          <div className="h-5 w-20 shrink-0 animate-pulse rounded-full bg-frost" />
         </div>
       ))}
     </div>

@@ -28,12 +28,20 @@ export interface TicketEmailData {
   siteUrl: string;
 }
 
-const BG = '#05070f';
-const CARD = '#0b1226';
-const LINE = '#1c2748';
-const BLUE = '#1f6bff';
-const TEXT = '#e9eefc';
-const MUTED = '#93a1c6';
+/**
+ * Email palette, matching the site.
+ *
+ * Light on purpose: a dark email is a coin flip in Outlook and in Gmail's own
+ * dark-mode transform, both of which will happily re-tint a dark background and
+ * leave the text on top of it unreadable. Dark text on a light card survives
+ * every client's dark-mode meddling.
+ */
+const BG = '#f2f7fd';
+const CARD = '#ffffff';
+const LINE = '#cbdcef';
+const BLUE = '#2586ef';
+const TEXT = '#0a2138';
+const MUTED = '#3c5c7d';
 
 function esc(value: string): string {
   return value
@@ -113,7 +121,7 @@ export function ticketEmailHtml(data: TicketEmailData): string {
 
         <tr><td style="padding:0 0 20px 0;">
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
-                 style="background:linear-gradient(135deg,#0d1a3d,#0a1226);border:1px solid ${LINE};border-radius:20px;">
+                 style="background:linear-gradient(135deg,#eaf3ff,#ffffff);border:1px solid ${LINE};border-radius:20px;">
             <tr><td style="padding:32px;">
               <p style="margin:0 0 8px 0;font:600 11px/1 Arial,Helvetica,sans-serif;letter-spacing:3px;text-transform:uppercase;color:${BLUE};">
                 You're on the list
@@ -149,7 +157,7 @@ export function ticketEmailHtml(data: TicketEmailData): string {
         ${ticketBlocks}
 
         <tr><td style="padding:4px 0 20px 0;">
-          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0a1830;border:1px solid ${LINE};border-radius:16px;">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#e9f1fb;border:1px solid ${LINE};border-radius:16px;">
             <tr><td style="padding:22px 24px;">
               <p style="margin:0 0 10px 0;font:700 13px/1 Arial,Helvetica,sans-serif;letter-spacing:1px;text-transform:uppercase;color:${BLUE};">
                 Before you come

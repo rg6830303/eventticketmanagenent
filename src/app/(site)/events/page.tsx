@@ -12,7 +12,7 @@ export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
   title: 'Events',
-  description: 'Every Houz of Vybe night in Hyderabad — upcoming shows and past editions.',
+  description: 'Every Houz of Vybe date in Hyderabad — what is on sale now and what has already happened.',
   alternates: { canonical: '/events' },
 };
 
@@ -25,17 +25,17 @@ export default async function EventsPage() {
     .sort((a, b) => new Date(b.starts_at).getTime() - new Date(a.starts_at).getTime());
 
   return (
-    <div className="container-hov pb-24 pt-32 sm:pt-40">
+    <div className="shell pb-24 pt-32 sm:pt-40">
       <SectionHeading
-        eyebrow="What's on"
-        title="Every night we're putting on."
-        lede="Capped rooms, serious rigs, and a door that moves. Book early — we stop selling when the room is full."
+        kicker="Dates"
+        title="What we have on sale."
+        lede="One date at a time, done properly. Sales close on their own when the room is full, so early is better than sorry."
       />
 
       {upcoming.length === 0 ? (
         <Reveal className="mt-14">
-          <div className="card card-lit relative overflow-hidden px-6 py-16 text-center sm:px-12">
-            <div aria-hidden className="absolute inset-0 grid-overlay opacity-70" />
+          <div className="panel shadow-mid relative overflow-hidden px-6 py-16 text-center sm:px-12">
+            <div aria-hidden className="absolute inset-0 gridfield fade-edges opacity-70" />
             {/* The mark stands in for the listing that isn't there yet — an empty
                 state that still looks like the brand, not like a failure. */}
             <div
@@ -46,22 +46,22 @@ export default async function EventsPage() {
             </div>
 
             <div className="relative">
-              <div className="mx-auto mb-7 h-16 w-16 text-flare/70">
-                <Globe className="h-full w-full animate-float" strokeWidth={3} />
+              <div className="mx-auto mb-7 h-16 w-16 text-vybe-400">
+                <Globe className="h-full w-full animate-drift" strokeWidth={3} />
               </div>
-              <p className="font-display text-2xl font-bold text-chalk">Nothing announced yet</p>
+              <p className="font-display text-2xl font-bold text-ink">Nothing announced yet</p>
               <p className="lede mx-auto mt-3 max-w-md">
-                The next edition is in production. Get on the list and you&apos;ll hear before it
-                goes public.
+                The next date is being put together. Message us and you will hear about it before
+                it goes public.
               </p>
-              <Link href="/contact" className="btn-secondary mt-8 px-7 py-3.5">
+              <Link href="/contact" className="btn-outline mt-8 px-7 py-3.5">
                 Get on the list
               </Link>
             </div>
           </div>
         </Reveal>
       ) : (
-        <Stagger className="perspective-1000 mt-14 space-y-5">
+        <Stagger className="perspective mt-14 space-y-5">
           {upcoming.map((event) => (
             <StaggerItem key={event.id}>
               <EventCard event={event} />
@@ -72,18 +72,18 @@ export default async function EventsPage() {
 
       {past.length > 0 && (
         <section className="mt-24">
-          <h2 className="mb-8 font-display text-xl font-semibold text-haze">Past nights</h2>
+          <h2 className="mb-8 font-display text-[1.375rem] font-semibold tracking-[-0.02em] text-slate">Already happened</h2>
           <Stagger className="space-y-3">
             {past.map((event) => (
               <StaggerItem key={event.id}>
-                <div className="card flex flex-wrap items-center justify-between gap-4 p-5 opacity-60 transition-opacity duration-300 hover:opacity-90">
+                <div className="panel flex flex-wrap items-center justify-between gap-4 p-5 opacity-60 transition-opacity duration-300 hover:opacity-90">
                   <div>
-                    <p className="font-display text-lg font-semibold text-chalk">{event.name}</p>
-                    <p className="text-[12px] text-dim">
+                    <p className="font-display text-lg font-semibold text-ink">{event.name}</p>
+                    <p className="text-[12px] text-muted">
                       {formatEventDate(event.starts_at)} · {event.venue_name}
                     </p>
                   </div>
-                  <span className="badge">Finished</span>
+                  <span className="chip">Finished</span>
                 </div>
               </StaggerItem>
             ))}
@@ -102,9 +102,9 @@ function EventCard({ event }: { event: EventRow }) {
     <TiltCard intensity={5} className="group">
       {/* No overflow-hidden here: clipping flattens the 3D context and the
           TiltLayers would collapse onto the card face. */}
-      <article className="preserve-3d relative rounded-2xl border border-hairline bg-surface/70 backdrop-blur-md">
+      <article className="preserve-3d relative rounded-2xl border border-edge bg-paper/70 backdrop-blur-md">
         <div aria-hidden className="absolute inset-0 overflow-hidden rounded-[inherit]">
-          <div className="absolute inset-0 grid-overlay opacity-50" />
+          <div className="absolute inset-0 gridfield fade-edges opacity-50" />
           <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-vybe-300/55 to-transparent" />
           {/* Light sweeps across on hover — a single pass, not a loop. */}
           <div className="absolute -inset-x-1/2 inset-y-0 -translate-x-full bg-sheen opacity-0 transition-all duration-700 group-hover:translate-x-full group-hover:opacity-100" />
@@ -114,16 +114,16 @@ function EventCard({ event }: { event: EventRow }) {
           {/* Date block reads as a tear-off calendar leaf. */}
           <TiltLayer
             z={44}
-            className="flex w-full shrink-0 items-center gap-4 border-b border-hairline pb-5 sm:w-auto sm:flex-col sm:items-center sm:gap-0 sm:border-b-0 sm:border-r sm:pb-0 sm:pr-8"
+            className="flex w-full shrink-0 items-center gap-4 border-b border-edge pb-5 sm:w-auto sm:flex-col sm:items-center sm:gap-0 sm:border-b-0 sm:border-r sm:pb-0 sm:pr-8"
           >
-            <p className="font-display text-4xl font-extrabold leading-none text-gradient sm:text-5xl">
+            <p className="font-display text-4xl font-extrabold leading-none text-vybe-600 sm:text-5xl">
               {date.toLocaleDateString('en-IN', { day: '2-digit', timeZone: 'Asia/Kolkata' })}
             </p>
             <div className="sm:mt-1 sm:text-center">
-              <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-vybe-300">
+              <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-vybe-600">
                 {date.toLocaleDateString('en-IN', { month: 'short', timeZone: 'Asia/Kolkata' })}
               </p>
-              <p className="font-mono text-[10px] text-dim">
+              <p className="font-mono text-[10px] text-muted">
                 {date.toLocaleDateString('en-IN', { year: 'numeric', timeZone: 'Asia/Kolkata' })}
               </p>
             </div>
@@ -131,24 +131,24 @@ function EventCard({ event }: { event: EventRow }) {
 
           <TiltLayer z={22} className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-3">
-              <h3 className="font-display text-2xl font-bold text-chalk sm:text-3xl">
+              <h3 className="font-display text-2xl font-bold text-ink sm:text-3xl">
                 {event.name}
               </h3>
               {soldOut && (
-                <span className="badge border-flare-500/35 bg-flare-500/10 text-flare-300">
+                <span className="chip border-flare-500/35 bg-flare-500/10 text-flare-600">
                   Sold out
                 </span>
               )}
             </div>
-            {event.tagline && <p className="mt-1.5 text-[14px] text-vybe-300">{event.tagline}</p>}
-            <p className="mt-3 text-[13px] text-haze">
+            {event.tagline && <p className="mt-1.5 text-[14px] text-vybe-600">{event.tagline}</p>}
+            <p className="mt-3 text-[13px] text-slate">
               {event.venue_name}, {event.city} · doors{' '}
               {formatEventTime(event.doors_at ?? event.starts_at)} · {event.age_limit}+
             </p>
           </TiltLayer>
 
           <TiltLayer z={34} className="flex shrink-0 flex-wrap gap-2">
-            <Link href={`/events/${event.slug}`} className="btn-ghost px-6 py-3 text-[13px]">
+            <Link href={`/events/${event.slug}`} className="btn-outline btn-sm px-6 py-3 text-[13px]">
               Details
             </Link>
             {soldOut ? (

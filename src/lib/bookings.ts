@@ -1,6 +1,7 @@
 import 'server-only';
 import { query, queryOne, transaction } from './db';
 import { generateBookingReference, generateTicketCode } from './tickets';
+import { applyReferralInTransaction, type ReferralCheck } from './referrals';
 import { env } from './env';
 import type {
   BookingDetail,
@@ -86,10 +87,22 @@ export interface CreateBookingArgs {
   email: string;
   phone: string;
   quantity: number;
+  /** Raw text from the referral field. Validated and priced under the tier lock. */
+  referralCode?: string | null;
   idempotencyKey?: string | null;
   ipAddress?: string | null;
   userAgent?: string | null;
   source?: string;
+}
+
+export interface CreateBookingResult {
+  detail: BookingDetail;
+  /**
+   * What happened to the referral code, if one was supplied. A refused code
+   * does not fail the booking, so the caller has to be told separately in order
+   * to explain the price the customer ends up seeing.
+   */
+  referral: ReferralCheck | null;
 }
 
 /**
@@ -105,7 +118,7 @@ export interface CreateBookingArgs {
  * Razorpay verify route promotes it — the ticket-minting code path is shared,
  * so switching the flag does not change what a ticket looks like.
  */
-export async function createBooking(args: CreateBookingArgs): Promise<BookingDetail> {
+export async function createBooking(args: CreateBookingArgs): Promise<CreateBookingResult> {
   const quantity = args.quantity;
   if (quantity > env.maxTicketsPerBooking) {
     throw new BookingError(
@@ -122,9 +135,23 @@ export async function createBooking(args: CreateBookingArgs): Promise<BookingDet
     );
     if (existing) {
       const detail = await getBookingByReference(existing.reference);
-      if (detail) return detail;
+      if (detail) {
+        return {
+          detail,
+          referral: detail.booking.referral_code
+            ? {
+                valid: true,
+                code: detail.booking.referral_code,
+                discountPaise: detail.booking.discount_paise,
+                label: null,
+              }
+            : null,
+        };
+      }
     }
   }
+
+  let referral: ReferralCheck | null = null;
 
   const reference = await transaction(async (client) => {
     const eventResult = await client.query<EventRow>(
@@ -172,16 +199,26 @@ export async function createBooking(args: CreateBookingArgs): Promise<BookingDet
       throw new BookingError('This event is at capacity', 'event_at_capacity', 409);
     }
 
-    const amountPaise = tier.price_paise * quantity;
+    const subtotalPaise = tier.price_paise * quantity;
+
+    // Claimed under the same transaction as the inventory, so a limited code
+    // and the last ticket cannot both be handed to two people at once.
+    referral = await applyReferralInTransaction(client, args.referralCode, subtotalPaise);
+    const discountPaise = referral.valid ? referral.discountPaise : 0;
+    const amountPaise = Math.max(0, subtotalPaise - discountPaise);
+
+    // A zero-value order has nothing to collect, so it skips the payment step
+    // entirely and is confirmed on the spot — same path as a comp.
     const paid = !env.paymentsEnabled || amountPaise === 0;
     const bookingReference = generateBookingReference();
 
     const bookingResult = await client.query<BookingRow>(
       `INSERT INTO bookings (
          reference, event_id, tier_id, customer_name, customer_email, customer_phone,
-         quantity, amount_paise, status, payment_provider, idempotency_key,
+         quantity, subtotal_paise, discount_paise, referral_code, amount_paise,
+         status, payment_provider, idempotency_key,
          source, ip_address, user_agent, paid_at
-       ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)
+       ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)
        RETURNING *`,
       [
         bookingReference,
@@ -191,6 +228,9 @@ export async function createBooking(args: CreateBookingArgs): Promise<BookingDet
         args.email.toLowerCase(),
         args.phone,
         quantity,
+        subtotalPaise,
+        discountPaise,
+        referral.valid ? referral.code : null,
         amountPaise,
         paid ? 'confirmed' : 'pending',
         paid ? (amountPaise === 0 ? 'comp' : 'none') : 'razorpay',
@@ -219,7 +259,7 @@ export async function createBooking(args: CreateBookingArgs): Promise<BookingDet
 
   const detail = await getBookingByReference(reference);
   if (!detail) throw new BookingError('Booking could not be read back', 'internal_error', 500);
-  return detail;
+  return { detail, referral };
 }
 
 /**

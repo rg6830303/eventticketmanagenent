@@ -12,24 +12,31 @@ export default function RefundsPage() {
   return (
     <LegalLayout
       current="/legal/refunds"
-      eyebrow="Legal"
+      kicker="Legal"
       title="Refunds & cancellations"
       lede="When you get your money back, when you don't, and how transfers work."
       lastUpdated="16 August 2026"
       sections={[
         {
-          id: 'current-mode',
-          title: '1. Booking is currently free',
+          id: 'how-you-pay',
+          title: '1. How payment is taken',
           body: (
             <>
               <p>
-                Online payment is not enabled at this time. Tickets are being issued free of charge,
-                which means <strong>no money is collected when you book</strong> and there is
-                consequently nothing to refund.
+                Tickets are paid for online through <strong>Razorpay</strong> at the time of
+                booking. The amount shown on the checkout page is the final amount: taxes and
+                platform fees are included in it, and any referral discount is applied before you
+                pay rather than refunded afterwards.
               </p>
               <p>
-                The rest of this policy sets out what will apply once paid ticketing goes live, and
-                governs any booking for which payment was in fact taken.
+                We do not see, handle or store your card or UPI credentials. Those are entered on
+                Razorpay&apos;s payment window and processed by them. We keep only the payment
+                reference Razorpay returns, so that we can match a payment to a booking.
+              </p>
+              <p>
+                If money leaves your account and no pass arrives within an hour, do not pay again.
+                Contact us with your booking reference and we will either issue the pass or refund
+                the payment in full.
               </p>
             </>
           ),

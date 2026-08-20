@@ -65,7 +65,7 @@ export function BookingActions({
           type="button"
           onClick={resend}
           disabled={pending !== null || status !== 'confirmed'}
-          className="btn-secondary px-4 py-2.5 text-[12px]"
+          className="btn-outline px-4 py-2.5 text-[12px]"
         >
           {pending === 'resend' ? 'Sending…' : 'Resend ticket email'}
         </button>
@@ -85,7 +85,7 @@ export function BookingActions({
               <button
                 type="button"
                 onClick={() => setConfirmingVoid(false)}
-                className="btn-ghost px-4 py-2.5 text-[12px]"
+                className="btn-outline btn-sm px-4 py-2.5 text-[12px]"
               >
                 Cancel
               </button>
@@ -94,7 +94,7 @@ export function BookingActions({
             <button
               type="button"
               onClick={() => setConfirmingVoid(true)}
-              className="btn border border-hairline px-4 py-2.5 text-[12px] text-red-300 hover:border-red-500/50"
+              className="btn border border-edge px-4 py-2.5 text-[12px] text-red-300 hover:border-red-500/50"
             >
               Void tickets
             </button>
@@ -104,7 +104,7 @@ export function BookingActions({
 
       <div aria-live="polite" className="min-h-[18px]">
         {message && (
-          <p className={message.tone === 'ok' ? 'text-[12px] text-vybe-300' : 'text-[12px] text-red-300'}>
+          <p className={message.tone === 'ok' ? 'text-[12px] text-vybe-600' : 'text-[12px] text-red-300'}>
             {message.text}
           </p>
         )}

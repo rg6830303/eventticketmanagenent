@@ -25,6 +25,16 @@ export async function POST(request: NextRequest) {
         503,
       );
     }
+    // Payments on but no keys is a deployment mistake, and the generic 500 it
+    // otherwise produces sends the operator hunting through logs. Say it plainly.
+    if (!env.razorpay.keyId || !env.razorpay.keySecret) {
+      console.error('[payments] PAYMENTS_ENABLED is on but RAZORPAY_KEY_ID/SECRET are not set');
+      return fail(
+        'Payment is temporarily unavailable. Nothing has been charged — try again shortly.',
+        'payments_misconfigured',
+        503,
+      );
+    }
     if (!verifyOrigin(request.headers)) return fail('Request blocked', 'bad_origin', 403);
 
     const body = (await readJson(request)) as { reference?: string };

@@ -20,7 +20,7 @@ export default function Error({
   return (
     <div className="relative flex min-h-dvh flex-col items-center justify-center overflow-hidden px-5 py-20 text-center">
       <div aria-hidden className="pointer-events-none absolute inset-0">
-        <div className="absolute inset-0 grid-overlay" />
+        <div className="absolute inset-0 gridfield fade-edges" />
         <div className="absolute left-1/2 top-1/2 h-96 w-96 -translate-x-1/2 -translate-y-1/2 rounded-full bg-vybe-700/20 blur-[110px]" />
       </div>
 
@@ -28,7 +28,7 @@ export default function Error({
         aria-hidden
         className="pointer-events-none absolute left-1/2 top-1/2 aspect-square w-[min(120vw,720px)] -translate-x-1/2 -translate-y-1/2"
       >
-        <Globe spin strokeWidth={1.4} className="h-full w-full text-flare/[0.14]" />
+        <Globe spin strokeWidth={1.4} className="h-full w-full text-vybe-500/15" />
       </div>
 
       <div className="relative max-w-md">
@@ -44,7 +44,7 @@ export default function Error({
           <svg
             aria-hidden="true"
             viewBox="0 0 24 24"
-            className="h-6 w-6 text-flare-300"
+            className="h-6 w-6 text-flare-600"
             fill="none"
             stroke="currentColor"
             strokeWidth="1.8"
@@ -57,7 +57,7 @@ export default function Error({
           </svg>
         </div>
 
-        <h1 className="font-display text-2xl font-bold text-chalk sm:text-3xl">
+        <h1 className="font-display text-2xl font-bold text-ink sm:text-3xl">
           Something went wrong on our side.
         </h1>
         <p className="lede mt-3">
@@ -69,7 +69,7 @@ export default function Error({
           <button type="button" onClick={reset} className="btn-primary px-7 py-3.5">
             Try again
           </button>
-          <Link href="/" className="btn-ghost px-7 py-3.5">
+          <Link href="/" className="btn-outline btn-sm px-7 py-3.5">
             Back home
           </Link>
         </div>
@@ -79,9 +79,9 @@ export default function Error({
             from the visitor's own browser — showing it leaks nothing and is
             the only thing that makes these reportable. */}
         {error.digest ? (
-          <p className="mt-8 font-mono text-[11px] text-dim">Reference: {error.digest}</p>
+          <p className="mt-8 font-mono text-[11px] text-muted">Reference: {error.digest}</p>
         ) : error.message ? (
-          <p className="mx-auto mt-8 max-w-sm break-words font-mono text-[11px] leading-relaxed text-dim">
+          <p className="mx-auto mt-8 max-w-sm break-words font-mono text-[11px] leading-relaxed text-muted">
             {error.message}
           </p>
         ) : null}

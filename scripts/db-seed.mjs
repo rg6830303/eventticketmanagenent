@@ -12,75 +12,78 @@ const pool = new pg.Pool({
 });
 
 /**
- * The next upcoming Saturday at 21:00 IST, as a UTC instant.
+ * Seed for OFF Campus — Freshers '26.
  *
- * Computed rather than hardcoded on purpose: a seeded date in the past makes
- * createBooking() reject every single booking with "This event has already
- * happened", which looks like a broken app rather than stale data.
+ * Everything here matches the event artwork: Babylon 2.0 in Nanakramguda,
+ * Saturday 12 September 2026, doors at noon, music until five.
+ *
+ * Prices and stock are the operator's call — edit TIERS below and re-run, the
+ * insert is an upsert and will not lower a tier's quantity under what has
+ * already sold.
  */
-function nextSaturday2100IST() {
-  const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000;
-  const nowIst = new Date(Date.now() + IST_OFFSET_MS);
 
-  const daysUntilSaturday = (6 - nowIst.getUTCDay() + 7) % 7 || 7;
+const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000;
 
-  const startIst = Date.UTC(
-    nowIst.getUTCFullYear(),
-    nowIst.getUTCMonth(),
-    nowIst.getUTCDate() + daysUntilSaturday,
-    21,
-    0,
-    0,
-  );
-
-  const starts = new Date(startIst - IST_OFFSET_MS);
-  // Doors with the music; the night runs to 4am the following morning.
-  const ends = new Date(starts.getTime() + 7 * 60 * 60 * 1000);
-  return { starts, ends };
+/** A wall-clock IST time expressed as the UTC instant it actually happens at. */
+function ist(year, month, day, hour, minute = 0) {
+  return new Date(Date.UTC(year, month - 1, day, hour, minute) - IST_OFFSET_MS);
 }
+
+const EVENT = {
+  slug: 'offcampus',
+  name: 'OFF Campus',
+  tagline: "Freshers '26",
+  description:
+    'The Freshers welcome for the class of 2026, thrown by Houz of Vybe at Babylon 2.0 in Nanakramguda. Non-stop DJ, photo booth, temporary tattoos and more, from noon to five.',
+  venueName: 'Babylon 2.0',
+  venueAddress: 'Babylon 2.0, Nanakramguda, Hyderabad, Telangana 500032',
+  city: 'Hyderabad',
+  starts: ist(2026, 9, 12, 12, 0),
+  ends: ist(2026, 9, 12, 17, 0),
+  doors: ist(2026, 9, 12, 12, 0),
+  capacity: 400,
+  ageLimit: 18,
+};
 
 const TIERS = [
   {
     code: 'EARLY',
     name: 'Early Bird',
-    description: 'First release. Same access as General Entry, lower price, limited count.',
-    price_paise: 99900,
-    quantity: 150,
-    perks: ['Entry before 11 PM', 'Access to all three rooms'],
+    description: 'First release, same access as general entry. Gone when they are gone.',
+    price_paise: 39900,
+    quantity: 120,
+    perks: ['Entry from 12 PM', 'All activities included'],
     sort_order: 1,
   },
   {
     code: 'GA',
     name: 'General Entry',
-    description: 'Standard admission for the full night across every room.',
-    price_paise: 149900,
-    quantity: 300,
-    perks: ['Access to all three rooms', 'Cloakroom included'],
+    description: 'Standard admission for the full five hours.',
+    price_paise: 59900,
+    quantity: 220,
+    perks: ['Entry from 12 PM', 'All activities included'],
     sort_order: 2,
   },
   {
-    code: 'VIP',
-    name: 'VIP Access',
-    description: 'Skip the queue, elevated viewing deck and a dedicated bar.',
-    price_paise: 299900,
-    quantity: 100,
-    perks: ['Priority entry lane', 'VIP deck access', 'Dedicated bar', 'Cloakroom included'],
+    code: 'FAST',
+    name: 'Fast Track',
+    description: 'Separate entry lane so you walk past the queue at the gate.',
+    price_paise: 89900,
+    quantity: 60,
+    perks: ['Priority entry lane', 'All activities included', 'Cloakroom'],
     sort_order: 3,
-  },
-  {
-    code: 'TABLE',
-    name: 'Table for 4',
-    description: 'Reserved table in the Corridor room for four, with bottle service.',
-    price_paise: 1199900,
-    quantity: 20,
-    perks: ['Reserved table for 4', 'Bottle service', 'Priority entry lane', 'Dedicated host'],
-    sort_order: 4,
   },
 ];
 
-async function main() {
-  const { starts, ends } = nextSaturday2100IST();
+/**
+ * Referral codes. KAVYANSH100 is the first one and is deliberately unlimited —
+ * add `max_uses` to any code that should stop working after a while.
+ */
+const REFERRAL_CODES = [
+  { code: 'KAVYANSH100', label: 'Kavyansh', discount_paise: 10000, max_uses: null },
+];
 
+async function main() {
   console.log('\n  Houz of Vybe — seed');
   console.log('  ─────────────────────');
 
@@ -103,27 +106,28 @@ async function main() {
          ends_at = EXCLUDED.ends_at,
          doors_at = EXCLUDED.doors_at,
          capacity = EXCLUDED.capacity,
+         age_limit = EXCLUDED.age_limit,
          status = EXCLUDED.status
        RETURNING id, name, starts_at`,
       [
-        'offcampus',
-        'OFFCAMPUS',
-        'The after-hours chapter',
-        'A one-night rebuild of everything that happened after the lecture hall emptied. Three rooms, one arc, capped capacity.',
-        'The Vault, Jubilee Hills',
-        'Road No. 36, Jubilee Hills, Hyderabad, Telangana 500033',
-        'Hyderabad',
-        starts.toISOString(),
-        ends.toISOString(),
-        starts.toISOString(),
-        600,
-        21,
+        EVENT.slug,
+        EVENT.name,
+        EVENT.tagline,
+        EVENT.description,
+        EVENT.venueName,
+        EVENT.venueAddress,
+        EVENT.city,
+        EVENT.starts.toISOString(),
+        EVENT.ends.toISOString(),
+        EVENT.doors.toISOString(),
+        EVENT.capacity,
+        EVENT.ageLimit,
         'published',
       ],
     );
 
     const event = rows[0];
-    console.log(`  ✓ Event: ${event.name}`);
+    console.log(`  ✓ Event: ${event.name} ${EVENT.tagline}`);
 
     for (const tier of TIERS) {
       await client.query(
@@ -152,13 +156,35 @@ async function main() {
       );
     }
 
+    for (const referral of REFERRAL_CODES) {
+      await client.query(
+        `INSERT INTO referral_codes (code, label, discount_paise, max_uses, active)
+         VALUES (upper($1), $2, $3, $4, true)
+         ON CONFLICT (code) DO UPDATE SET
+           label = EXCLUDED.label,
+           discount_paise = EXCLUDED.discount_paise,
+           max_uses = EXCLUDED.max_uses,
+           active = true`,
+        [referral.code, referral.label, referral.discount_paise, referral.max_uses],
+      );
+    }
+
     await client.query('COMMIT');
 
-    console.log('\n  Tiers seeded:');
-    console.log('    CODE    NAME             PRICE        QTY');
+    console.log('\n  Tiers:');
+    console.log('    CODE    NAME             PRICE     QTY');
     for (const tier of TIERS) {
       console.log(
-        `    ${tier.code.padEnd(7)} ${tier.name.padEnd(16)} ₹${String(tier.price_paise / 100).padEnd(11)} ${tier.quantity}`,
+        `    ${tier.code.padEnd(7)} ${tier.name.padEnd(16)} ₹${String(tier.price_paise / 100).padEnd(8)} ${tier.quantity}`,
+      );
+    }
+
+    console.log('\n  Referral codes:');
+    for (const referral of REFERRAL_CODES) {
+      console.log(
+        `    ${referral.code.padEnd(14)} ₹${referral.discount_paise / 100} off   ${
+          referral.max_uses ? `${referral.max_uses} uses` : 'unlimited'
+        }`,
       );
     }
 
@@ -167,7 +193,7 @@ async function main() {
       dateStyle: 'full',
       timeStyle: 'short',
     });
-    console.log(`\n  Event date: ${istDate} IST`);
+    console.log(`\n  Doors: ${istDate} IST`);
     console.log('  Next: npm run admin:create\n');
   } catch (error) {
     await client.query('ROLLBACK');

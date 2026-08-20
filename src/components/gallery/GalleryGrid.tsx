@@ -60,7 +60,7 @@ export function GalleryGrid({ items }: { items: GalleryItem[] }) {
 
   return (
     <>
-      <ul className="perspective-1000 grid auto-rows-[150px] grid-cols-2 gap-3 sm:auto-rows-[230px] sm:grid-cols-3 lg:auto-rows-[280px]">
+      <ul className="perspective grid auto-rows-[150px] grid-cols-2 gap-3 sm:auto-rows-[230px] sm:grid-cols-3 lg:auto-rows-[280px]">
         {items.map((item, index) => (
           <li key={item.id} className={cn('preserve-3d', SPAN[item.span] ?? '')}>
             <motion.button
@@ -80,7 +80,7 @@ export function GalleryGrid({ items }: { items: GalleryItem[] }) {
                 openerRef.current = event.currentTarget;
                 setActive(item);
               }}
-              className="group relative block h-full w-full origin-bottom overflow-hidden rounded-2xl border border-hairline text-left transition-[border-color,box-shadow] duration-500 hover:border-vybe-600 hover:shadow-glow focus-visible:border-vybe-500"
+              className="group relative block h-full w-full origin-bottom overflow-hidden rounded-2xl border border-edge text-left transition-[border-color,box-shadow] duration-500 hover:border-vybe-600 hover:shadow-azure focus-visible:border-vybe-500"
               aria-label={`${item.caption} — ${item.event}. Open larger view.`}
             >
               <TileArt
@@ -92,21 +92,21 @@ export function GalleryGrid({ items }: { items: GalleryItem[] }) {
               {/* Sheen sweeps once on hover — reads as light passing over glass. */}
               <span
                 aria-hidden
-                className="pointer-events-none absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-vybe-200/12 to-transparent transition-transform duration-700 ease-out group-hover:translate-x-full"
+                className="pointer-events-none absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-vybe-200/20 to-transparent transition-transform duration-700 ease-out group-hover:translate-x-full"
               />
 
               <span
                 aria-hidden
-                className="absolute left-3 top-3 font-mono text-[10px] tracking-[0.2em] text-chalk/45 transition-colors duration-300 group-hover:text-vybe-200"
+                className="absolute left-3 top-3 font-mono text-[10px] tracking-[0.2em] text-ink/45 transition-colors duration-300 group-hover:text-vybe-700"
               >
                 {String(index + 1).padStart(2, '0')}
               </span>
 
-              <span className="absolute inset-x-0 bottom-0 translate-y-3 bg-gradient-to-t from-void via-void/75 to-transparent p-3 opacity-0 transition-all duration-500 ease-out group-hover:translate-y-0 group-hover:opacity-100 group-focus-visible:translate-y-0 group-focus-visible:opacity-100 sm:p-4">
-                <span className="block text-[12px] font-medium text-chalk sm:text-[13px]">
+              <span className="absolute inset-x-0 bottom-0 translate-y-3 bg-gradient-to-t from-canvas via-canvas/75 to-transparent p-3 opacity-0 transition-all duration-500 ease-out group-hover:translate-y-0 group-hover:opacity-100 group-focus-visible:translate-y-0 group-focus-visible:opacity-100 sm:p-4">
+                <span className="block text-[12px] font-medium text-ink sm:text-[13px]">
                   {item.caption}
                 </span>
-                <span className="block text-[10px] text-dim sm:text-[11px]">{item.event}</span>
+                <span className="block text-[10px] text-muted sm:text-[11px]">{item.event}</span>
               </span>
             </motion.button>
           </li>
@@ -124,12 +124,12 @@ export function GalleryGrid({ items }: { items: GalleryItem[] }) {
             exit={{ opacity: 0 }}
             transition={{ duration: 0.22 }}
             onClick={close}
-            className="fixed inset-0 z-[60] flex items-center justify-center overflow-hidden bg-void/92 p-5 backdrop-blur-xl"
+            className="fixed inset-0 z-[60] flex items-center justify-center overflow-hidden bg-canvas/95 p-5 backdrop-blur-xl"
           >
             <Globe
               spin
               strokeWidth={0.7}
-              className="pointer-events-none absolute left-1/2 top-1/2 h-[720px] w-[720px] -translate-x-1/2 -translate-y-1/2 text-vybe-500/8 [animation-duration:120s]"
+              className="pointer-events-none absolute left-1/2 top-1/2 h-[720px] w-[720px] -translate-x-1/2 -translate-y-1/2 text-vybe-500/10 [animation-duration:120s]"
             />
 
             <motion.figure
@@ -140,7 +140,7 @@ export function GalleryGrid({ items }: { items: GalleryItem[] }) {
               onClick={(event) => event.stopPropagation()}
               className="relative w-full max-w-3xl"
             >
-              <div className="overflow-hidden rounded-2xl border border-hairline shadow-glow-lg">
+              <div className="overflow-hidden rounded-2xl border border-edge shadow-azure-lg">
                 <TileArt
                   hue={active.hue}
                   seed={active.id}
@@ -150,16 +150,16 @@ export function GalleryGrid({ items }: { items: GalleryItem[] }) {
               </div>
               <figcaption className="mt-4 flex items-center justify-between gap-4">
                 <span>
-                  <span className="block font-display text-lg font-semibold text-chalk">
+                  <span className="block font-display text-lg font-semibold text-ink">
                     {active.caption}
                   </span>
-                  <span className="block text-[12px] text-dim">{active.event}</span>
+                  <span className="block text-[12px] text-muted">{active.event}</span>
                 </span>
                 <button
                   ref={closeRef}
                   type="button"
                   onClick={close}
-                  className="btn-ghost px-5 py-2.5 text-[12px]"
+                  className="btn-outline btn-sm px-5 py-2.5 text-[12px]"
                 >
                   Close
                 </button>

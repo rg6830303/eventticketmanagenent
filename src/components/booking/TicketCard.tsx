@@ -30,28 +30,28 @@ const STATUS: Record<TicketStatus, StatusStyle> = {
   valid: {
     label: 'Valid',
     stripe: 'bg-gradient-to-b from-pulse-400 via-vybe-500 to-vybe-700',
-    pill: 'border-vybe-400/45 bg-vybe-500/15 text-vybe-100',
+    pill: 'border-vybe-400/45 bg-vybe-500/15 text-vybe-700',
     stamp: null,
     live: true,
   },
   used: {
     label: 'Checked in',
-    stripe: 'bg-gradient-to-b from-flare-600/70 via-dim/50 to-hairline',
-    pill: 'border-hairline bg-white/[0.04] text-dim',
+    stripe: 'bg-gradient-to-b from-flare-600/70 via-muted/50 to-edge',
+    pill: 'border-edge bg-white/[0.04] text-muted',
     stamp: 'Checked in',
     live: false,
   },
   void: {
     label: 'Cancelled',
     stripe: 'bg-gradient-to-b from-flare-300 via-flare-500 to-flare-600',
-    pill: 'border-flare-500/45 bg-flare-500/10 text-flare-300',
+    pill: 'border-flare-500/45 bg-flare-500/10 text-flare-600',
     stamp: 'Cancelled',
     live: false,
   },
   refunded: {
     label: 'Refunded',
     stripe: 'bg-gradient-to-b from-flare-300 via-flare-500 to-flare-600',
-    pill: 'border-flare-500/45 bg-flare-500/10 text-flare-300',
+    pill: 'border-flare-500/45 bg-flare-500/10 text-flare-600',
     stamp: 'Refunded',
     live: false,
   },
@@ -71,11 +71,11 @@ export async function TicketCard({ ticket, event, tier, index, total }: TicketCa
       <div className="relative">
         <div
           className={cn(
-            'relative rounded-[24px] border bg-elevated/70 backdrop-blur-md',
+            'relative rounded-[24px] border bg-frost/70 backdrop-blur-md',
             'shadow-[0_20px_60px_-30px_rgba(3,6,15,0.95)] transition-shadow duration-300',
             'print:border-black/25 print:bg-white print:shadow-none print:backdrop-blur-none',
             style.live
-              ? 'border-hairline group-hover:shadow-glow-lg'
+              ? 'border-edge group-hover:shadow-azure-lg'
               : 'border-flare-600/25 print:border-black/25',
           )}
         >
@@ -87,7 +87,7 @@ export async function TicketCard({ ticket, event, tier, index, total }: TicketCa
             <Globe
               className={cn(
                 'h-full w-full',
-                style.live ? 'text-vybe-400/[0.07]' : 'text-flare/[0.09]',
+                style.live ? 'text-vybe-400/[0.07]' : 'text-vybe-500/[0.09]',
               )}
               strokeWidth={1.3}
             />
@@ -104,11 +104,11 @@ export async function TicketCard({ ticket, event, tier, index, total }: TicketCa
           <header className="relative flex items-start justify-between gap-3 px-6 pt-5 sm:px-7">
             <div className="min-w-0">
               {typeof index === 'number' && typeof total === 'number' && (
-                <p className="eyebrow print:text-black">
+                <p className="kicker print:text-black">
                   Ticket {index} of {total}
                 </p>
               )}
-              <h3 className="mt-1.5 truncate font-display text-lg font-bold text-chalk print:text-black">
+              <h3 className="mt-1.5 truncate font-display text-lg font-bold text-ink print:text-black">
                 {event.name}
               </h3>
             </div>
@@ -121,7 +121,7 @@ export async function TicketCard({ ticket, event, tier, index, total }: TicketCa
             >
               {style.live && (
                 <span aria-hidden className="relative flex h-1.5 w-1.5">
-                  <span className="absolute inset-0 rounded-full bg-pulse-400 animate-pulse-ring" />
+                  <span className="absolute inset-0 rounded-full bg-pulse-400 animate-ping2" />
                   <span className="relative h-1.5 w-1.5 rounded-full bg-pulse-400" />
                 </span>
               )}
@@ -131,23 +131,23 @@ export async function TicketCard({ ticket, event, tier, index, total }: TicketCa
 
           <div className="relative grid gap-x-6 gap-y-3 px-6 pb-5 pt-4 sm:grid-cols-2 sm:px-7">
             <Field label="Holder">
-              <span className="text-[15px] font-semibold text-chalk print:text-black">
+              <span className="text-[15px] font-semibold text-ink print:text-black">
                 {ticket.holder_name}
               </span>
             </Field>
             <Field label="Tier">
-              <span className="text-[15px] font-semibold text-chalk print:text-black">
+              <span className="text-[15px] font-semibold text-ink print:text-black">
                 {tier?.name ?? 'General entry'}
               </span>
             </Field>
             <Field label="Doors">
-              <span className="text-[13px] text-haze print:text-black">
+              <span className="text-[13px] text-slate print:text-black">
                 {formatEventDate(event.starts_at)} ·{' '}
                 {formatEventTime(event.doors_at ?? event.starts_at)}
               </span>
             </Field>
             <Field label={ticket.seat_label ? 'Seat / zone' : 'Venue'}>
-              <span className="text-[13px] text-haze print:text-black">
+              <span className="text-[13px] text-slate print:text-black">
                 {ticket.seat_label ?? event.venue_name}
               </span>
             </Field>
@@ -156,14 +156,14 @@ export async function TicketCard({ ticket, event, tier, index, total }: TicketCa
           {/* Tear line + perforation. The circles are painted in the page
               colour so they read as holes punched through the ticket. */}
           <div className="relative">
-            <div className="mx-6 border-t border-dashed border-hairline/90 print:border-black/30 sm:mx-7" />
+            <div className="mx-6 border-t border-dashed border-edge/90 print:border-black/30 sm:mx-7" />
             <span
               aria-hidden
-              className="absolute -left-3 top-1/2 h-6 w-6 -translate-y-1/2 rounded-full border border-hairline bg-void print:hidden"
+              className="absolute -left-3 top-1/2 h-6 w-6 -translate-y-1/2 rounded-full border border-edge bg-canvas print:hidden"
             />
             <span
               aria-hidden
-              className="absolute -right-3 top-1/2 h-6 w-6 -translate-y-1/2 rounded-full border border-hairline bg-void print:hidden"
+              className="absolute -right-3 top-1/2 h-6 w-6 -translate-y-1/2 rounded-full border border-edge bg-canvas print:hidden"
             />
           </div>
 
@@ -190,7 +190,7 @@ export async function TicketCard({ ticket, event, tier, index, total }: TicketCa
                   className={cn(
                     'mt-3 flex items-center justify-center gap-2 rounded-lg border px-3 py-1.5',
                     'text-center font-display text-[11px] font-extrabold uppercase tracking-[0.18em]',
-                    'border-flare-500/50 bg-flare-500/10 text-flare-300',
+                    'border-flare-500/50 bg-flare-500/10 text-flare-600',
                     'print:border-black/40 print:bg-transparent print:text-black',
                   )}
                 >
@@ -198,17 +198,17 @@ export async function TicketCard({ ticket, event, tier, index, total }: TicketCa
                 </p>
               )}
 
-              <p className="mt-3 text-center font-mono text-[13px] font-medium tracking-[0.14em] text-chalk print:text-black">
+              <p className="mt-3 text-center font-mono text-[13px] font-medium tracking-[0.14em] text-ink print:text-black">
                 {ticket.code}
               </p>
 
               {ticket.status === 'used' && ticket.checked_in_at ? (
-                <p className="mt-1.5 text-center text-[12px] leading-relaxed text-dim print:text-black">
+                <p className="mt-1.5 text-center text-[12px] leading-relaxed text-muted print:text-black">
                   Checked in {formatDateTime(ticket.checked_in_at)}
                   {ticket.checked_in_gate ? ` · ${ticket.checked_in_gate}` : ''}
                 </p>
               ) : (
-                <p className="mt-1.5 text-center text-[12px] leading-relaxed text-dim print:text-black">
+                <p className="mt-1.5 text-center text-[12px] leading-relaxed text-muted print:text-black">
                   {spent
                     ? 'This pass is no longer valid for entry.'
                     : 'Hold this up at the door — one scan, one entry.'}
@@ -225,7 +225,7 @@ export async function TicketCard({ ticket, event, tier, index, total }: TicketCa
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="min-w-0">
-      <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-dim print:text-black/60">
+      <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted print:text-black/60">
         {label}
       </p>
       <p className="mt-0.5 truncate">{children}</p>

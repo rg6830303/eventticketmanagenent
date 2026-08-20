@@ -103,19 +103,19 @@ export function ShareCrew({ reference, url, title = 'Houz of Vybe', className }:
 
   return (
     <section
-      className={cn('card card-lit p-6 sm:p-7', className)}
+      className={cn('panel shadow-mid p-6 sm:p-7', className)}
       aria-label="Bring your crew"
     >
-      <p className="eyebrow">Bring your crew</p>
-      <h3 className="mt-2 font-display text-xl font-bold tracking-tight text-chalk">
+      <p className="kicker">Bring your crew</p>
+      <h3 className="mt-2 font-display text-xl font-bold tracking-tight text-ink">
         Send the link, not a screenshot
       </h3>
-      <p className="mt-2 text-[13px] leading-relaxed text-haze">
+      <p className="mt-2 text-[13px] leading-relaxed text-slate">
         Everyone books their own pass. One QR admits one person, so a forwarded screenshot gets your
         friend turned away at the door.
       </p>
 
-      <p className="mt-5 truncate rounded-xl border border-hairline bg-ink/70 px-4 py-3 font-mono text-[12px] tracking-wide text-haze">
+      <p className="mt-5 truncate rounded-xl border border-edge bg-mist/70 px-4 py-3 font-mono text-[12px] tracking-wide text-slate">
         {shareUrl || 'Loading link…'}
       </p>
 
@@ -124,21 +124,21 @@ export function ShareCrew({ reference, url, title = 'Houz of Vybe', className }:
           {canShare ? 'Share link' : 'Copy link'}
         </button>
         {canShare && (
-          <button type="button" onClick={copy} className="btn-ghost px-5 py-2.5 text-[13px]">
+          <button type="button" onClick={copy} className="btn-outline btn-sm px-5 py-2.5 text-[13px]">
             Copy instead
           </button>
         )}
       </div>
 
-      <p aria-live="polite" className="mt-3 min-h-[18px] text-[12px] text-pulse-300">
+      <p aria-live="polite" className="mt-3 min-h-[18px] text-[12px] text-pulse-600">
         {message[status]}
       </p>
 
-      <div className="mt-5 border-t border-hairline pt-5">
+      <div className="mt-5 border-t border-edge pt-5">
         <div className="flex items-center gap-3">
           <p
             id="share-crew-slots-label"
-            className="text-[11px] font-semibold uppercase tracking-[0.18em] text-dim"
+            className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted"
           >
             Invite up to {SLOTS}
           </p>
@@ -157,8 +157,8 @@ export function ShareCrew({ reference, url, title = 'Houz of Vybe', className }:
                 className={cn(
                   'grid h-9 w-9 place-items-center rounded-full border transition-all duration-200',
                   filled
-                    ? 'border-vybe-400/70 bg-vybe-500/20 text-vybe-100'
-                    : 'border-dashed border-hairline text-dim hover:border-vybe-600 hover:text-haze',
+                    ? 'border-vybe-400/70 bg-vybe-500/20 text-vybe-700'
+                    : 'border-dashed border-edge text-muted hover:border-vybe-600 hover:text-slate',
                 )}
               >
                 {filled ? (
@@ -195,7 +195,7 @@ export function ShareCrew({ reference, url, title = 'Houz of Vybe', className }:
             ))}
           </div>
         </div>
-        <p className="mt-3 text-[12px] leading-relaxed text-dim">
+        <p className="mt-3 text-[12px] leading-relaxed text-muted">
           A private tally for your own benefit — tick people off as you tell them. Nothing is sent,
           stored or counted.
           {reference ? ` Your booking reference is ${reference}.` : ''}

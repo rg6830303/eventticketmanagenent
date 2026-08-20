@@ -3,18 +3,18 @@ import { cn } from '@/lib/utils';
 import { Reveal } from './Reveal';
 
 /**
- * The one heading block every marketing section uses, so eyebrow/title/lede
+ * The one heading block every marketing section uses, so kicker/title/lede
  * rhythm and entrance timing stay identical down the page.
  */
 export function SectionHeading({
-  eyebrow,
+  kicker,
   title,
   lede,
   align = 'left',
   className,
   children,
 }: {
-  eyebrow?: string;
+  kicker?: string;
   title: ReactNode;
   lede?: ReactNode;
   align?: 'left' | 'center';
@@ -29,13 +29,13 @@ export function SectionHeading({
         className,
       )}
     >
-      {eyebrow && (
+      {kicker && (
         <Reveal>
-          <p className="eyebrow mb-4">{eyebrow}</p>
+          <p className="kicker mb-4">{kicker}</p>
         </Reveal>
       )}
       <Reveal delay={0.06}>
-        <h2 className="display-2">{title}</h2>
+        <h2 className="h-section">{title}</h2>
       </Reveal>
       {lede && (
         <Reveal delay={0.12}>

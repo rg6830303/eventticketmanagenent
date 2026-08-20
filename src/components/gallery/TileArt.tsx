@@ -127,7 +127,7 @@ export function TileArt({ hue, seed, variant = 'tile', className }: TileArtProps
 
       {/* Edge vignette keeps the tile from bleeding into its neighbour on a dark page. */}
       <div className="absolute inset-0 bg-[radial-gradient(120%_100%_at_50%_0%,transparent_35%,rgba(3,6,15,0.72)_100%)]" />
-      <div className="absolute inset-0 rounded-[inherit] shadow-inset" />
+      <div className="absolute inset-0 rounded-[inherit] shadow-ring" />
     </div>
   );
 }

@@ -10,13 +10,13 @@ const POLL_MS = 5000;
 const MAX_ROWS = 200;
 
 const TONE: Record<string, string> = {
-  admitted: 'border-l-vybe-500 text-vybe-300',
-  duplicate: 'border-l-amber-400 text-amber-300',
-  wrong_event: 'border-l-amber-400 text-amber-300',
-  void: 'border-l-amber-400 text-amber-300',
-  refunded: 'border-l-amber-400 text-amber-300',
-  invalid_signature: 'border-l-flare-500 text-flare-300',
-  not_found: 'border-l-flare-500 text-flare-300',
+  admitted: 'border-l-vybe-500 text-vybe-600',
+  duplicate: 'border-l-amber-400 text-amber-700',
+  wrong_event: 'border-l-amber-400 text-amber-700',
+  void: 'border-l-amber-400 text-amber-700',
+  refunded: 'border-l-amber-400 text-amber-700',
+  invalid_signature: 'border-l-flare-500 text-flare-600',
+  not_found: 'border-l-flare-500 text-flare-600',
 };
 
 export function CheckinFeed({ initialRows }: { initialRows: ScanLogRow[] }) {
@@ -65,15 +65,15 @@ export function CheckinFeed({ initialRows }: { initialRows: ScanLogRow[] }) {
             <span
               className={cn(
                 'relative inline-flex h-2.5 w-2.5 rounded-full',
-                paused ? 'bg-dim' : 'bg-flare-500',
+                paused ? 'bg-muted' : 'bg-flare-500',
               )}
             />
           </span>
-          <span className="font-mono text-[11px] uppercase tracking-wider text-haze">
+          <span className="font-mono text-[11px] uppercase tracking-wider text-slate">
             {paused ? 'Paused' : 'Live'}
           </span>
           {error && (
-            <span className="truncate font-mono text-[11px] uppercase tracking-wider text-flare-300">
+            <span className="truncate font-mono text-[11px] uppercase tracking-wider text-flare-600">
               {error}
             </span>
           )}
@@ -83,7 +83,7 @@ export function CheckinFeed({ initialRows }: { initialRows: ScanLogRow[] }) {
           type="button"
           onClick={() => setPaused((p) => !p)}
           aria-pressed={paused}
-          className="btn-ghost shrink-0 px-4 py-2 text-[12px]"
+          className="btn-outline btn-sm shrink-0 px-4 py-2 text-[12px]"
         >
           {paused ? 'Resume' : 'Pause'}
         </button>
@@ -96,10 +96,10 @@ export function CheckinFeed({ initialRows }: { initialRows: ScanLogRow[] }) {
       </p>
 
       {rows.length === 0 ? (
-        <div className="card flex flex-col items-center justify-center p-12 text-center">
-          <Globe spin strokeWidth={1.8} className="h-14 w-14 text-flare/20 [animation-duration:18s]" />
-          <p className="mt-4 text-[14px] font-medium text-haze">No scans recorded yet</p>
-          <p className="mt-1 max-w-[40ch] text-[12px] leading-relaxed text-dim">
+        <div className="panel flex flex-col items-center justify-center p-12 text-center">
+          <Globe spin strokeWidth={1.8} className="h-14 w-14 text-vybe-500/20 [animation-duration:18s]" />
+          <p className="mt-4 text-[14px] font-medium text-slate">No scans recorded yet</p>
+          <p className="mt-1 max-w-[40ch] text-[12px] leading-relaxed text-muted">
             {paused
               ? 'The feed is paused. Resume it to pick up new scans.'
               : 'The feed is live. Every scan appears here the moment it happens.'}
@@ -115,16 +115,16 @@ export function CheckinFeed({ initialRows }: { initialRows: ScanLogRow[] }) {
                 animate={reduce ? { opacity: 1 } : { opacity: 1, y: 0, height: 'auto' }}
                 transition={{ duration: reduce ? 0.15 : 0.35, ease: [0.16, 1, 0.3, 1] }}
                 className={cn(
-                  'card border-l-4 p-3.5',
-                  TONE[row.result] ?? 'border-l-hairline text-haze',
+                  'panel border-l-4 p-3.5',
+                  TONE[row.result] ?? 'border-l-edge text-slate',
                 )}
               >
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="min-w-0">
-                    <p className="truncate text-[13px] font-medium text-chalk">
-                      {row.holder_name ?? <span className="text-dim">Unrecognised pass</span>}
+                    <p className="truncate text-[13px] font-medium text-ink">
+                      {row.holder_name ?? <span className="text-muted">Unrecognised pass</span>}
                     </p>
-                    <p className="truncate font-mono text-[11px] text-dim">
+                    <p className="truncate font-mono text-[11px] text-muted">
                       {row.ticket_code ?? '—'}
                       {row.gate && ` · ${row.gate}`}
                       {row.operator_name && ` · ${row.operator_name}`}
@@ -134,12 +134,12 @@ export function CheckinFeed({ initialRows }: { initialRows: ScanLogRow[] }) {
                     <p className="font-mono text-[11px] font-semibold uppercase tracking-wide">
                       {row.result.replace(/_/g, ' ')}
                     </p>
-                    <p className="text-[10px] text-dim" title={formatDateTime(row.created_at)}>
+                    <p className="text-[10px] text-muted" title={formatDateTime(row.created_at)}>
                       {timeAgo(row.created_at)}
                     </p>
                   </div>
                 </div>
-                {row.message && <p className="mt-1.5 text-[11px] text-haze">{row.message}</p>}
+                {row.message && <p className="mt-1.5 text-[11px] text-slate">{row.message}</p>}
               </motion.li>
             ))}
           </AnimatePresence>

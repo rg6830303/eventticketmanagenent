@@ -47,10 +47,10 @@ export function HowItWorks() {
       >
         <defs>
           <linearGradient id="hov-step-line" x1="0" y1="0" x2="1" y2="0">
-            <stop offset="0%" stopColor="#1f6bff" stopOpacity="0" />
-            <stop offset="18%" stopColor="#1f6bff" stopOpacity="0.9" />
-            <stop offset="82%" stopColor="#38dcf5" stopOpacity="0.9" />
-            <stop offset="100%" stopColor="#38dcf5" stopOpacity="0" />
+            <stop offset="0%" stopColor="#2586ef" stopOpacity="0" />
+            <stop offset="18%" stopColor="#2586ef" stopOpacity="0.9" />
+            <stop offset="82%" stopColor="#3fcbe0" stopOpacity="0.9" />
+            <stop offset="100%" stopColor="#3fcbe0" stopOpacity="0" />
           </linearGradient>
         </defs>
         <motion.path
@@ -64,16 +64,17 @@ export function HowItWorks() {
       </svg>
 
       <motion.ol
-        className="grid gap-10 sm:grid-cols-2 lg:grid-cols-4 lg:gap-8"
+        data-reveal=""
+        className="grid gap-10 sm:grid-cols-3 lg:gap-10"
         {...listMotion}
       >
         {HOW_IT_WORKS.map((step) => (
-          <motion.li key={step.step} className="relative" {...itemMotion}>
-            <span className="flex h-12 w-12 items-center justify-center rounded-full border border-vybe-500/40 bg-void font-mono text-[13px] font-bold text-vybe-300 shadow-inset">
+          <motion.li data-reveal="" key={step.step} className="relative" {...itemMotion}>
+            <span className="flex h-12 w-12 items-center justify-center rounded-full border border-vybe-200 bg-paper font-mono text-[0.8125rem] font-medium text-vybe-600 shadow-low">
               <CountUp value={step.step} pad={2} duration={1} />
             </span>
-            <h3 className="mt-5 font-display text-lg font-semibold text-chalk">{step.title}</h3>
-            <p className="mt-2 text-[13px] leading-relaxed text-haze">{step.copy}</p>
+            <h3 className="mt-5 font-display text-[1.25rem] font-semibold tracking-[-0.02em] text-ink">{step.title}</h3>
+            <p className="mt-2 text-[0.9375rem] leading-relaxed text-slate">{step.copy}</p>
           </motion.li>
         ))}
       </motion.ol>

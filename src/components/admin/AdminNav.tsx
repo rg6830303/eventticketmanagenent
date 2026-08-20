@@ -38,7 +38,7 @@ export function AdminNav({ variant = 'bar' }: { variant?: 'bar' | 'tabs' }) {
               className={cn(
                 'relative flex min-h-[60px] flex-col items-center justify-center gap-1 text-[10px] font-medium',
                 'transition-colors duration-200 active:bg-vybe-500/10',
-                active ? 'text-vybe-200' : 'text-dim',
+                active ? 'text-vybe-700' : 'text-muted',
               )}
             >
               {active && !reduce && (
@@ -75,7 +75,7 @@ export function AdminNav({ variant = 'bar' }: { variant?: 'bar' | 'tabs' }) {
             className={cn(
               'relative flex items-center gap-2 whitespace-nowrap px-3 py-2.5 text-[13px] font-medium',
               'transition-colors duration-200',
-              active ? 'text-chalk' : 'text-haze hover:text-chalk',
+              active ? 'text-ink' : 'text-slate hover:text-ink',
             )}
           >
             {active && !reduce && (

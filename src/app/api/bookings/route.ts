@@ -40,7 +40,13 @@ export async function POST(request: NextRequest) {
         reference: generateBookingReference(),
         status: 'confirmed',
         quantity: input.quantity,
+        subtotalPaise: 0,
+        discountPaise: 0,
         amountPaise: 0,
+        referralCode: null,
+        requiresPayment: false,
+        referralRejected: false,
+        referralMessage: null,
         emailSent: true,
         eventSlug: input.eventSlug,
       });
@@ -67,13 +73,14 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    const detail = await createBooking({
+    const { detail, referral } = await createBooking({
       eventSlug: input.eventSlug,
       tierCode: input.tierCode,
       name: input.name,
       email: input.email,
       phone: input.phone,
       quantity: input.quantity,
+      referralCode: input.referralCode || null,
       idempotencyKey: request.headers.get('Idempotency-Key'),
       ipAddress: ip,
       userAgent: request.headers.get('user-agent'),
@@ -112,7 +119,15 @@ export async function POST(request: NextRequest) {
       reference: detail.booking.reference,
       status: detail.booking.status,
       quantity: detail.booking.quantity,
+      subtotalPaise: detail.booking.subtotal_paise,
+      discountPaise: detail.booking.discount_paise,
       amountPaise: detail.booking.amount_paise,
+      referralCode: detail.booking.referral_code,
+      // The client uses this to decide between the payment page and the
+      // confirmation page, rather than re-deriving the rule from the amount.
+      requiresPayment: detail.booking.status === 'pending' && detail.booking.amount_paise > 0,
+      referralRejected: Boolean(input.referralCode) && !(referral?.valid ?? false),
+      referralMessage: referral && !referral.valid ? (referral.reason ?? null) : null,
       eventSlug: detail.event.slug,
       emailSent,
     });

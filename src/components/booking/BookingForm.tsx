@@ -3,9 +3,10 @@
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { cn, formatInr } from '@/lib/utils';
 import { suggestEmailCorrection } from '@/lib/validation';
+import { EVENT, REFERRAL } from '@/content/site';
 
 export interface TierOption {
   code: string;
@@ -16,18 +17,29 @@ export interface TierOption {
   perks: string[];
 }
 
+export interface ReferralState {
+  code: string;
+  discountPaise: number;
+  status: 'empty' | 'checking' | 'valid' | 'invalid';
+  message: string | null;
+}
+
 interface BookingFormProps {
   eventSlug: string;
   eventName: string;
   tiers: TierOption[];
   initialTier?: string;
+  initialReferral?: string;
   maxQuantity: number;
-  onChange?: (state: { tierCode: string; quantity: number }) => void;
+  paymentsEnabled: boolean;
+  onChange?: (state: {
+    tierCode: string;
+    quantity: number;
+    referral: ReferralState;
+  }) => void;
 }
 
 type Field = 'name' | 'email' | 'phone';
-
-const PROGRESS_STEPS = ['Reserving your spot…', 'Issuing tickets…', 'Sending your QR…'];
 
 const EASE = [0.16, 1, 0.3, 1] as const;
 
@@ -36,7 +48,9 @@ export function BookingForm({
   eventName,
   tiers,
   initialTier,
+  initialReferral,
   maxQuantity,
+  paymentsEnabled,
   onChange,
 }: BookingFormProps) {
   const router = useRouter();
@@ -55,6 +69,14 @@ export function BookingForm({
   const [consent, setConsent] = useState(false);
   const [company, setCompany] = useState('');
 
+  const [referralInput, setReferralInput] = useState(initialReferral ?? '');
+  const [referral, setReferral] = useState<ReferralState>({
+    code: '',
+    discountPaise: 0,
+    status: 'empty',
+    message: null,
+  });
+
   const [touched, setTouched] = useState<Record<Field, boolean>>({
     name: false,
     email: false,
@@ -63,32 +85,92 @@ export function BookingForm({
   const [serverErrors, setServerErrors] = useState<Record<string, string[]>>({});
   const [topError, setTopError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
-  const [progress, setProgress] = useState(0);
 
   // One key per form instance: a double-click sends the same key twice and the
   // server returns the original booking instead of creating a second one.
   const [idempotencyKey, setIdempotencyKey] = useState(() => crypto.randomUUID());
 
   const selectedTier = tiers.find((tier) => tier.code === tierCode) ?? null;
-  const ceiling = Math.min(maxQuantity, selectedTier?.remaining ?? maxQuantity);
+  const ceiling = Math.max(1, Math.min(maxQuantity, selectedTier?.remaining ?? maxQuantity));
+  const subtotal = (selectedTier?.pricePaise ?? 0) * quantity;
 
   useEffect(() => {
-    onChange?.({ tierCode, quantity });
-  }, [tierCode, quantity, onChange]);
+    onChange?.({ tierCode, quantity, referral });
+  }, [tierCode, quantity, referral, onChange]);
 
   // Dropping to a tier with less stock must not leave an impossible quantity.
   useEffect(() => {
-    setQuantity((current) => Math.min(current, Math.max(1, ceiling)));
+    setQuantity((current) => Math.min(current, ceiling));
   }, [ceiling]);
 
-  useEffect(() => {
-    if (!pending) return;
-    const id = window.setInterval(() => {
-      setProgress((step) => Math.min(step + 1, PROGRESS_STEPS.length - 1));
-    }, 1400);
-    return () => window.clearInterval(id);
-  }, [pending]);
+  // ---- Referral checking --------------------------------------------------
+  // Debounced, and every response carries the input it was asked about so a
+  // slow reply for an old code cannot overwrite the verdict for a newer one.
+  const requestSeq = useRef(0);
 
+  const checkReferral = useCallback(
+    async (raw: string, orderPaise: number) => {
+      const code = raw.trim().toUpperCase();
+      if (!code) {
+        setReferral({ code: '', discountPaise: 0, status: 'empty', message: null });
+        return;
+      }
+
+      const seq = ++requestSeq.current;
+      setReferral((current) => ({ ...current, code, status: 'checking' }));
+
+      try {
+        const response = await fetch('/api/referrals/validate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ code, amountPaise: orderPaise }),
+        });
+        const body = (await response.json()) as {
+          data?: { valid: boolean; discountPaise: number; reason?: string };
+          error?: string;
+        };
+        if (seq !== requestSeq.current) return;
+
+        if (body.data?.valid) {
+          setReferral({
+            code,
+            discountPaise: body.data.discountPaise,
+            status: 'valid',
+            message: `₹${Math.round(body.data.discountPaise / 100)} off applied`,
+          });
+        } else {
+          setReferral({
+            code,
+            discountPaise: 0,
+            status: 'invalid',
+            message: body.data?.reason ?? body.error ?? 'That code did not work.',
+          });
+        }
+      } catch {
+        if (seq !== requestSeq.current) return;
+        setReferral({
+          code,
+          discountPaise: 0,
+          status: 'invalid',
+          message: 'Could not check that code. It will be re-checked when you book.',
+        });
+      }
+    },
+    [],
+  );
+
+  useEffect(() => {
+    const raw = referralInput.trim();
+    if (!raw) {
+      requestSeq.current += 1;
+      setReferral({ code: '', discountPaise: 0, status: 'empty', message: null });
+      return;
+    }
+    const id = window.setTimeout(() => void checkReferral(raw, subtotal), 450);
+    return () => window.clearTimeout(id);
+  }, [referralInput, subtotal, checkReferral]);
+
+  // ---- Validation ---------------------------------------------------------
   const normalisedPhone = phone.replace(/[\s\-()]/g, '').replace(/^(\+91|0091|91|0)/, '');
   const emailSuggestion = email.includes('@') ? suggestEmailCorrection(email) : null;
 
@@ -98,9 +180,7 @@ export function BookingForm({
 
   const localErrors: Partial<Record<Field, string>> = {};
   if (touched.name && !nameValid) localErrors.name = 'Enter your full name';
-  if (touched.email && !emailValid) {
-    localErrors.email = 'Enter a valid email address';
-  }
+  if (touched.email && !emailValid) localErrors.email = 'Enter a valid email address';
   if (touched.phone && !phoneValid) {
     localErrors.phone = 'Enter a valid 10-digit Indian mobile number';
   }
@@ -110,20 +190,10 @@ export function BookingForm({
   }
 
   const canSubmit =
-    Boolean(tierCode) &&
-    nameValid &&
-    emailValid &&
-    phoneValid &&
-    consent &&
-    quantity >= 1 &&
-    !pending;
+    Boolean(tierCode) && nameValid && emailValid && phoneValid && consent && !pending;
 
-  const detailsDone = nameValid && emailValid && phoneValid && consent;
-  const steps = [
-    { label: 'Ticket', done: Boolean(tierCode) },
-    { label: 'Quantity', done: Boolean(tierCode) && quantity >= 1 && quantity <= ceiling },
-    { label: 'Details', done: detailsDone },
-  ];
+  const discount = referral.status === 'valid' ? Math.min(referral.discountPaise, subtotal) : 0;
+  const total = Math.max(0, subtotal - discount);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -131,7 +201,6 @@ export function BookingForm({
     if (!canSubmit) return;
 
     setPending(true);
-    setProgress(0);
     setTopError(null);
     setServerErrors({});
 
@@ -146,13 +215,14 @@ export function BookingForm({
           email: email.trim().toLowerCase(),
           phone: normalisedPhone,
           quantity,
+          referralCode: referral.status === 'valid' ? referral.code : referralInput.trim(),
           company,
           consent,
         }),
       });
 
       const body = (await response.json()) as {
-        data?: { reference: string };
+        data?: { reference: string; requiresPayment: boolean };
         error?: string;
         details?: Record<string, string[]>;
       };
@@ -171,7 +241,11 @@ export function BookingForm({
       // A fresh key so a later booking from the same open tab is not deduped
       // against this one.
       setIdempotencyKey(crypto.randomUUID());
-      router.push(`/booking/${body.data.reference}`);
+      router.push(
+        body.data.requiresPayment
+          ? `/pay/${body.data.reference}`
+          : `/booking/${body.data.reference}`,
+      );
     } catch {
       setTopError('Could not reach the server. Check your connection and try again.');
       setPending(false);
@@ -180,438 +254,412 @@ export function BookingForm({
 
   if (available.length === 0) {
     return (
-      <div className="card p-8 text-center">
-        <p className="font-display text-xl font-bold text-chalk">Sold out</p>
-        <p className="mt-2 text-sm text-haze">
-          Every tier for {eventName} has gone. Follow us for the next release.
+      <div className="panel p-10 text-center">
+        <p className="h-card">Sold out</p>
+        <p className="mt-2 text-[0.9375rem] text-slate">
+          Every ticket for {eventName} has gone. Follow us on Instagram — returns and the next
+          release get posted there first.
         </p>
       </div>
     );
   }
 
+  const submitLabel = pending
+    ? paymentsEnabled && total > 0
+      ? 'Holding your spot…'
+      : 'Issuing your passes…'
+    : paymentsEnabled && total > 0
+      ? `Continue to payment · ${formatInr(total)}`
+      : `Get ${quantity} pass${quantity === 1 ? '' : 'es'}`;
+
   return (
-    <form onSubmit={handleSubmit} noValidate className="space-y-7">
-      <ProgressRail steps={steps} reduce={Boolean(reduce)} />
-
-      <div className="rounded-xl border border-vybe-500/30 bg-vybe-500/[0.08] px-4 py-3.5">
-        <p className="text-[13px] font-medium text-vybe-100">No payment required right now</p>
-        <p className="mt-1 text-[12px] leading-relaxed text-haze">
-          Card payments are not switched on yet. Your tickets are issued immediately and emailed
-          to you free of charge.
-        </p>
-      </div>
-
-      <fieldset disabled={pending} className="min-w-0">
+    <form onSubmit={handleSubmit} noValidate className="space-y-8">
+      <fieldset disabled={pending} className="min-w-0 space-y-8">
         <legend className="sr-only">Booking details</legend>
 
-        <motion.div layout={reduce ? false : 'position'} className="space-y-7">
-          <motion.section layout={reduce ? false : true} aria-labelledby="step-tier">
-            <StepHeading id="step-tier" number="01" title="Choose your ticket" done={steps[0].done} />
-            <div role="radiogroup" aria-labelledby="step-tier" className="mt-3 space-y-2.5">
-              {tiers.map((tier) => {
-                const soldOut = tier.remaining <= 0;
-                const selected = tier.code === tierCode;
-                const scarce = !soldOut && tier.remaining <= 20;
-                return (
-                  <label
-                    key={tier.code}
-                    className={cn(
-                      'relative flex cursor-pointer items-start gap-3 rounded-xl border p-4 transition-colors',
-                      selected
-                        ? 'border-vybe-500 bg-vybe-500/10'
-                        : 'border-hairline hover:border-vybe-700',
-                      soldOut && 'cursor-not-allowed opacity-45 hover:border-hairline',
-                    )}
-                  >
-                    {/* One travelling highlight rather than four static ones, so the
-                        selection reads as a move instead of a repaint. */}
-                    {selected && !reduce && (
-                      <motion.span
-                        aria-hidden
-                        layoutId="tier-highlight"
-                        transition={{ type: 'spring', stiffness: 380, damping: 34 }}
-                        className="pointer-events-none absolute inset-0 rounded-xl ring-1 ring-vybe-400/70 shadow-glow"
-                      />
-                    )}
-                    <input
-                      type="radio"
-                      name="tier"
-                      value={tier.code}
-                      checked={selected}
-                      disabled={soldOut}
-                      onChange={() => setTierCode(tier.code)}
-                      className="relative mt-1 h-4 w-4 shrink-0 accent-vybe-500"
+        {/* ---------------- 01 · ticket ---------------- */}
+        <section aria-labelledby="step-tier">
+          <StepHeading id="step-tier" number="01" title="Pick your ticket" />
+          <div role="radiogroup" aria-labelledby="step-tier" className="mt-4 space-y-3">
+            {tiers.map((tier) => {
+              const soldOut = tier.remaining <= 0;
+              const selected = tier.code === tierCode;
+              const scarce = !soldOut && tier.remaining <= 20;
+              return (
+                <label
+                  key={tier.code}
+                  className={cn(
+                    'relative flex cursor-pointer items-start gap-4 rounded-[16px] border bg-paper p-5 transition-all duration-200',
+                    selected
+                      ? 'border-vybe-400 shadow-mid'
+                      : 'border-edge hover:border-edgeStrong hover:shadow-low',
+                    soldOut && 'cursor-not-allowed opacity-50 hover:border-edge hover:shadow-none',
+                  )}
+                >
+                  {/* One travelling outline rather than four static ones, so the
+                      selection reads as a move instead of a repaint. */}
+                  {selected && !reduce && (
+                    <motion.span
+                      aria-hidden
+                      layoutId="tier-outline"
+                      transition={{ type: 'spring', stiffness: 420, damping: 36 }}
+                      className="pointer-events-none absolute inset-0 rounded-[16px] ring-2 ring-vybe-400/60"
                     />
-                    <span className="relative min-w-0 flex-1">
-                      <span className="flex flex-wrap items-baseline justify-between gap-2">
-                        <span className="font-display text-[15px] font-semibold text-chalk">
-                          {tier.name}
-                        </span>
-                        <span className="font-display text-[15px] font-bold text-vybe-200">
-                          {tier.pricePaise === 0 ? 'Free' : formatInr(tier.pricePaise)}
-                        </span>
+                  )}
+                  <input
+                    type="radio"
+                    name="tier"
+                    value={tier.code}
+                    checked={selected}
+                    disabled={soldOut}
+                    onChange={() => setTierCode(tier.code)}
+                    className="relative mt-1 h-[18px] w-[18px] shrink-0 accent-vybe-500"
+                  />
+                  <span className="relative min-w-0 flex-1">
+                    <span className="flex flex-wrap items-baseline justify-between gap-2">
+                      <span className="font-display text-[1.0625rem] font-semibold text-ink">
+                        {tier.name}
                       </span>
-                      {tier.description && (
-                        <span className="mt-1 block text-[12px] leading-relaxed text-haze">
-                          {tier.description}
-                        </span>
-                      )}
-                      {tier.perks.length > 0 && (
-                        <span className="mt-2 flex flex-wrap gap-1.5">
-                          {tier.perks.map((perk) => (
-                            <span
-                              key={perk}
-                              className="rounded-full border border-hairline px-2 py-0.5 text-[10px] text-haze"
-                            >
-                              {perk}
-                            </span>
-                          ))}
-                        </span>
-                      )}
-                      <span
-                        className={cn(
-                          'mt-2 block text-[11px]',
-                          scarce ? 'font-medium text-flare-300' : 'text-dim',
-                        )}
-                      >
-                        {soldOut
-                          ? 'Sold out'
-                          : scarce
-                            ? `Only ${tier.remaining} left`
-                            : `${tier.remaining} available`}
+                      <span className="tnum font-display text-[1.0625rem] font-bold text-ink">
+                        {tier.pricePaise === 0 ? 'Free' : formatInr(tier.pricePaise)}
                       </span>
                     </span>
-                  </label>
-                );
-              })}
-            </div>
-          </motion.section>
-
-          <motion.section layout={reduce ? false : true} aria-labelledby="step-qty">
-            <StepHeading id="step-qty" number="02" title="How many?" done={steps[1].done} />
-            <div className="mt-3 flex flex-wrap items-center gap-4">
-              <div className="flex items-center gap-1 rounded-full border border-hairline p-1">
-                <StepButton
-                  label="Remove one ticket"
-                  onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-                  disabled={quantity <= 1}
-                >
-                  −
-                </StepButton>
-                <span className="relative block h-8 w-12 overflow-hidden">
-                  <AnimatePresence initial={false} mode="popLayout">
-                    <motion.span
-                      key={quantity}
-                      initial={reduce ? { opacity: 1 } : { opacity: 0, y: 14 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={reduce ? { opacity: 0 } : { opacity: 0, y: -14 }}
-                      transition={{ duration: reduce ? 0 : 0.25, ease: EASE }}
-                      className="absolute inset-0 grid place-items-center font-display text-xl font-bold tabular-nums text-chalk"
-                    >
-                      {quantity}
-                    </motion.span>
-                  </AnimatePresence>
-                </span>
-                <StepButton
-                  label="Add one ticket"
-                  onClick={() => setQuantity((q) => Math.min(ceiling, q + 1))}
-                  disabled={quantity >= ceiling}
-                >
-                  +
-                </StepButton>
-              </div>
-              <p className="text-[12px] text-dim">
-                Up to {ceiling} per booking. Each person gets their own QR.
-              </p>
-            </div>
-          </motion.section>
-
-          <motion.section layout={reduce ? false : true} aria-labelledby="step-details">
-            <StepHeading
-              id="step-details"
-              number="03"
-              title="Where do we send the tickets?"
-              done={steps[2].done}
-            />
-
-            <div className="mt-3 space-y-4">
-              <div>
-                <label htmlFor="name" className="label">
-                  Full name
-                </label>
-                <div className="relative">
-                  <input
-                    id="name"
-                    value={name}
-                    onChange={(event) => setName(event.target.value)}
-                    onBlur={() => setTouched((t) => ({ ...t, name: true }))}
-                    autoComplete="name"
-                    className={cn('field pr-11', errorFor('name') && 'field-error')}
-                    placeholder="As it appears on your ID"
-                  />
-                  <FieldTick show={nameValid && !errorFor('name')} reduce={Boolean(reduce)} />
-                </div>
-                <Collapse show={Boolean(errorFor('name'))} reduce={Boolean(reduce)}>
-                  <p className="error-text">{errorFor('name')}</p>
-                </Collapse>
-                <p className="help">Door staff check this against your photo ID.</p>
-              </div>
-
-              <div>
-                <label htmlFor="email" className="label">
-                  Email address
-                </label>
-                <div className="relative">
-                  <input
-                    id="email"
-                    type="email"
-                    value={email}
-                    onChange={(event) => setEmail(event.target.value)}
-                    onBlur={() => setTouched((t) => ({ ...t, email: true }))}
-                    autoComplete="email"
-                    inputMode="email"
-                    className={cn('field pr-11', errorFor('email') && 'field-error')}
-                    placeholder="you@example.com"
-                  />
-                  <FieldTick
-                    show={emailValid && !errorFor('email') && !emailSuggestion}
-                    reduce={Boolean(reduce)}
-                  />
-                </div>
-                <Collapse show={Boolean(errorFor('email'))} reduce={Boolean(reduce)}>
-                  <p className="error-text">{errorFor('email')}</p>
-                </Collapse>
-                {/* A typo'd domain means the ticket is simply lost, so offer the fix. */}
-                <Collapse
-                  show={Boolean(emailSuggestion) && !errorFor('email')}
-                  reduce={Boolean(reduce)}
-                >
-                  <button
-                    type="button"
-                    onClick={() => emailSuggestion && setEmail(emailSuggestion)}
-                    className="mt-1.5 text-[12px] text-vybe-300 underline underline-offset-2"
-                  >
-                    Did you mean {emailSuggestion}?
-                  </button>
-                </Collapse>
-                <p className="help">Your QR ticket goes here. Double-check it.</p>
-              </div>
-
-              <div>
-                <label htmlFor="phone" className="label">
-                  Mobile number
-                </label>
-                <div className="flex">
-                  <span className="flex items-center rounded-l-xl border border-r-0 border-hairline bg-elevated px-3.5 text-[15px] text-haze">
-                    +91
-                  </span>
-                  <div className="relative min-w-0 flex-1">
-                    <input
-                      id="phone"
-                      value={phone}
-                      onChange={(event) => setPhone(event.target.value)}
-                      onBlur={() => setTouched((t) => ({ ...t, phone: true }))}
-                      autoComplete="tel-national"
-                      inputMode="numeric"
-                      maxLength={14}
+                    {tier.description && (
+                      <span className="mt-1 block text-[0.8125rem] leading-relaxed text-slate">
+                        {tier.description}
+                      </span>
+                    )}
+                    {tier.perks.length > 0 && (
+                      <span className="mt-2.5 flex flex-wrap gap-1.5">
+                        {tier.perks.map((perk) => (
+                          <span
+                            key={perk}
+                            className="rounded-md border border-edge bg-frost px-2 py-0.5 text-[0.6875rem] font-medium text-slate"
+                          >
+                            {perk}
+                          </span>
+                        ))}
+                      </span>
+                    )}
+                    <span
                       className={cn(
-                        'field rounded-l-none pr-11',
-                        errorFor('phone') && 'field-error',
+                        'mt-2.5 block text-[0.75rem] font-medium',
+                        scarce ? 'text-flare-600' : 'text-muted',
                       )}
-                      placeholder="98765 43210"
-                    />
-                    <FieldTick show={phoneValid && !errorFor('phone')} reduce={Boolean(reduce)} />
-                  </div>
-                </div>
-                <Collapse show={Boolean(errorFor('phone'))} reduce={Boolean(reduce)}>
-                  <p className="error-text">{errorFor('phone')}</p>
-                </Collapse>
-                <p className="help">Used only if we need to reach you about this event.</p>
-              </div>
+                    >
+                      {soldOut
+                        ? 'Sold out'
+                        : scarce
+                          ? `Only ${tier.remaining} left`
+                          : `${tier.remaining} available`}
+                    </span>
+                  </span>
+                </label>
+              );
+            })}
+          </div>
+        </section>
 
-              {/* Honeypot — hidden from people, irresistible to bots. */}
-              <div aria-hidden className="absolute h-0 w-0 overflow-hidden opacity-0">
-                <label htmlFor="company">Company</label>
+        {/* ---------------- 02 · quantity ---------------- */}
+        <section aria-labelledby="step-qty">
+          <StepHeading id="step-qty" number="02" title="How many of you?" />
+          <div className="mt-4 flex flex-wrap items-center gap-5">
+            <div className="flex items-center gap-1 rounded-[14px] border border-edgeStrong bg-paper p-1 shadow-low">
+              <StepButton
+                label="Remove one ticket"
+                onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+                disabled={quantity <= 1}
+              >
+                −
+              </StepButton>
+              <span className="relative block h-9 w-12 overflow-hidden">
+                <AnimatePresence initial={false} mode="popLayout">
+                  <motion.span
+                    key={quantity}
+                    initial={reduce ? { opacity: 1 } : { opacity: 0, y: 16 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={reduce ? { opacity: 0 } : { opacity: 0, y: -16 }}
+                    transition={{ duration: reduce ? 0 : 0.24, ease: EASE }}
+                    className="tnum absolute inset-0 grid place-items-center font-display text-xl font-bold text-ink"
+                  >
+                    {quantity}
+                  </motion.span>
+                </AnimatePresence>
+              </span>
+              <StepButton
+                label="Add one ticket"
+                onClick={() => setQuantity((q) => Math.min(ceiling, q + 1))}
+                disabled={quantity >= ceiling}
+              >
+                +
+              </StepButton>
+            </div>
+            <p className="text-[0.8125rem] text-muted">
+              Up to {ceiling} per booking. Everyone gets their own QR.
+            </p>
+          </div>
+        </section>
+
+        {/* ---------------- 03 · referral ---------------- */}
+        <section aria-labelledby="step-referral">
+          <StepHeading id="step-referral" number="03" title={REFERRAL.headline} optional />
+          <div className="mt-4">
+            <div className="flex gap-2">
+              <div className="relative min-w-0 flex-1">
                 <input
-                  id="company"
-                  name="company"
-                  tabIndex={-1}
+                  id="referral"
+                  value={referralInput}
+                  onChange={(event) => setReferralInput(event.target.value.toUpperCase())}
                   autoComplete="off"
-                  value={company}
-                  onChange={(event) => setCompany(event.target.value)}
+                  autoCapitalize="characters"
+                  spellCheck={false}
+                  aria-describedby="referral-help"
+                  className={cn(
+                    'field font-mono uppercase tracking-[0.12em]',
+                    referral.status === 'valid' && 'border-leaf-400 focus:border-leaf-500',
+                    referral.status === 'invalid' && 'field-error',
+                  )}
+                  placeholder={REFERRAL.sampleCode}
                 />
+                {referral.status === 'checking' && (
+                  <span className="absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin rounded-full border-2 border-edge border-t-vybe-500" />
+                )}
+                {referral.status === 'valid' && (
+                  <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-leaf-500">
+                    <Tick className="h-4 w-4" />
+                  </span>
+                )}
               </div>
+              {referralInput && (
+                <button
+                  type="button"
+                  onClick={() => setReferralInput('')}
+                  className="btn-outline btn-sm shrink-0"
+                >
+                  Clear
+                </button>
+              )}
+            </div>
 
-              <label
+            <Collapse show={Boolean(referral.message)} reduce={Boolean(reduce)}>
+              <p
                 className={cn(
-                  'relative flex cursor-pointer items-start gap-3 rounded-xl border p-4 transition-colors',
-                  consent ? 'border-vybe-500/60 bg-vybe-500/[0.07]' : 'border-hairline',
+                  'mt-2 flex items-center gap-1.5 text-[0.8125rem] font-medium',
+                  referral.status === 'valid' ? 'text-leaf-600' : 'text-flare-600',
                 )}
               >
-                <input
-                  type="checkbox"
-                  checked={consent}
-                  onChange={(event) => setConsent(event.target.checked)}
-                  className="mt-0.5 h-4 w-4 shrink-0 accent-vybe-500"
-                />
-                <span className="text-[12px] leading-relaxed text-haze">
-                  I&apos;m 21 or older, I&apos;ll bring a government photo ID matching this name,
-                  and I accept the{' '}
-                  <Link href="/legal/terms" className="text-vybe-300 underline underline-offset-2">
-                    entry terms
-                  </Link>
-                  .
-                </span>
+                {referral.message}
+              </p>
+            </Collapse>
+
+            <p id="referral-help" className="help">
+              {REFERRAL.copy}
+            </p>
+          </div>
+        </section>
+
+        {/* ---------------- 04 · details ---------------- */}
+        <section aria-labelledby="step-details">
+          <StepHeading id="step-details" number="04" title="Where do the passes go?" />
+
+          <div className="mt-4 space-y-5">
+            <div>
+              <label htmlFor="name" className="label">
+                Full name
               </label>
+              <div className="relative">
+                <input
+                  id="name"
+                  value={name}
+                  onChange={(event) => setName(event.target.value)}
+                  onBlur={() => setTouched((t) => ({ ...t, name: true }))}
+                  autoComplete="name"
+                  className={cn('field pr-11', errorFor('name') && 'field-error')}
+                  placeholder="As printed on your ID"
+                />
+                <FieldTick show={nameValid && !errorFor('name')} reduce={Boolean(reduce)} />
+              </div>
+              <Collapse show={Boolean(errorFor('name'))} reduce={Boolean(reduce)}>
+                <p className="error-text">{errorFor('name')}</p>
+              </Collapse>
+              <p className="help">The door checks this against your photo ID.</p>
             </div>
-          </motion.section>
-        </motion.div>
+
+            <div>
+              <label htmlFor="email" className="label">
+                Email address
+              </label>
+              <div className="relative">
+                <input
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(event) => setEmail(event.target.value)}
+                  onBlur={() => setTouched((t) => ({ ...t, email: true }))}
+                  autoComplete="email"
+                  inputMode="email"
+                  className={cn('field pr-11', errorFor('email') && 'field-error')}
+                  placeholder="you@example.com"
+                />
+                <FieldTick
+                  show={emailValid && !errorFor('email') && !emailSuggestion}
+                  reduce={Boolean(reduce)}
+                />
+              </div>
+              <Collapse show={Boolean(errorFor('email'))} reduce={Boolean(reduce)}>
+                <p className="error-text">{errorFor('email')}</p>
+              </Collapse>
+              {/* A typo'd domain means the pass is simply lost, so offer the fix. */}
+              <Collapse show={Boolean(emailSuggestion) && !errorFor('email')} reduce={Boolean(reduce)}>
+                <button
+                  type="button"
+                  onClick={() => emailSuggestion && setEmail(emailSuggestion)}
+                  className="mt-2 text-[0.8125rem] font-medium text-vybe-600 underline underline-offset-2"
+                >
+                  Did you mean {emailSuggestion}?
+                </button>
+              </Collapse>
+              <p className="help">Your QR passes are sent here. Check it twice.</p>
+            </div>
+
+            <div>
+              <label htmlFor="phone" className="label">
+                Mobile number
+              </label>
+              <div className="flex">
+                <span className="flex items-center rounded-l-[13px] border border-r-0 border-edgeStrong bg-frost px-4 text-[0.9375rem] font-medium text-slate">
+                  +91
+                </span>
+                <div className="relative min-w-0 flex-1">
+                  <input
+                    id="phone"
+                    value={phone}
+                    onChange={(event) => setPhone(event.target.value)}
+                    onBlur={() => setTouched((t) => ({ ...t, phone: true }))}
+                    autoComplete="tel-national"
+                    inputMode="numeric"
+                    maxLength={14}
+                    className={cn('field rounded-l-none pr-11', errorFor('phone') && 'field-error')}
+                    placeholder="98765 43210"
+                  />
+                  <FieldTick show={phoneValid && !errorFor('phone')} reduce={Boolean(reduce)} />
+                </div>
+              </div>
+              <Collapse show={Boolean(errorFor('phone'))} reduce={Boolean(reduce)}>
+                <p className="error-text">{errorFor('phone')}</p>
+              </Collapse>
+              <p className="help">Only used if something changes about the event.</p>
+            </div>
+
+            {/* Honeypot — hidden from people, irresistible to bots. */}
+            <div aria-hidden className="absolute h-0 w-0 overflow-hidden opacity-0">
+              <label htmlFor="company">Company</label>
+              <input
+                id="company"
+                name="company"
+                tabIndex={-1}
+                autoComplete="off"
+                value={company}
+                onChange={(event) => setCompany(event.target.value)}
+              />
+            </div>
+
+            <label
+              className={cn(
+                'flex cursor-pointer items-start gap-3 rounded-[14px] border p-4 transition-colors',
+                consent ? 'border-vybe-300 bg-vybe-50' : 'border-edge bg-paper',
+              )}
+            >
+              <input
+                type="checkbox"
+                checked={consent}
+                onChange={(event) => setConsent(event.target.checked)}
+                className="mt-0.5 h-[18px] w-[18px] shrink-0 accent-vybe-500"
+              />
+              <span className="text-[0.8125rem] leading-relaxed text-slate">
+                I am {EVENT.ageLabel.replace('+', '')} or older, I will carry a government photo ID
+                matching this name, and I accept the{' '}
+                <Link href="/legal/terms" className="font-medium text-vybe-600 underline underline-offset-2">
+                  entry terms
+                </Link>
+                .
+              </span>
+            </label>
+          </div>
+        </section>
       </fieldset>
 
-      <div aria-live="assertive" className="min-h-[20px]">
+      <div aria-live="assertive" className="min-h-[24px]">
         {topError && (
-          <p className="error-text" role="alert">
+          <p className="error-text text-[0.875rem]" role="alert">
             <span aria-hidden>⚠</span>
             {topError}
           </p>
         )}
       </div>
 
-      <button
-        type="submit"
-        disabled={!canSubmit}
-        className="btn-primary relative w-full overflow-hidden py-4 text-[15px]"
-      >
-        {pending && (
-          <span
-            aria-hidden
-            className="pointer-events-none absolute inset-0 animate-sheen bg-sheen"
-            style={{ backgroundSize: '200% 100%' }}
-          />
-        )}
-        <AnimatePresence mode="wait" initial={false}>
-          <motion.span
-            key={pending ? PROGRESS_STEPS[progress] : 'idle'}
-            initial={{ opacity: 0, y: 6 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -6 }}
-            transition={{ duration: 0.2 }}
-            className="relative"
-          >
-            {pending
-              ? PROGRESS_STEPS[progress]
-              : selectedTier && selectedTier.pricePaise > 0
-                ? `Confirm ${quantity} ticket${quantity === 1 ? '' : 's'} — free right now`
-                : `Get ${quantity} ticket${quantity === 1 ? '' : 's'}`}
-          </motion.span>
-        </AnimatePresence>
-      </button>
+      {/* Sticky only where the running total is off-screen. On desktop the
+          summary column already shows it, and a floating button over a
+          two-column layout just covers the form. */}
+      <div className="z-10 max-lg:sticky max-lg:bottom-4">
+        <button
+          type="submit"
+          disabled={!canSubmit}
+          className="btn-primary relative w-full overflow-hidden py-[18px] text-base"
+        >
+          {pending && (
+            <span
+              aria-hidden
+              className="pointer-events-none absolute inset-0 animate-sheen bg-sheen"
+              style={{ backgroundSize: '200% 100%' }}
+            />
+          )}
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.span
+              key={submitLabel}
+              initial={reduce ? false : { opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={reduce ? { opacity: 0 } : { opacity: 0, y: -8 }}
+              transition={{ duration: 0.2 }}
+              className="relative"
+            >
+              {submitLabel}
+            </motion.span>
+          </AnimatePresence>
+        </button>
+      </div>
 
-      <p className="text-center text-[11px] leading-relaxed text-dim">
-        No account needed. We only use your details to issue and deliver this ticket.
+      <p className="text-center text-[0.75rem] leading-relaxed text-muted">
+        No account needed. Your details are used to issue and deliver these passes, nothing else.
       </p>
     </form>
   );
 }
 
-function ProgressRail({
-  steps,
-  reduce,
-}: {
-  steps: Array<{ label: string; done: boolean }>;
-  reduce: boolean;
-}) {
-  const completed = steps.filter((step) => step.done).length;
-
-  return (
-    <div>
-      <ol className="flex items-center">
-        {steps.map((step, index) => (
-          <li key={step.label} className={cn('flex items-center', index > 0 && 'min-w-0 flex-1')}>
-            {index > 0 && (
-              <span
-                aria-hidden
-                className="relative mx-2 h-px flex-1 overflow-hidden rounded-full bg-hairline sm:mx-3"
-              >
-                <motion.span
-                  className="absolute inset-y-0 left-0 bg-gradient-to-r from-vybe-500 to-pulse-400"
-                  initial={false}
-                  animate={{ width: step.done ? '100%' : '0%' }}
-                  transition={{ duration: reduce ? 0 : 0.55, ease: EASE }}
-                />
-              </span>
-            )}
-            <span className="flex shrink-0 items-center gap-2">
-              <span
-                className={cn(
-                  'grid h-6 w-6 place-items-center rounded-full border transition-colors duration-300',
-                  step.done
-                    ? 'border-vybe-400 bg-vybe-500/20 text-vybe-100'
-                    : 'border-hairline text-dim',
-                )}
-              >
-                <AnimatePresence mode="wait" initial={false}>
-                  {step.done ? (
-                    <motion.span
-                      key="done"
-                      initial={reduce ? { opacity: 1 } : { opacity: 0, scale: 0.5 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0 }}
-                      transition={{ duration: reduce ? 0 : 0.2, ease: EASE }}
-                      className="block"
-                    >
-                      <Tick className="h-3.5 w-3.5" />
-                    </motion.span>
-                  ) : (
-                    <motion.span
-                      key="idle"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      transition={{ duration: reduce ? 0 : 0.15 }}
-                      className="block font-mono text-[10px] font-semibold tabular-nums"
-                    >
-                      {index + 1}
-                    </motion.span>
-                  )}
-                </AnimatePresence>
-              </span>
-              <span
-                className={cn(
-                  'hidden text-[11px] font-medium tracking-wide transition-colors sm:inline',
-                  step.done ? 'text-chalk' : 'text-dim',
-                )}
-              >
-                {step.label}
-              </span>
-            </span>
-          </li>
-        ))}
-      </ol>
-      <p className="sr-only" aria-live="polite">
-        {completed} of {steps.length} booking steps complete.
-      </p>
-    </div>
-  );
-}
+/* ------------------------------------------------------------------------- */
 
 function StepHeading({
   id,
   number,
   title,
-  done,
+  optional,
 }: {
   id: string;
   number: string;
   title: string;
-  done: boolean;
+  optional?: boolean;
 }) {
   return (
-    <h2 id={id} className="eyebrow flex items-center gap-2">
-      <span>
-        {number} — {title}
+    <h2 id={id} className="flex items-baseline gap-3">
+      <span className="font-mono text-[0.6875rem] font-medium tracking-[0.2em] text-vybe-500">
+        {number}
       </span>
-      {done && <Tick className="h-3.5 w-3.5 text-pulse-300" />}
+      <span className="font-display text-[1.15rem] font-semibold tracking-[-0.02em] text-ink">
+        {title}
+      </span>
+      {optional && (
+        <span className="text-[0.75rem] font-normal text-muted">optional</span>
+      )}
     </h2>
   );
 }
@@ -628,7 +676,7 @@ function Tick({ className }: { className?: string }) {
         strokeLinejoin="round"
         initial={reduce ? false : { pathLength: 0 }}
         animate={{ pathLength: 1 }}
-        transition={{ duration: reduce ? 0 : 0.35, ease: 'easeOut' }}
+        transition={{ duration: reduce ? 0 : 0.32, ease: 'easeOut' }}
       />
     </motion.svg>
   );
@@ -642,11 +690,11 @@ function FieldTick({ show, reduce }: { show: boolean; reduce: boolean }) {
           <motion.span
             key="tick"
             aria-hidden
-            className="block text-pulse-300"
+            className="block text-leaf-500"
             initial={reduce ? { opacity: 1 } : { opacity: 0, scale: 0.5 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={reduce ? { opacity: 0 } : { opacity: 0, scale: 0.5 }}
-            transition={{ duration: reduce ? 0 : 0.24, ease: EASE }}
+            transition={{ duration: reduce ? 0 : 0.22, ease: EASE }}
           >
             <Tick className="h-4 w-4" />
           </motion.span>
@@ -675,7 +723,7 @@ function Collapse({
           initial={reduce ? { height: 'auto', opacity: 1 } : { height: 0, opacity: 0 }}
           animate={{ height: 'auto', opacity: 1 }}
           exit={{ height: 0, opacity: 0 }}
-          transition={{ duration: reduce ? 0 : 0.28, ease: EASE }}
+          transition={{ duration: reduce ? 0 : 0.26, ease: EASE }}
         >
           {children}
         </motion.div>
@@ -690,7 +738,7 @@ function StepButton({
   disabled,
   label,
 }: {
-  children: React.ReactNode;
+  children: ReactNode;
   onClick: () => void;
   disabled: boolean;
   label: string;
@@ -701,7 +749,7 @@ function StepButton({
       onClick={onClick}
       disabled={disabled}
       aria-label={label}
-      className="flex h-10 w-10 items-center justify-center rounded-full text-xl text-chalk transition-colors hover:bg-elevated disabled:opacity-30"
+      className="flex h-10 w-10 items-center justify-center rounded-[11px] text-xl text-ink transition-colors hover:bg-frost disabled:opacity-25"
     >
       {children}
     </button>

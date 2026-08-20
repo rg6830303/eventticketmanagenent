@@ -8,9 +8,10 @@ export default function robots(): MetadataRoute.Robots {
     rules: {
       userAgent: '*',
       allow: '/',
-      // /booking and /t hold live passes keyed only by an unguessable value —
-      // indexing them would put working tickets into search results.
-      disallow: ['/admin', '/admin/', '/api/', '/booking/', '/t/'],
+      // /booking, /pay and /t are all keyed only by an unguessable reference.
+      // Indexing them would put working passes — and a live checkout for
+      // somebody else's order — into search results.
+      disallow: ['/admin', '/admin/', '/api/', '/booking/', '/pay/', '/t/'],
     },
     sitemap: `${BASE}/sitemap.xml`,
   };

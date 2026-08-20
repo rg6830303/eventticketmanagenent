@@ -44,7 +44,7 @@ export function Logo({
             CSS transform on the inner one. On the same element CSS would
             silently replace the attribute and the globe would fly off-canvas. */}
         <g transform="translate(160 178) scale(0.62)" className="text-flare">
-          <g className={cn(spin && 'animate-orbit origin-center')}>
+          <g className={cn(spin && 'animate-spin-slow origin-center')}>
             <GlobeRings strokeWidth={3.4} />
           </g>
         </g>
@@ -67,7 +67,7 @@ export function Logo({
   return (
     <span className={cn('flex items-center gap-2.5', className)}>
       <Globe className="h-8 w-8 shrink-0 text-flare" spin={spin} strokeWidth={3} />
-      <span className="font-display text-[17px] font-extrabold leading-none tracking-tight text-chalk">
+      <span className="font-display text-[17px] font-extrabold leading-none tracking-tight text-ink">
         HOUZ <span className="text-flare">OF</span> VYBE
       </span>
     </span>

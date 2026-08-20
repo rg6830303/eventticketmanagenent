@@ -66,7 +66,7 @@ export function Globe({
     <svg
       viewBox="-110 -110 220 220"
       fill="none"
-      className={cn(spin && 'animate-orbit', className)}
+      className={cn(spin && 'animate-spin-slow', className)}
       aria-hidden
     >
       <GlobeRings strokeWidth={strokeWidth} />

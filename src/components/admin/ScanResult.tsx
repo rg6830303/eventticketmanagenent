@@ -14,7 +14,7 @@ import type { ScanOutcome, ScanResult as ScanResultCode } from '@/lib/types';
 
 type Tone = 'go' | 'hold' | 'stop';
 
-/** Verdict → visual treatment. Blue means go; amber means stop and talk; red means refuse. */
+/** Verdict → visual treatment. Green means go; amber means stop and talk; red means refuse. */
 const TONE: Record<ScanResultCode, { tone: Tone; verdict: string }> = {
   admitted: { tone: 'go', verdict: 'ADMITTED' },
   duplicate: { tone: 'hold', verdict: 'ALREADY USED' },
@@ -27,25 +27,25 @@ const TONE: Record<ScanResultCode, { tone: Tone; verdict: string }> = {
 
 const SKIN: Record<Tone, { shell: string; text: string; chip: string; flash: string; note: string }> = {
   go: {
-    shell: 'border-vybe-400/70 bg-vybe-500/[0.14]',
-    text: 'text-vybe-100',
-    chip: 'bg-vybe-500 text-white',
-    flash: 'bg-vybe-400',
-    note: 'bg-vybe-500/12 text-vybe-100',
+    shell: 'border-leaf-400 bg-leaf-100',
+    text: 'text-leaf-600',
+    chip: 'bg-leaf-500 text-white',
+    flash: 'bg-leaf-400',
+    note: 'bg-leaf-100 text-leaf-600',
   },
   hold: {
     shell: 'border-amber-400/70 bg-amber-400/[0.12]',
-    text: 'text-amber-100',
+    text: 'text-amber-700',
     chip: 'bg-amber-400 text-black',
     flash: 'bg-amber-300',
-    note: 'bg-amber-400/12 text-amber-100',
+    note: 'bg-amber-400/10 text-amber-700',
   },
   stop: {
     shell: 'border-flare-500/70 bg-flare-500/[0.12]',
-    text: 'text-flare-300',
+    text: 'text-flare-600',
     chip: 'bg-flare-500 text-white',
     flash: 'bg-flare-400',
-    note: 'bg-flare-500/12 text-flare-300',
+    note: 'bg-flare-500/10 text-flare-600',
   },
 };
 
@@ -110,15 +110,15 @@ export function ScanResult({ outcome, mode }: { outcome: ScanOutcome | null; mod
             exit={reduce ? undefined : { opacity: 0 }}
             // Short on purpose: a verdict must never wait on an idle card fading.
             transition={{ duration: 0.14 }}
-            className="card flex min-h-[220px] flex-col items-center justify-center p-6 text-center"
+            className="panel flex min-h-[220px] flex-col items-center justify-center p-6 text-center"
           >
             <Globe
               spin
               strokeWidth={2}
-              className="h-14 w-14 text-flare/25 [animation-duration:14s]"
+              className="h-14 w-14 text-vybe-500/25 [animation-duration:14s]"
             />
-            <p className="mt-4 font-display text-lg font-semibold text-haze">Ready to scan</p>
-            <p className="mt-1.5 max-w-[34ch] text-[13px] leading-relaxed text-dim">
+            <p className="mt-4 font-display text-lg font-semibold text-slate">Ready to scan</p>
+            <p className="mt-1.5 max-w-[34ch] text-[13px] leading-relaxed text-muted">
               Hold the guest&apos;s QR inside the frame. The verdict appears here.
             </p>
           </motion.div>
@@ -126,7 +126,7 @@ export function ScanResult({ outcome, mode }: { outcome: ScanOutcome | null; mod
           <motion.div
             key={nonceRef.current}
             {...entrance(meta.tone)}
-            className={cn('card relative border-2 p-5 sm:p-6', skin.shell)}
+            className={cn('panel relative border-2 p-5 sm:p-6', skin.shell)}
           >
             {/* One-shot wash of the verdict colour. Reads as "resolved" from across
                 a dark doorway, before anyone has parsed the words. */}
@@ -154,7 +154,7 @@ export function ScanResult({ outcome, mode }: { outcome: ScanOutcome | null; mod
                     {verdict}
                   </p>
                 </div>
-                <p className="mt-3 text-[14px] leading-relaxed text-haze">{outcome.message}</p>
+                <p className="mt-3 text-[14px] leading-relaxed text-slate">{outcome.message}</p>
               </div>
 
               <span
@@ -168,9 +168,9 @@ export function ScanResult({ outcome, mode }: { outcome: ScanOutcome | null; mod
             </div>
 
             {ticket && (
-              <div className="relative mt-5 space-y-3 border-t border-hairline pt-4">
+              <div className="relative mt-5 space-y-3 border-t border-edge pt-4">
                 {/* Sized to be readable at arm's length while the guest holds the phone. */}
-                <p className="font-display text-2xl font-bold leading-tight text-chalk sm:text-3xl">
+                <p className="font-display text-2xl font-bold leading-tight text-ink sm:text-3xl">
                   {ticket.holderName}
                 </p>
 
@@ -227,8 +227,8 @@ function Verdict({ tone, className }: { tone: Tone; className?: string }) {
 function Row({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
   return (
     <div>
-      <dt className="text-[10px] uppercase tracking-wider text-dim">{label}</dt>
-      <dd className={cn('mt-0.5 text-chalk', mono && 'font-mono text-[12px] tracking-tight')}>
+      <dt className="text-[10px] uppercase tracking-wider text-muted">{label}</dt>
+      <dd className={cn('mt-0.5 text-ink', mono && 'font-mono text-[12px] tracking-tight')}>
         {value}
       </dd>
     </div>

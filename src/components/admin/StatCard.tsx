@@ -83,20 +83,20 @@ export function StatCard({
   return (
     <div
       className={cn(
-        'card card-lit p-4 transition-colors',
+        'panel shadow-mid p-4 transition-colors',
         accent && 'border-vybe-600/50 bg-vybe-500/[0.07]',
       )}
     >
-      <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-dim">{label}</p>
+      <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted">{label}</p>
       <p
         className={cn(
           'mt-2 font-display text-2xl font-bold tabular-nums leading-none sm:text-3xl',
-          accent ? 'text-vybe-100' : 'text-chalk',
+          accent ? 'text-vybe-700' : 'text-ink',
         )}
       >
         {display}
       </p>
-      {hint && <p className="mt-1.5 text-[11px] text-haze">{hint}</p>}
+      {hint && <p className="mt-1.5 text-[11px] text-slate">{hint}</p>}
     </div>
   );
 }
@@ -128,7 +128,7 @@ export function CapacityBar({
         aria-valuemin={0}
         aria-valuemax={100}
         aria-label="Capacity taken"
-        className="relative h-3 w-full overflow-hidden rounded-full bg-elevated shadow-inset"
+        className="relative h-3 w-full overflow-hidden rounded-full bg-frost shadow-ring"
       >
         <motion.div
           className={cn(
@@ -144,9 +144,9 @@ export function CapacityBar({
       </div>
 
       <div className="mt-2 flex items-baseline justify-between gap-3">
-        <p className="font-mono text-[11px] tabular-nums text-haze">{pct}% taken</p>
+        <p className="font-mono text-[11px] tabular-nums text-slate">{pct}% taken</p>
         {tight && (
-          <p className="font-mono text-[11px] font-semibold uppercase tracking-wider text-flare-300">
+          <p className="font-mono text-[11px] font-semibold uppercase tracking-wider text-flare-600">
             Near capacity
           </p>
         )}

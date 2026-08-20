@@ -41,11 +41,11 @@ export default async function BookingDetailPage({ params }: { params: Promise<{ 
     <div className="space-y-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <Link href="/admin/bookings" className="text-[12px] text-vybe-300 hover:text-vybe-200">
+          <Link href="/admin/bookings" className="text-[12px] text-vybe-600 hover:text-vybe-700">
             ← All bookings
           </Link>
-          <h1 className="mt-2 font-mono text-2xl font-bold text-chalk">{booking.reference}</h1>
-          <p className="mt-1 text-[13px] text-haze">
+          <h1 className="mt-2 font-mono text-2xl font-bold text-ink">{booking.reference}</h1>
+          <p className="mt-1 text-[13px] text-slate">
             {event.name} · {formatEventDate(event.starts_at)}
           </p>
         </div>
@@ -58,8 +58,8 @@ export default async function BookingDetailPage({ params }: { params: Promise<{ 
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <section className="card p-5">
-          <h2 className="mb-4 font-display text-base font-semibold text-chalk">Guest</h2>
+        <section className="panel p-5">
+          <h2 className="mb-4 font-display text-base font-semibold text-ink">Guest</h2>
           <dl className="space-y-3 text-[13px]">
             <Field label="Name" value={booking.customer_name} />
             {/* Full contact details are shown here and nowhere else in the console. */}
@@ -74,8 +74,8 @@ export default async function BookingDetailPage({ params }: { params: Promise<{ 
           </dl>
         </section>
 
-        <section className="card p-5">
-          <h2 className="mb-4 font-display text-base font-semibold text-chalk">Order</h2>
+        <section className="panel p-5">
+          <h2 className="mb-4 font-display text-base font-semibold text-ink">Order</h2>
           <dl className="space-y-3 text-[13px]">
             <Field label="Status" value={booking.status} />
             <Field label="Tier" value={tier?.name ?? 'General Entry'} />
@@ -91,18 +91,18 @@ export default async function BookingDetailPage({ params }: { params: Promise<{ 
         </section>
       </div>
 
-      <section className="card p-5">
-        <h2 className="mb-4 font-display text-base font-semibold text-chalk">
+      <section className="panel p-5">
+        <h2 className="mb-4 font-display text-base font-semibold text-ink">
           Passes ({tickets.length})
         </h2>
-        <ul className="divide-y divide-hairline">
+        <ul className="divide-y divide-edge">
           {tickets.map((ticket) => (
             <li key={ticket.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
               <div>
-                <p className="font-mono text-[12px] text-chalk">{ticket.code}</p>
-                <p className="text-[12px] text-haze">
+                <p className="font-mono text-[12px] text-ink">{ticket.code}</p>
+                <p className="text-[12px] text-slate">
                   {ticket.holder_name}
-                  {ticket.seat_label && <span className="text-dim"> · {ticket.seat_label}</span>}
+                  {ticket.seat_label && <span className="text-muted"> · {ticket.seat_label}</span>}
                 </p>
               </div>
               <div className="text-right">
@@ -110,16 +110,16 @@ export default async function BookingDetailPage({ params }: { params: Promise<{ 
                   className={cn(
                     'rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase',
                     ticket.status === 'valid'
-                      ? 'border-vybe-500/40 bg-vybe-500/10 text-vybe-200'
+                      ? 'border-vybe-500/40 bg-vybe-500/10 text-vybe-700'
                       : ticket.status === 'used'
-                        ? 'border-hairline bg-elevated text-haze'
+                        ? 'border-edge bg-frost text-slate'
                         : 'border-red-500/40 bg-red-500/10 text-red-200',
                   )}
                 >
                   {ticket.status}
                 </span>
                 {ticket.checked_in_at && (
-                  <p className="mt-1 text-[10px] text-dim">
+                  <p className="mt-1 text-[10px] text-muted">
                     {formatDateTime(ticket.checked_in_at)}
                     {ticket.checked_in_gate && ` · ${ticket.checked_in_gate}`}
                   </p>
@@ -130,29 +130,29 @@ export default async function BookingDetailPage({ params }: { params: Promise<{ 
         </ul>
       </section>
 
-      <section className="card p-5">
-        <h2 className="mb-1 font-display text-base font-semibold text-chalk">Email delivery</h2>
-        <p className="mb-4 text-[12px] text-dim">
+      <section className="panel p-5">
+        <h2 className="mb-1 font-display text-base font-semibold text-ink">Email delivery</h2>
+        <p className="mb-4 text-[12px] text-muted">
           Every attempt is recorded, so &quot;the ticket never arrived&quot; is answerable.
         </p>
         {emails.length === 0 ? (
-          <p className="py-4 text-[13px] text-dim">No emails logged for this booking.</p>
+          <p className="py-4 text-[13px] text-muted">No emails logged for this booking.</p>
         ) : (
-          <ul className="divide-y divide-hairline">
+          <ul className="divide-y divide-edge">
             {emails.map((email) => (
               <li key={email.id} className="py-3">
                 <div className="flex items-center justify-between gap-3">
-                  <p className="truncate text-[12px] text-chalk">{email.subject}</p>
+                  <p className="truncate text-[12px] text-ink">{email.subject}</p>
                   <span
                     className={cn(
                       'shrink-0 font-mono text-[10px] uppercase',
-                      email.status === 'sent' ? 'text-vybe-300' : 'text-red-300',
+                      email.status === 'sent' ? 'text-vybe-600' : 'text-red-300',
                     )}
                   >
                     {email.status}
                   </span>
                 </div>
-                <p className="mt-0.5 text-[11px] text-dim">
+                <p className="mt-0.5 text-[11px] text-muted">
                   {email.recipient} · {formatDateTime(email.created_at)}
                 </p>
                 {email.error && <p className="mt-1 text-[11px] text-red-300">{email.error}</p>}
@@ -176,13 +176,13 @@ function Field({
   mono?: boolean;
   link?: string;
 }) {
-  const content = <span className={cn('text-chalk', mono && 'font-mono text-[12px]')}>{value}</span>;
+  const content = <span className={cn('text-ink', mono && 'font-mono text-[12px]')}>{value}</span>;
   return (
     <div className="flex items-start justify-between gap-4">
-      <dt className="text-dim">{label}</dt>
+      <dt className="text-muted">{label}</dt>
       <dd className="text-right capitalize">
         {link ? (
-          <a href={link} className="text-vybe-300 hover:text-vybe-200">
+          <a href={link} className="text-vybe-600 hover:text-vybe-700">
             {content}
           </a>
         ) : (

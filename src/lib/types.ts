@@ -56,12 +56,19 @@ export interface BookingRow {
   customer_email: string;
   customer_phone: string;
   quantity: number;
+  /** Face value before any discount. */
+  subtotal_paise: number;
+  /** Flat amount taken off by a referral code. Zero when none was used. */
+  discount_paise: number;
+  referral_code: string | null;
+  /** What the customer actually owes: subtotal minus discount, never below 0. */
   amount_paise: number;
   currency: string;
   status: BookingStatus;
   payment_provider: 'none' | 'razorpay' | 'comp' | 'cash';
   payment_order_id: string | null;
   payment_id: string | null;
+  paid_at: string | null;
   email_sent_at: string | null;
   source: string;
   notes: string | null;

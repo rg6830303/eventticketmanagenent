@@ -70,7 +70,7 @@ export function LiveStats({
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between gap-3">
-        <p className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-wider text-haze">
+        <p className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-wider text-slate">
           <span className="relative flex h-2 w-2">
             {!stale && (
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-flare-500 opacity-70" />
@@ -78,13 +78,13 @@ export function LiveStats({
             <span
               className={cn(
                 'relative inline-flex h-2 w-2 rounded-full',
-                stale ? 'bg-dim' : 'bg-flare-500',
+                stale ? 'bg-muted' : 'bg-flare-500',
               )}
             />
           </span>
           {stale ? 'Reconnecting' : 'Live'}
         </p>
-        <p className="font-mono text-[10px] text-dim">
+        <p className="font-mono text-[10px] text-muted">
           {stats.lastScanAt ? `last scan ${timeAgo(stats.lastScanAt)}` : 'no scans yet'}
         </p>
       </div>
@@ -111,27 +111,31 @@ export function LiveStats({
       </div>
 
       <div className="grid grid-cols-2 gap-3">
-        <div className="card px-4 py-3">
-          <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-dim">Revenue</p>
-          <p className="mt-1 font-display text-lg font-bold tabular-nums text-chalk">
-            {stats.revenuePaise === 0 ? 'Free entry' : formatInr(stats.revenuePaise)}
+        <div className="panel px-4 py-3">
+          <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted">Revenue</p>
+          {/* Zero collected is not the same as free entry — it is usually a
+              night that has not sold yet, and labelling it "Free entry" has
+              sent more than one operator looking for a pricing bug. */}
+          <p className="mt-1 font-display text-lg font-bold tabular-nums text-ink">
+            {formatInr(stats.revenuePaise)}
           </p>
+          <p className="mt-0.5 text-[11px] text-muted">confirmed bookings only</p>
         </div>
         {/* Surfacing this makes single-use enforcement visible rather than
             something the team has to take on trust. */}
         <div
           className={cn(
-            'card px-4 py-3',
+            'panel px-4 py-3',
             stats.duplicatesBlocked > 0 && 'border-amber-400/40 bg-amber-400/[0.06]',
           )}
         >
-          <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-dim">
+          <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted">
             Re-use blocked
           </p>
           <p
             className={cn(
               'mt-1 font-display text-lg font-bold tabular-nums',
-              stats.duplicatesBlocked > 0 ? 'text-amber-200' : 'text-chalk',
+              stats.duplicatesBlocked > 0 ? 'text-amber-700' : 'text-ink',
             )}
           >
             {stats.duplicatesBlocked}
@@ -160,7 +164,7 @@ function Tile({
   return (
     <div
       className={cn(
-        'card card-lit relative overflow-hidden p-4 transition-colors duration-500',
+        'panel shadow-mid relative overflow-hidden p-4 transition-colors duration-500',
         accent && 'border-vybe-600/50 bg-vybe-500/[0.07]',
         pulse && 'border-vybe-400',
       )}
@@ -175,7 +179,7 @@ function Tile({
         />
       )}
 
-      <p className="relative font-mono text-[10px] uppercase tracking-[0.18em] text-dim">{label}</p>
+      <p className="relative font-mono text-[10px] uppercase tracking-[0.18em] text-muted">{label}</p>
 
       {/* Keyed on the value so each change swaps rather than mutates in place —
           a number that visibly ticks over is how the room notices a scan. */}
@@ -187,14 +191,14 @@ function Tile({
             animate={reduce ? { opacity: 1 } : { y: 0, opacity: 1 }}
             exit={reduce ? { opacity: 0 } : { y: -22, opacity: 0 }}
             transition={{ duration: reduce ? 0.15 : 0.32, ease: [0.16, 1, 0.3, 1] }}
-            className="font-display text-2xl font-bold tabular-nums leading-none text-chalk sm:text-3xl"
+            className="font-display text-2xl font-bold tabular-nums leading-none text-ink sm:text-3xl"
           >
             {value}
           </motion.p>
         </AnimatePresence>
       </div>
 
-      {hint && <p className="relative mt-1.5 text-[11px] text-haze">{hint}</p>}
+      {hint && <p className="relative mt-1.5 text-[11px] text-slate">{hint}</p>}
     </div>
   );
 }
@@ -202,9 +206,9 @@ function Tile({
 /** Shown while the dashboard has no event to report on. */
 export function LiveStatsEmpty() {
   return (
-    <div className="card flex flex-col items-center justify-center p-10 text-center">
-      <Globe spin strokeWidth={1.8} className="h-12 w-12 text-flare/20 [animation-duration:18s]" />
-      <p className="mt-4 text-[14px] font-medium text-haze">No event to report on</p>
+    <div className="panel flex flex-col items-center justify-center p-10 text-center">
+      <Globe spin strokeWidth={1.8} className="h-12 w-12 text-vybe-500/20 [animation-duration:18s]" />
+      <p className="mt-4 text-[14px] font-medium text-slate">No event to report on</p>
     </div>
   );
 }

@@ -12,7 +12,7 @@ export default function TermsPage() {
   return (
     <LegalLayout
       current="/legal/terms"
-      eyebrow="Legal"
+      kicker="Legal"
       title="Terms of service"
       lede="These terms govern the purchase of tickets and entry to events produced by Houz of Vybe in Hyderabad, Telangana."
       lastUpdated="16 August 2026"
@@ -41,10 +41,15 @@ export default function TermsPage() {
           body: (
             <>
               <p>
-                Entry is restricted to persons aged 21 or over, in line with the legal drinking age
-                in Telangana. A valid government-issued photo identification must be produced at the
-                door — Aadhaar, passport, driving licence or voter ID. Documents held in DigiLocker
-                are accepted.
+                Entry is restricted to persons aged 18 or over. A valid government-issued photo
+                identification must be produced at the door — Aadhaar, passport, driving licence or
+                voter ID. Documents held in DigiLocker are accepted. A college ID on its own is not
+                sufficient.
+              </p>
+              <p>
+                Alcohol is served only to attendees who meet the legal drinking age in Telangana,
+                which is higher than the entry age. The venue verifies age separately at the bar and
+                may refuse service.
               </p>
               <p>
                 The name on the identification should match the name on the booking. Where it does

@@ -1,33 +1,76 @@
 # Houz of Vybe — event ticketing platform
 
-Clubbing-event website and QR ticketing system for **Houz of Vybe**, Hyderabad. Customers book
-in three fields, receive a cryptographically signed QR pass by email within seconds, and get
-scanned in at the door by staff using a phone camera.
+Event website and QR ticketing system for **Houz of Vybe**, Hyderabad. The site is built around
+one flagship event — **OFF Campus, Freshers '26**, at Babylon 2.0 in Nanakramguda on Saturday
+12 September 2026, 12 PM to 5 PM. Customers pick a ticket, optionally apply a referral code, pay
+through Razorpay, and receive a cryptographically signed QR pass by email within seconds. Door
+staff scan it with a phone camera.
 
-Built as a single Next.js application: marketing site, booking flow, ticket delivery and the
-admin/door console all ship together.
+Built as a single Next.js application: marketing site, booking flow, checkout, ticket delivery
+and the admin/door console all ship together.
 
 ---
 
-## Current mode: payments are OFF
+## Payments
 
-**Razorpay is not connected, and booking is free of charge.** A customer gives their name, a
-working email address and an Indian mobile number, and tickets are issued immediately — there is
-no payment step anywhere in the flow.
+Payments run through **Razorpay** and are gated on `PAYMENTS_ENABLED`.
 
-The Razorpay integration is nonetheless written in full and sits behind a feature flag. To turn
-paid ticketing on later:
+**With the flag on** (the intended production setting):
 
-1. Set `PAYMENTS_ENABLED=true` and `NEXT_PUBLIC_PAYMENTS_ENABLED=true`.
-2. Fill in `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET` and
-   `NEXT_PUBLIC_RAZORPAY_KEY_ID`.
-3. Point a Razorpay webhook at `https://<your-domain>/api/payments/razorpay/webhook` for the
-   `payment.captured` event.
+1. `POST /api/bookings` creates the booking as `pending`, reserving tier inventory and claiming
+   any referral code inside the same transaction.
+2. The browser is sent to **`/pay/<reference>`**, which shows the order and opens Razorpay
+   Checkout.
+3. `POST /api/payments/razorpay/order` creates the Razorpay order server-side from
+   `bookings.amount_paise` — the price is never taken from the client.
+4. On success the browser calls `POST /api/payments/razorpay/verify`, which recomputes the HMAC
+   over `order_id|payment_id`. Only a matching signature promotes the booking to `confirmed`,
+   mints the tickets and sends the email.
+5. `POST /api/payments/razorpay/webhook` is the safety net for a customer who pays and then
+   closes the tab. It hashes the **raw** request body and is idempotent, so a replayed
+   `payment.captured` never issues a second set of passes.
 
-No other code change is required. `createBooking()` already branches on the flag: with payments
-off a booking is confirmed and ticketed instantly; with payments on it lands as `pending` and is
-promoted to `confirmed` by the signature-verified callback. Both paths mint tickets through the
-same function, so a ticket issued today is identical to one issued after the switch.
+**With the flag off**, `createBooking()` confirms and ticket-mints immediately and nothing is
+charged. Both paths mint through the same function, so a pass issued in either mode is identical.
+
+### Going live on Vercel
+
+1. Set `PAYMENTS_ENABLED=true`.
+2. Set `RAZORPAY_KEY_ID` and `RAZORPAY_KEY_SECRET` (Dashboard → Settings → API Keys).
+3. Add a webhook at `https://<your-domain>/api/payments/razorpay/webhook` for `payment.captured`
+   and set `RAZORPAY_WEBHOOK_SECRET` to the secret you chose there.
+4. Redeploy. Nothing else changes — the CSP in `next.config.mjs` already allows
+   `checkout.razorpay.com`.
+
+No key is exposed to the browser beyond the publishable `key_id`, which the order endpoint
+returns per request rather than baking into the bundle.
+
+---
+
+## Referral codes
+
+A referral code takes a **flat amount off the whole order**, not a percentage and not per ticket.
+`KAVYANSH100` is seeded first and gives ₹100 off.
+
+- Codes live in the `referral_codes` table: `code`, `discount_paise`, `active`, optional
+  `max_uses`, `starts_at`, `expires_at`.
+- Matching is case-insensitive; codes are stored and compared upper-case.
+- `POST /api/referrals/validate` powers the live preview in the booking form. It is rate limited,
+  because "does this code exist?" is the question a code-guessing script asks.
+- The **binding** discount is recomputed inside the booking transaction with
+  `SELECT … FOR UPDATE`, so two people racing for the last use of a limited code cannot both win,
+  and a stale preview can never set the price.
+- A discount is clamped to the order value — a ₹100 code on an ₹80 order is ₹80 off, never a
+  refund.
+- A bad code costs the discount, never the booking: the order still goes through at full price and
+  the response says the code was refused and why.
+
+Add another code with:
+
+```sql
+INSERT INTO referral_codes (code, label, discount_paise, max_uses)
+VALUES ('SOMECODE', 'Who it belongs to', 10000, 200);
+```
 
 ---
 
@@ -36,9 +79,10 @@ same function, so a ticket issued today is identical to one issued after the swi
 | Layer | Choice | Why |
 | --- | --- | --- |
 | Framework | Next.js 15 (App Router), React 19 | One deployable for site + API + admin |
-| Styling | Tailwind CSS 3.4 | Dark/blue design tokens in `tailwind.config.ts` |
-| Motion | Framer Motion 11 | Scroll reveals, shared-layout nav, 3D tilt |
-| 3D | React Three Fiber + drei | Decorative hero only; degrades to flat gradients |
+| Styling | Tailwind CSS 3.4 | Light-blue design tokens in `tailwind.config.ts` |
+| Motion | Framer Motion 11 | Scroll reveals, shared-layout nav, pointer-tracked 3D tilt |
+| 3D | React Three Fiber + drei | Decorative hero only; skipped without WebGL |
+| Payments | Razorpay Checkout | Server-created orders, HMAC-verified callbacks and webhook |
 | Database | Postgres via `pg` | Works with Supabase, Neon, RDS — no vendor lock |
 | Email | Nodemailer over Gmail SMTP | Ticket QR delivered as an inline CID attachment |
 | QR generation | `qrcode` | Server-side PNG / data-URL / SVG |
@@ -196,8 +240,7 @@ configuration and the payments flag.
 | `MAIL_FROM_NAME` / `MAIL_FROM_ADDRESS` | no | Display name and From address |
 | `MAIL_REPLY_TO` | no | Where customer replies land |
 | `MAIL_BCC` | no | Blind-copies every ticket email to ops |
-| `PAYMENTS_ENABLED` | no | `false` today. `true` activates Razorpay |
-| `NEXT_PUBLIC_PAYMENTS_ENABLED` | no | Client-side mirror of the flag |
+| `PAYMENTS_ENABLED` | no | `true` routes checkout through Razorpay. `false` issues passes free |
 | `RAZORPAY_KEY_ID` / `RAZORPAY_KEY_SECRET` | only if paid | Razorpay API credentials |
 | `RAZORPAY_WEBHOOK_SECRET` | only if paid | Verifies incoming webhooks |
 | `MAX_TICKETS_PER_BOOKING` | no | Default 6 |
@@ -273,21 +316,24 @@ Being honest about what this does not do yet:
 - **No seat maps.** Tiers are modelled; individual seat selection is not.
 - **Gallery images are generated placeholders.** The layout is sized and cropped for real
   photography — drop images in and nothing else changes.
+- **A pending booking holds inventory and a referral use until it is paid.** There is no sweeper
+  yet that releases abandoned checkouts, so a busy on-sale can hold stock that is never bought.
+  The release helper exists (`releaseReferral`); the scheduled job that calls it does not.
 - **No SMS.** Phone numbers are collected but only used for contact, not delivery.
 
 ---
 
 ## Legal and IP
 
-- The **OffCampus** night in this project is an independently produced themed event. It is not
-  affiliated with, endorsed by, or licensed from the producers of the Prime Video series.
-  **Using a television series' name, artwork or branding for a commercial event may require
-  permission from the rights holder** — get that cleared before you promote it publicly.
+- **OFF Campus** is an independently produced event by Houz of Vybe with Babylon Bar & Kitchen.
+  It is not affiliated with or endorsed by any college or university.
 - The pages under `/legal` (terms, privacy, refunds) are **templates**. They are specific and
   written for an Indian events business in Telangana, but they have not been reviewed by a
   lawyer. Have them reviewed before you take real money or real personal data.
-- Artist names, venue details and testimonials in `src/content/site.ts` are placeholder content.
-  Replace them with real ones before launch.
+- Items marked `TODO(operator)` in `src/content/site.ts` are placeholders — the support inboxes,
+  the phone number, the social links and the exact door address. Replace them before you
+  announce.
+- Ticket prices in `scripts/db-seed.mjs` are a starting point, not a decision. Edit and re-run.
 
 ---
 
@@ -301,9 +347,10 @@ Being honest about what this does not do yet:
 | `npm run lint` | ESLint |
 | `npm run typecheck` | `tsc --noEmit` |
 | `npm run db:push` | Apply `db/schema.sql` (idempotent) |
-| `npm run db:seed` | Seed the OffCampus event and its four tiers |
+| `npm run db:seed` | Seed the OFF Campus event, its three tiers and the `KAVYANSH100` code |
 | `npm run admin:create` | Create or update an admin user |
 
-`db:seed` computes the event date as the **next upcoming Saturday at 21:00 IST**, so a freshly
-seeded database always has a bookable future event rather than one the booking flow rejects as
-already past.
+`db:seed` is an upsert: re-running it updates the event and prices without touching bookings, and
+it will never lower a tier's quantity below what has already sold. The event date is the real one
+(12 September 2026, doors 12:00 IST), so a freshly seeded database always has a bookable future
+event rather than one the booking flow rejects as already past.

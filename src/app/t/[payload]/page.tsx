@@ -80,21 +80,21 @@ export default async function TicketPage({ params }: { params: Promise<{ payload
   const used = pass.status === 'used';
 
   return (
-    <div className="min-h-dvh bg-void">
-      <header className="flex items-center justify-between border-b border-hairline px-5 py-3.5">
+    <div className="min-h-dvh bg-canvas">
+      <header className="flex items-center justify-between border-b border-edge px-5 py-3.5">
         <Link href="/" aria-label="Houz of Vybe — home">
           <Logo compact />
         </Link>
-        <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-dim">Entry pass</span>
+        <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted">Entry pass</span>
       </header>
 
       <main className="mx-auto w-full max-w-md px-5 py-6">
-        <div className="card card-lit overflow-hidden">
-          <div className="border-b border-hairline bg-gradient-to-br from-vybe-900/60 to-surface px-5 py-4 text-center">
-            <p className="font-display text-lg font-bold leading-tight text-chalk">
+        <div className="panel shadow-mid overflow-hidden">
+          <div className="border-b border-edge bg-gradient-to-br from-vybe-900/60 to-paper px-5 py-4 text-center">
+            <p className="font-display text-lg font-bold leading-tight text-ink">
               {pass.event_name}
             </p>
-            <p className="mt-0.5 text-[12px] text-haze">
+            <p className="mt-0.5 text-[12px] text-slate">
               {formatEventDate(pass.starts_at)} · doors{' '}
               {formatEventTime(pass.doors_at ?? pass.starts_at)}
             </p>
@@ -126,8 +126,8 @@ export default async function TicketPage({ params }: { params: Promise<{ payload
 
           <div className="space-y-3 p-5">
             <div>
-              <p className="text-[10px] uppercase tracking-wider text-dim">Admit</p>
-              <p className="font-display text-xl font-bold leading-tight text-chalk">
+              <p className="text-[10px] uppercase tracking-wider text-muted">Admit</p>
+              <p className="font-display text-xl font-bold leading-tight text-ink">
                 {pass.holder_name}
               </p>
             </div>
@@ -139,11 +139,11 @@ export default async function TicketPage({ params }: { params: Promise<{ payload
               <Item label="Entry" value={`${pass.age_limit}+ · photo ID`} />
             </dl>
 
-            <div className="border-t border-hairline pt-3">
-              <p className="text-[10px] uppercase tracking-wider text-dim">Venue</p>
-              <p className="mt-0.5 text-[13px] text-chalk">{pass.venue_name}</p>
+            <div className="border-t border-edge pt-3">
+              <p className="text-[10px] uppercase tracking-wider text-muted">Venue</p>
+              <p className="mt-0.5 text-[13px] text-ink">{pass.venue_name}</p>
               {pass.venue_address && (
-                <p className="text-[12px] leading-relaxed text-haze">{pass.venue_address}</p>
+                <p className="text-[12px] leading-relaxed text-slate">{pass.venue_address}</p>
               )}
             </div>
 
@@ -161,8 +161,8 @@ export default async function TicketPage({ params }: { params: Promise<{ payload
                   dead
                     ? 'text-[12px] font-medium text-red-200'
                     : used
-                      ? 'text-[12px] font-medium text-amber-200'
-                      : 'text-[12px] font-medium text-vybe-200'
+                      ? 'text-[12px] font-medium text-amber-700'
+                      : 'text-[12px] font-medium text-vybe-700'
                 }
               >
                 {dead
@@ -175,12 +175,12 @@ export default async function TicketPage({ params }: { params: Promise<{ payload
           </div>
         </div>
 
-        <p className="mt-5 text-center text-[11px] leading-relaxed text-dim">
+        <p className="mt-5 text-center text-[11px] leading-relaxed text-muted">
           Screenshot this page. The QR works offline and the venue has patchy signal.
         </p>
 
         <p className="mt-4 text-center">
-          <Link href="/contact" className="text-[12px] text-vybe-300 hover:text-vybe-200">
+          <Link href="/contact" className="text-[12px] text-vybe-600 hover:text-vybe-700">
             Something wrong? Contact us
           </Link>
         </p>
@@ -192,8 +192,8 @@ export default async function TicketPage({ params }: { params: Promise<{ payload
 function Item({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
   return (
     <div>
-      <dt className="text-[10px] uppercase tracking-wider text-dim">{label}</dt>
-      <dd className={mono ? 'mt-0.5 font-mono text-[12px] text-chalk' : 'mt-0.5 text-chalk'}>
+      <dt className="text-[10px] uppercase tracking-wider text-muted">{label}</dt>
+      <dd className={mono ? 'mt-0.5 font-mono text-[12px] text-ink' : 'mt-0.5 text-ink'}>
         {value}
       </dd>
     </div>
@@ -202,28 +202,28 @@ function Item({ label, value, mono }: { label: string; value: string; mono?: boo
 
 function PassError({ reason }: { reason: string }) {
   return (
-    <div className="flex min-h-dvh flex-col bg-void">
-      <header className="flex items-center justify-between border-b border-hairline px-5 py-3.5">
+    <div className="flex min-h-dvh flex-col bg-canvas">
+      <header className="flex items-center justify-between border-b border-edge px-5 py-3.5">
         <Link href="/" aria-label="Houz of Vybe — home">
           <Logo compact />
         </Link>
       </header>
       <main className="flex flex-1 items-center justify-center px-5 py-16">
-        <div className="card w-full max-w-sm p-8 text-center">
+        <div className="panel w-full max-w-sm p-8 text-center">
           <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full border border-red-500/40 bg-red-500/10">
             <span aria-hidden className="text-2xl text-red-300">
               !
             </span>
           </div>
-          <h1 className="font-display text-xl font-bold text-chalk">
+          <h1 className="font-display text-xl font-bold text-ink">
             This pass could not be verified
           </h1>
-          <p className="mt-3 text-[13px] leading-relaxed text-haze">{reason}</p>
+          <p className="mt-3 text-[13px] leading-relaxed text-slate">{reason}</p>
           <div className="mt-7 flex flex-col gap-2">
             <Link href="/contact" className="btn-primary">
               Contact support
             </Link>
-            <Link href="/" className="btn-ghost">
+            <Link href="/" className="btn-outline btn-sm">
               Back to the site
             </Link>
           </div>

@@ -69,11 +69,11 @@ function Notches() {
     <>
       <span
         aria-hidden
-        className="absolute -left-3 top-1/2 h-6 w-6 -translate-y-1/2 rounded-full border border-hairline bg-void"
+        className="absolute -left-3 top-1/2 h-6 w-6 -translate-y-1/2 rounded-full border border-edge bg-canvas"
       />
       <span
         aria-hidden
-        className="absolute -right-3 top-1/2 h-6 w-6 -translate-y-1/2 rounded-full border border-hairline bg-void"
+        className="absolute -right-3 top-1/2 h-6 w-6 -translate-y-1/2 rounded-full border border-edge bg-canvas"
       />
     </>
   );
@@ -130,9 +130,9 @@ export function Ticket3D({
   }
 
   const front = (
-    <div className="relative flex h-full flex-col overflow-hidden rounded-[24px] border border-hairline bg-elevated/80 backdrop-blur-md shadow-[0_28px_70px_-34px_rgba(3,6,15,0.95)]">
+    <div className="relative flex h-full flex-col overflow-hidden rounded-[24px] border border-edge bg-paper shadow-high">
       <Globe
-        className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 text-flare/[0.08]"
+        className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 text-vybe-500/[0.08]"
         strokeWidth={1.8}
       />
       <span
@@ -141,24 +141,24 @@ export function Ticket3D({
       />
 
       <div className="px-6 pt-6">
-        <p className="eyebrow">{tierName}</p>
-        <h3 className="mt-2 font-display text-2xl font-extrabold leading-none tracking-tight text-chalk">
+        <p className="kicker">{tierName}</p>
+        <h3 className="mt-2 font-display text-2xl font-bold leading-none tracking-[-0.03em] text-ink">
           {eventName}
         </h3>
-        <p className="mt-2 text-[13px] text-haze">{holderName}</p>
+        <p className="mt-2 text-[13px] text-slate">{holderName}</p>
       </div>
 
       <div className="relative mt-5">
-        <div className="mx-6 border-t border-dashed border-hairline/90" />
+        <div className="mx-6 border-t border-dashed border-edge/90" />
         <Notches />
       </div>
 
       <div className="flex flex-1 flex-col items-center justify-center px-6 py-6">
-        <div className="rounded-2xl border border-hairline bg-ink/70 p-4">
-          <QrBlock className="h-28 w-28 text-vybe-200/85" />
+        <div className="rounded-2xl border border-edge bg-frost p-4">
+          <QrBlock className="h-28 w-28 text-vybe-700/80" />
         </div>
-        <p className="mt-4 font-mono text-[13px] font-medium tracking-[0.18em] text-chalk">{code}</p>
-        <p className="mt-1.5 text-center text-[11px] leading-relaxed text-dim">
+        <p className="mt-4 font-mono text-[13px] font-medium tracking-[0.18em] text-ink">{code}</p>
+        <p className="mt-1.5 text-center text-[11px] leading-relaxed text-muted">
           Artwork, not a scannable pass. The real QR is emailed when you book.
         </p>
       </div>
@@ -166,15 +166,15 @@ export function Ticket3D({
   );
 
   const back = (
-    <div className="relative flex h-full flex-col overflow-hidden rounded-[24px] border border-hairline bg-surface/85 backdrop-blur-md shadow-[0_28px_70px_-34px_rgba(3,6,15,0.95)]">
+    <div className="relative flex h-full flex-col overflow-hidden rounded-[24px] border border-edge bg-frost shadow-high">
       <Globe
-        className="pointer-events-none absolute -bottom-20 -left-16 h-56 w-56 text-vybe-500/[0.08]"
+        className="pointer-events-none absolute -bottom-20 -left-16 h-56 w-56 text-vybe-500/[0.06]"
         strokeWidth={1.8}
       />
 
       <div className="px-6 pt-6">
-        <p className="eyebrow">Pass details</p>
-        <h3 className="mt-2 font-display text-xl font-bold leading-tight tracking-tight text-chalk">
+        <p className="kicker">Pass details</p>
+        <h3 className="mt-2 font-display text-xl font-bold leading-tight tracking-tight text-ink">
           {eventName}
         </h3>
       </div>
@@ -187,8 +187,8 @@ export function Ticket3D({
         <Row label="Reference" value={code} mono />
       </dl>
 
-      <div className="border-t border-hairline px-6 py-4">
-        <p className="text-[11px] leading-relaxed text-dim">
+      <div className="border-t border-edge px-6 py-4">
+        <p className="text-[11px] leading-relaxed text-muted">
           One scan per pass. Bring a government photo ID that matches the booking name.
         </p>
       </div>
@@ -199,7 +199,7 @@ export function Ticket3D({
 
   return (
     <div className={cn('w-full max-w-[340px]', className)}>
-      <div className={cn(!reduce && 'perspective-1000')}>
+      <div className={cn(!reduce && 'perspective')}>
         {reduce ? (
           <div className="relative aspect-[3/4.15] w-full">{flipped ? back : front}</div>
         ) : (
@@ -230,12 +230,12 @@ export function Ticket3D({
           type="button"
           onClick={() => setFlipped((current) => !current)}
           aria-pressed={flipped}
-          className="btn-secondary px-5 py-2.5 text-[13px]"
+          className="btn-outline px-5 py-2.5 text-[13px]"
         >
           {flipped ? 'Show the pass' : 'Show the details'}
         </button>
         {!reduce && (
-          <p className="text-[11px] text-dim" aria-hidden>
+          <p className="text-[11px] text-muted" aria-hidden>
             Drag to tilt
           </p>
         )}
@@ -246,11 +246,11 @@ export function Ticket3D({
 
 function Row({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
   return (
-    <div className="flex items-baseline justify-between gap-4 border-b border-hairline/70 pb-3 last:border-0">
-      <dt className="text-[10px] font-semibold uppercase tracking-[0.18em] text-dim">{label}</dt>
+    <div className="flex items-baseline justify-between gap-4 border-b border-edge/70 pb-3 last:border-0">
+      <dt className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted">{label}</dt>
       <dd
         className={cn(
-          'min-w-0 truncate text-right text-[13px] text-chalk',
+          'min-w-0 truncate text-right text-[13px] text-ink',
           mono && 'font-mono tracking-[0.12em]',
         )}
       >

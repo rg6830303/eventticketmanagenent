@@ -35,6 +35,14 @@ export async function POST(request: NextRequest) {
         503,
       );
     }
+    if (!env.razorpay.keySecret) {
+      console.error('[payments] RAZORPAY_KEY_SECRET is not set — cannot verify a payment');
+      return fail(
+        'We could not confirm this payment. Do not pay again — contact us with your booking reference.',
+        'payments_misconfigured',
+        503,
+      );
+    }
     if (!verifyOrigin(request.headers)) return fail('Request blocked', 'bad_origin', 403);
 
     const body = (await readJson(request)) as {

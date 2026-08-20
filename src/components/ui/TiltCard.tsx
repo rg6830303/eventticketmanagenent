@@ -60,7 +60,7 @@ export function TiltCard({ children, className, intensity = 9, glare = true }: T
   }
 
   return (
-    <div className="perspective-1000">
+    <div className="perspective">
       <motion.div
         ref={ref}
         onPointerMove={handlePointerMove}

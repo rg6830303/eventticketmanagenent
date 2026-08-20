@@ -37,7 +37,7 @@ export function ResendButton({ reference }: { reference: string }) {
         type="button"
         onClick={resend}
         disabled={pending}
-        className="btn-secondary px-5 py-2.5 text-[12px]"
+        className="btn-outline px-5 py-2.5 text-[12px]"
       >
         {pending ? 'Sending…' : 'Resend email'}
       </button>
@@ -45,7 +45,7 @@ export function ResendButton({ reference }: { reference: string }) {
         {message && (
           <span
             className={
-              message.tone === 'ok' ? 'text-[11px] text-vybe-300' : 'text-[11px] text-red-300'
+              message.tone === 'ok' ? 'text-[11px] text-vybe-600' : 'text-[11px] text-red-300'
             }
           >
             {message.text}

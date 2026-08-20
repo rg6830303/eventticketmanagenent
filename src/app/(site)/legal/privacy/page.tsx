@@ -12,7 +12,7 @@ export default function PrivacyPage() {
   return (
     <LegalLayout
       current="/legal/privacy"
-      eyebrow="Legal"
+      kicker="Legal"
       title="Privacy policy"
       lede="What we collect, why we collect it, and what we will never do with it."
       lastUpdated="16 August 2026"

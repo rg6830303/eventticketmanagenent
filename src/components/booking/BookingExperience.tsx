@@ -2,11 +2,11 @@
 
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { useCallback, useState } from 'react';
-import { Globe } from '@/components/brand/Globe';
 import { SafeDecoration } from '@/components/ui/SafeDecoration';
 import { Ticket3D } from '@/components/game/Ticket3D';
 import { formatEventDate, formatEventTime, formatInr } from '@/lib/utils';
-import { BookingForm, type TierOption } from './BookingForm';
+import { EVENT } from '@/content/site';
+import { BookingForm, type ReferralState, type TierOption } from './BookingForm';
 
 interface BookingExperienceProps {
   eventSlug: string;
@@ -17,93 +17,79 @@ interface BookingExperienceProps {
   venueName: string;
   tiers: TierOption[];
   initialTier?: string;
+  initialReferral?: string;
   maxQuantity: number;
+  paymentsEnabled: boolean;
 }
 
 const EASE = [0.16, 1, 0.3, 1] as const;
 
 /**
- * Holds the shared state between the form and the order summary. The form is
- * the source of truth; the summary is a read-only mirror, so the two cannot
- * drift out of sync.
+ * Holds the state shared between the form and the running total. The form owns
+ * it; the summary is a read-only mirror, so the number under the button and the
+ * number in the summary cannot disagree.
  */
 export function BookingExperience(props: BookingExperienceProps) {
   const reduce = useReducedMotion();
-  const [selection, setSelection] = useState({
+  const [selection, setSelection] = useState<{
+    tierCode: string;
+    quantity: number;
+    referral: ReferralState;
+  }>({
     tierCode: props.initialTier ?? props.tiers[0]?.code ?? '',
     quantity: 1,
+    referral: { code: '', discountPaise: 0, status: 'empty', message: null },
   });
 
-  const handleChange = useCallback((next: { tierCode: string; quantity: number }) => {
-    setSelection(next);
-  }, []);
-
-  const tier = props.tiers.find((t) => t.code === selection.tierCode) ?? null;
-  const total = (tier?.pricePaise ?? 0) * selection.quantity;
-  const tierName = tier?.name ?? 'General entry';
-
-  const flatPreview = (
-    <FlatPass eventName={props.eventName} tierName={tierName} quantity={selection.quantity} />
+  const handleChange = useCallback(
+    (next: { tierCode: string; quantity: number; referral: ReferralState }) => {
+      setSelection(next);
+    },
+    [],
   );
 
+  const tier = props.tiers.find((t) => t.code === selection.tierCode) ?? null;
+  const tierName = tier?.name ?? 'General entry';
+  const subtotal = (tier?.pricePaise ?? 0) * selection.quantity;
+  const discount =
+    selection.referral.status === 'valid'
+      ? Math.min(selection.referral.discountPaise, subtotal)
+      : 0;
+  const total = Math.max(0, subtotal - discount);
+
   return (
-    <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_380px] lg:gap-14">
-      <div>
+    <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_368px] lg:gap-14">
+      <div className="min-w-0">
         <BookingForm
           eventSlug={props.eventSlug}
           eventName={props.eventName}
           tiers={props.tiers}
           initialTier={props.initialTier}
+          initialReferral={props.initialReferral}
           maxQuantity={props.maxQuantity}
+          paymentsEnabled={props.paymentsEnabled}
           onChange={handleChange}
         />
       </div>
 
-      <aside className="lg:sticky lg:top-24 lg:self-start">
-        <div className="card card-lit overflow-hidden">
-          <div className="relative aspect-[4/3] w-full bg-gradient-to-br from-vybe-950 via-surface to-ink">
-            <div aria-hidden className="absolute inset-0 grid-overlay opacity-60" />
-            <Globe
-              className="pointer-events-none absolute -right-12 -top-12 h-48 w-48 text-flare/[0.09]"
-              strokeWidth={1.4}
-            />
-
-            {/* The pass the visitor is actually assembling. Boundaried so a 3D
-                transform failure degrades to the flat card, not the page. */}
-            <div className="absolute inset-0">
-              <SafeDecoration label="ticket-3d" fallback={flatPreview}>
-                <Ticket3D
-                  eventName={props.eventName}
-                  tierName={tierName}
-                  venue={props.venueName}
-                />
-              </SafeDecoration>
-            </div>
-
-            <p className="pointer-events-none absolute bottom-3 left-0 right-0 text-center text-[10px] uppercase tracking-[0.22em] text-dim">
-              Live preview
+      <aside className="lg:sticky lg:top-28 lg:self-start">
+        <div className="panel-raised overflow-hidden">
+          <div className="border-b border-edge bg-frost/70 px-6 py-5">
+            <p className="kicker">Order summary</p>
+            <p className="h-card mt-1.5">
+              {EVENT.name} <span className="text-vybe-600">{EVENT.edition}</span>
+            </p>
+            <p className="mt-1 text-[0.8125rem] text-slate">
+              {formatEventDate(props.startsAt)} · {formatEventTime(props.doorsAt ?? props.startsAt)}
             </p>
           </div>
 
-          <div className="space-y-3 border-t border-hairline p-6 text-[13px]">
-            <p className="eyebrow mb-1">Your order</p>
-            <p className="font-display text-xl font-bold leading-tight text-chalk">
-              {props.eventName}
-            </p>
-            {props.eventTagline && (
-              <p className="!mt-1 text-[13px] text-haze">{props.eventTagline}</p>
-            )}
-
-            <div className="divider !my-4" />
-
-            <Row label="Date" value={formatEventDate(props.startsAt)} />
-            <Row label="Doors" value={formatEventTime(props.doorsAt ?? props.startsAt)} />
+          <div className="space-y-3.5 px-6 py-5 text-[0.875rem]">
             <Row label="Venue" value={props.venueName} />
-            <div className="divider !my-4" />
             <SwapRow label="Ticket" value={tierName} reduce={Boolean(reduce)} />
             <SwapRow
-              label="Quantity"
-              value={`${selection.quantity} × QR pass`}
+              label="Passes"
+              value={`${selection.quantity} × QR`}
               reduce={Boolean(reduce)}
             />
             <SwapRow
@@ -111,38 +97,70 @@ export function BookingExperience(props: BookingExperienceProps) {
               value={tier ? (tier.pricePaise === 0 ? 'Free' : formatInr(tier.pricePaise)) : '—'}
               reduce={Boolean(reduce)}
             />
-            <div className="divider !my-4" />
-            <div className="flex items-baseline justify-between">
-              <span className="text-haze">Total</span>
+
+            <div className="rule my-4" />
+
+            <Row label="Subtotal" value={subtotal === 0 ? '₹0' : formatInr(subtotal)} />
+
+            <AnimatePresence initial={false}>
+              {discount > 0 && (
+                <motion.div
+                  key="discount"
+                  initial={reduce ? false : { opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: reduce ? 0 : 0.28, ease: EASE }}
+                  className="overflow-hidden"
+                >
+                  <div className="flex items-baseline justify-between gap-4 py-0.5">
+                    <span className="font-medium text-leaf-600">
+                      Code {selection.referral.code}
+                    </span>
+                    <span className="tnum font-semibold text-leaf-600">
+                      − {formatInr(discount)}
+                    </span>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            <div className="rule my-4" />
+
+            <div className="flex items-baseline justify-between gap-4">
+              <span className="font-semibold text-ink">
+                {props.paymentsEnabled ? 'Total payable' : 'Total'}
+              </span>
               <span className="text-right">
-                {/* Face value is shown struck through so the guest knows what the
-                    ticket is normally worth, without implying a charge today. */}
-                {total > 0 && (
-                  <span className="mr-2 text-[13px] text-dim line-through">{formatInr(total)}</span>
+                {discount > 0 && (
+                  <span className="tnum mr-2 text-[0.8125rem] text-muted line-through">
+                    {formatInr(subtotal)}
+                  </span>
                 )}
-                <span className="font-display text-xl font-bold text-vybe-200">₹0</span>
+                <AnimatedTotal value={total} reduce={Boolean(reduce)} />
               </span>
             </div>
-            <p className="text-[11px] leading-relaxed text-dim">
-              Payments are not enabled yet — nothing is charged today.
+
+            <p className="text-[0.75rem] leading-relaxed text-muted">
+              {props.paymentsEnabled
+                ? 'Paid securely through Razorpay on the next step. Nothing is charged until you confirm there.'
+                : 'Online payment is not switched on, so nothing is charged. Your passes are issued straight away.'}
             </p>
           </div>
         </div>
 
-        <ul className="mt-5 space-y-2.5 text-[12px] text-haze">
-          {[
-            'QR pass emailed instantly, one per person',
-            'Works offline — screenshot it before you arrive',
-            '21+ with government photo ID',
-          ].map((line) => (
-            <li key={line} className="flex gap-2.5">
-              <span aria-hidden className="mt-[3px] text-vybe-400">
-                ✦
-              </span>
-              {line}
-            </li>
-          ))}
-        </ul>
+        {/* The pass being assembled. Boundaried so a 3D transform failure on an
+            old browser costs the preview, not the checkout. */}
+        <div className="mt-6 hidden justify-center lg:flex">
+          <SafeDecoration label="ticket-3d">
+            <Ticket3D
+              eventName={`${EVENT.name}`}
+              tierName={tierName}
+              venue={props.venueName}
+              date={formatEventTime(props.doorsAt ?? props.startsAt)}
+              className="max-w-[300px]"
+            />
+          </SafeDecoration>
+        </div>
       </aside>
     </div>
   );
@@ -151,8 +169,8 @@ export function BookingExperience(props: BookingExperienceProps) {
 function Row({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-baseline justify-between gap-4">
-      <span className="text-dim">{label}</span>
-      <span className="text-right text-chalk">{value}</span>
+      <span className="text-slate">{label}</span>
+      <span className="text-right font-medium text-ink">{value}</span>
     </div>
   );
 }
@@ -161,7 +179,7 @@ function Row({ label, value }: { label: string; value: string }) {
 function SwapRow({ label, value, reduce }: { label: string; value: string; reduce: boolean }) {
   return (
     <div className="flex items-baseline justify-between gap-4">
-      <span className="text-dim">{label}</span>
+      <span className="text-slate">{label}</span>
       <span className="relative min-w-0 flex-1 text-right">
         <AnimatePresence mode="wait" initial={false}>
           <motion.span
@@ -169,8 +187,8 @@ function SwapRow({ label, value, reduce }: { label: string; value: string; reduc
             initial={reduce ? { opacity: 1 } : { opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
             exit={reduce ? { opacity: 0 } : { opacity: 0, y: -6 }}
-            transition={{ duration: reduce ? 0 : 0.22, ease: EASE }}
-            className="block truncate text-chalk"
+            transition={{ duration: reduce ? 0 : 0.2, ease: EASE }}
+            className="block truncate font-medium text-ink"
           >
             {value}
           </motion.span>
@@ -180,33 +198,21 @@ function SwapRow({ label, value, reduce }: { label: string; value: string; reduc
   );
 }
 
-/**
- * Flat stand-in for the 3D pass. Shown whenever WebGL is unavailable, so the
- * summary still previews what the visitor is about to receive.
- */
-function FlatPass({
-  eventName,
-  tierName,
-  quantity,
-}: {
-  eventName: string;
-  tierName: string;
-  quantity: number;
-}) {
+function AnimatedTotal({ value, reduce }: { value: number; reduce: boolean }) {
   return (
-    <div className="absolute inset-0 grid place-items-center p-6">
-      <div className="w-full max-w-[220px] rounded-2xl border border-hairline bg-elevated/80 p-4 shadow-glow backdrop-blur-md">
-        <p className="eyebrow text-[9px]">Entry pass</p>
-        <p className="mt-1.5 truncate font-display text-[15px] font-bold text-chalk">{eventName}</p>
-        <p className="mt-0.5 truncate text-[11px] text-haze">{tierName}</p>
-        <div className="my-3 border-t border-dashed border-hairline" />
-        <div className="flex items-end justify-between">
-          <span className="text-[10px] uppercase tracking-[0.18em] text-dim">Passes</span>
-          <span className="font-display text-lg font-bold tabular-nums text-vybe-200">
-            {quantity}
-          </span>
-        </div>
-      </div>
-    </div>
+    <span className="relative inline-block align-baseline">
+      <AnimatePresence mode="wait" initial={false}>
+        <motion.span
+          key={value}
+          initial={reduce ? { opacity: 1 } : { opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={reduce ? { opacity: 0 } : { opacity: 0, y: -10 }}
+          transition={{ duration: reduce ? 0 : 0.24, ease: EASE }}
+          className="tnum inline-block font-display text-2xl font-bold text-ink"
+        >
+          {value === 0 ? '₹0' : formatInr(value)}
+        </motion.span>
+      </AnimatePresence>
+    </span>
   );
 }

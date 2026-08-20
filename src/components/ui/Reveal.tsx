@@ -53,6 +53,7 @@ export function Reveal({
 
   return (
     <Component
+      data-reveal=""
       className={cn(className)}
       initial={{ opacity: 0, x: offset.x * distance, y: offset.y * distance }}
       whileInView={{ opacity: 1, x: 0, y: 0 }}
@@ -94,6 +95,7 @@ export function Stagger({
 
   return (
     <motion.div
+      data-reveal=""
       className={className}
       variants={containerVariants}
       initial="hidden"
@@ -109,7 +111,7 @@ export function StaggerItem({ children, className }: { children: ReactNode; clas
   const reduce = useReducedMotion();
   if (reduce) return <div className={className}>{children}</div>;
   return (
-    <motion.div className={className} variants={itemVariants}>
+    <motion.div data-reveal="" className={className} variants={itemVariants}>
       {children}
     </motion.div>
   );

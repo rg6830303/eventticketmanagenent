@@ -91,7 +91,7 @@ export function LoginForm() {
           <button
             type="button"
             onClick={() => setShowPassword((visible) => !visible)}
-            className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md px-1 py-0.5 text-[11px] font-semibold uppercase tracking-wider text-dim transition-colors hover:text-chalk"
+            className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md px-1 py-0.5 text-[11px] font-semibold uppercase tracking-wider text-muted transition-colors hover:text-ink"
             aria-label={showPassword ? 'Hide password' : 'Show password'}
           >
             {showPassword ? 'Hide' : 'Show'}
@@ -105,7 +105,7 @@ export function LoginForm() {
             <motion.p
               key={error}
               role="alert"
-              className="error-text text-flare-300"
+              className="error-text text-flare-600"
               initial={reduce ? { opacity: 0 } : { opacity: 0, x: 0 }}
               animate={reduce ? { opacity: 1 } : { opacity: 1, x: [0, -7, 6, -3, 0] }}
               exit={{ opacity: 0 }}

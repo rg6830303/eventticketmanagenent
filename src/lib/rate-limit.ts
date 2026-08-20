@@ -78,4 +78,8 @@ export const LIMITS = {
   adminLogin: { limit: 8, window: 900 },
   scan: { limit: 600, window: 60 },         // a busy gate is fast; humans aren't 10/s
   resend: { limit: 5, window: 3600 },
+  // Referral checks are cheap but guessable — this stops a script from
+  // enumerating live codes from one address.
+  referral: { limit: 25, window: 300 },
+  payment: { limit: 20, window: 600 },
 } as const;

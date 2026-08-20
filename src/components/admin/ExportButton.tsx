@@ -115,13 +115,13 @@ export function ExportButton({ className }: { className?: string }) {
         onClick={handleExport}
         disabled={state === 'working'}
         className={cn(
-          'btn-ghost gap-2 px-4 py-2 text-[12px]',
-          state === 'done' && 'border-vybe-600 text-vybe-200',
-          state === 'error' && 'border-flare-500/60 text-flare-300',
+          'btn-outline btn-sm gap-2 px-4 py-2 text-[12px]',
+          state === 'done' && 'border-vybe-600 text-vybe-700',
+          state === 'error' && 'border-flare-500/60 text-flare-600',
         )}
       >
         {state === 'working' ? (
-          <Globe strokeWidth={6} className="h-3.5 w-3.5 animate-orbit text-vybe-300 [animation-duration:1.4s]" />
+          <Globe strokeWidth={6} className="h-3.5 w-3.5 animate-spin-slow text-vybe-600 [animation-duration:1.4s]" />
         ) : (
           <DownloadIcon className="h-3.5 w-3.5" />
         )}
@@ -130,7 +130,7 @@ export function ExportButton({ className }: { className?: string }) {
 
       <p
         aria-live="polite"
-        className={cn('text-[11px]', state === 'error' ? 'text-flare-300' : 'text-dim')}
+        className={cn('text-[11px]', state === 'error' ? 'text-flare-600' : 'text-muted')}
       >
         {message}
       </p>

@@ -1,311 +1,429 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
 import { getEventBySlug, listTiers } from '@/lib/bookings';
-import { BRAND, FEATURED_EVENT_SLUG, OFFCAMPUS, VENUE } from '@/content/site';
+import { BRAND, EVENT, FEATURED_EVENT_SLUG, PARTNER, REFERRAL, TICKETING_FACTS } from '@/content/site';
 import { formatEventDate, formatEventTime, formatInr } from '@/lib/utils';
 import { Reveal } from '@/components/ui/Reveal';
-import { SectionHeading } from '@/components/ui/SectionHeading';
 import { Marquee } from '@/components/ui/Marquee';
 import { Magnetic } from '@/components/ui/Magnetic';
 import { Countdown } from '@/components/ui/Countdown';
-// Client component that renders null until it has mounted and confirmed WebGL,
-// so it contributes nothing to SSR and never blocks the hero's first paint.
-import { HeroScene } from '@/components/three/HeroScene';
 import { SafeDecoration } from '@/components/ui/SafeDecoration';
-import { Globe } from '@/components/brand/Globe';
-import { Ticket3D } from '@/components/game/Ticket3D';
-import { ScarcityMeter } from '@/components/game/ScarcityMeter';
-import { VibeQuiz } from '@/components/game/VibeQuiz';
-import { HeroParallax } from '@/components/home/HeroParallax';
+// Renders null until it has mounted and confirmed WebGL, so it contributes
+// nothing to SSR and never blocks the hero's first paint.
+import { HeroScene } from '@/components/three/HeroScene';
+import { PosterCard } from '@/components/event/PosterCard';
+import { ActivityGrid } from '@/components/event/ActivityGrid';
+import { Runsheet } from '@/components/event/Runsheet';
+import { TicketRail, type RailTier } from '@/components/event/TicketRail';
+import { StickyBuyBar } from '@/components/event/StickyBuyBar';
 import { HowItWorks } from '@/components/home/HowItWorks';
-import { PlatformFacts } from '@/components/home/PlatformFacts';
-import { Promises } from '@/components/home/Promises';
+import { Accordion } from '@/components/events/Accordion';
 
 export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
-  title: `${BRAND.name} — ${BRAND.tagline}`,
+  title: `${EVENT.name} ${EVENT.edition} — ${EVENT.dateLabel}, ${EVENT.venue.name}`,
   description: BRAND.description,
   alternates: { canonical: '/' },
 };
 
-const MARQUEE = [
-  'HYDERABAD',
-  'AFTER DARK',
-  'THREE ROOMS',
-  'OFFCAMPUS',
-  'QR AT THE DOOR',
-  'CAPPED CAPACITY',
+const TICKER = [
+  'OFF CAMPUS',
+  "FRESHERS '26",
+  'BABYLON 2.0',
+  '12.09.2026',
+  'NON-STOP DJ',
+  'NANAKRAMGUDA',
+  '12PM — 5PM',
 ];
 
 export default async function HomePage() {
   const event = await getEventBySlug(FEATURED_EVENT_SLUG).catch(() => null);
-  const tiers = event ? await listTiers(event.id).catch(() => []) : [];
+  const tierRows = event ? await listTiers(event.id).catch(() => []) : [];
 
-  const available = tiers.filter((tier) => tier.quantity > tier.sold);
-  // Math.min() with no arguments is Infinity, so an all-sold-out event has to
-  // fall through to null rather than quietly advertising an impossible price.
-  const lowestPrice = available.length
-    ? Math.min(...available.map((tier) => tier.price_paise))
-    : null;
-  const remaining = tiers.reduce((sum, tier) => sum + Math.max(0, tier.quantity - tier.sold), 0);
-  const stock = tiers.map((tier) => ({
+  const tiers: RailTier[] = tierRows.map((tier) => ({
     code: tier.code,
     name: tier.name,
+    description: tier.description,
+    pricePaise: tier.price_paise,
     remaining: Math.max(0, tier.quantity - tier.sold),
     total: tier.quantity,
+    perks: Array.isArray(tier.perks) ? tier.perks : [],
   }));
 
-  const priceLine =
-    lowestPrice === null ? '' : lowestPrice > 0 ? `From ${formatInr(lowestPrice)} · ` : 'Free entry · ';
+  const onSale = tiers.filter((tier) => tier.remaining > 0);
+  // Math.min() with no arguments is Infinity, so an all-sold-out event has to
+  // fall through to null rather than advertise an impossible price.
+  const fromPaise = onSale.length ? Math.min(...onSale.map((tier) => tier.pricePaise)) : null;
+  const remaining = tiers.reduce((sum, tier) => sum + tier.remaining, 0);
+  const soldOut = tiers.length > 0 && remaining === 0;
+
+  const dateLabel = event ? formatEventDate(event.starts_at) : EVENT.dateLabel;
+  const doorsLabel = event ? formatEventTime(event.doors_at ?? event.starts_at) : '12:00 PM';
 
   return (
     <>
-      {/* ------------------------------------------------------------------ */}
+      {/* ================================================================== */}
       {/* Hero                                                               */}
-      {/* ------------------------------------------------------------------ */}
-      <section className="relative flex min-h-[100dvh] items-center overflow-hidden">
-        {/* The mark itself, blown up and turning behind the headline. Red at
-            8% is a watermark; any louder and it competes with the blue. */}
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-0 -z-10 flex items-center justify-center"
-        >
-          <Globe
-            spin
-            strokeWidth={0.7}
-            className="h-[120vmin] w-[120vmin] max-w-none text-flare/[0.08]"
-          />
-        </div>
-
-        {/* Ornamental only — if WebGL fails on the visitor's machine the hero
-            must still render, so it can never reach the root boundary. */}
+      {/* ================================================================== */}
+      <section className="relative overflow-hidden pb-16 pt-32 sm:pt-36 lg:pb-24 lg:pt-40">
+        <div aria-hidden className="pointer-events-none absolute inset-0 -z-20 gridfield fade-edges" />
         <SafeDecoration label="hero-webgl">
-          <HeroScene className="pointer-events-none absolute inset-0 -z-10 opacity-60" />
+          <HeroScene className="pointer-events-none absolute -left-[28%] top-[4%] -z-10 hidden h-[640px] w-[640px] opacity-35 lg:block lg:opacity-45" />
         </SafeDecoration>
-        <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 grid-overlay" />
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-x-0 bottom-0 -z-10 h-48 bg-gradient-to-t from-void to-transparent"
-        />
 
-        <HeroParallax className="container-hov relative w-full pt-28">
-          <Reveal>
-            <p className="eyebrow mb-5">
-              {BRAND.city} · Season One · 21+
-            </p>
-          </Reveal>
+        <div className="shell relative">
+          <div className="grid items-center gap-14 lg:grid-cols-[1.05fr_0.95fr] lg:gap-12">
+            <div>
+              <Reveal>
+                <p className="kicker">{EVENT.presentedBy}</p>
+              </Reveal>
 
-          <Reveal delay={0.08}>
-            <h1 className="display-1 max-w-[14ch]">
-              Nights that <span className="text-gradient">actually move.</span>
-            </h1>
-          </Reveal>
+              <Reveal delay={0.06}>
+                <h1 className="h-hero mt-5">
+                  The first party of your{' '}
+                  <span className="accent text-vybe-600">first year</span>.
+                </h1>
+              </Reveal>
 
-          <Reveal delay={0.16}>
-            <p className="lede mt-7 max-w-xl">{BRAND.description}</p>
-          </Reveal>
+              <Reveal delay={0.12}>
+                <p className="lede mt-6 max-w-lg">{EVENT.subhead}</p>
+              </Reveal>
 
-          <Reveal delay={0.24}>
-            <div className="mt-10 flex flex-wrap items-center gap-3">
-              <Magnetic>
-                <Link href="/book" className="btn-primary px-8 py-4 text-[15px]">
-                  Book tickets
-                </Link>
-              </Magnetic>
-              <Link href="/events/offcampus" className="btn-secondary px-8 py-4 text-[15px]">
-                See the night
-              </Link>
-            </div>
-          </Reveal>
-
-          <Reveal delay={0.32}>
-            <p className="mt-6 text-[12px] text-dim">
-              {priceLine}QR ticket emailed instantly · One scan per pass
-            </p>
-          </Reveal>
-        </HeroParallax>
-
-        <div
-          aria-hidden
-          className="absolute bottom-8 left-1/2 hidden -translate-x-1/2 flex-col items-center gap-2 sm:flex"
-        >
-          <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-dim">Scroll</span>
-          <span className="h-10 w-px animate-float bg-gradient-to-b from-vybe-400 to-transparent" />
-        </div>
-      </section>
-
-      <div className="border-y border-hairline bg-ink/50">
-        <Marquee items={MARQUEE} speedSeconds={42} />
-      </div>
-
-      {/* ------------------------------------------------------------------ */}
-      {/* Featured event                                                     */}
-      {/* ------------------------------------------------------------------ */}
-      <section className="section container-hov" aria-label="Next event">
-        <div className="grid items-center gap-14 lg:grid-cols-2 lg:gap-16">
-          <div>
-            <Reveal>
-              <p className="eyebrow mb-4">{OFFCAMPUS.eyebrow}</p>
-            </Reveal>
-            <Reveal delay={0.06}>
-              <h2 className="display-2">{OFFCAMPUS.title}</h2>
-              <p className="mt-2 font-display text-xl text-vybe-300">{OFFCAMPUS.subtitle}</p>
-            </Reveal>
-            <Reveal delay={0.12}>
-              <p className="lede mt-6">{OFFCAMPUS.blurb}</p>
-            </Reveal>
-
-            {event ? (
-              <>
-                <Reveal delay={0.18}>
-                  <dl className="mt-8 grid grid-cols-2 gap-x-6 gap-y-4 text-sm">
-                    <Detail label="Date" value={formatEventDate(event.starts_at)} />
-                    <Detail label="Doors" value={formatEventTime(event.doors_at ?? event.starts_at)} />
-                    <Detail label="Venue" value={event.venue_name} />
-                    <Detail
-                      label="Tickets left"
-                      value={remaining > 0 ? String(remaining) : 'Sold out'}
-                    />
-                  </dl>
-                </Reveal>
-                <Reveal delay={0.24}>
-                  <div className="mt-8">
-                    <Countdown target={event.starts_at} />
-                  </div>
-                </Reveal>
-                {stock.length > 0 && (
-                  <Reveal delay={0.3}>
-                    <div className="mt-8">
-                      <ScarcityMeter tiers={stock} />
-                    </div>
-                  </Reveal>
-                )}
-              </>
-            ) : (
               <Reveal delay={0.18}>
-                <p className="mt-8 rounded-xl border border-hairline bg-surface/60 px-4 py-3 text-[13px] text-haze">
-                  Dates for the next edition are being confirmed. Check back shortly.
+                <dl className="mt-9 grid max-w-lg grid-cols-2 gap-x-6 gap-y-5 border-t border-edge pt-7 sm:grid-cols-4">
+                  <HeroFact label="Date" value={EVENT.dateShort} sub="Saturday" />
+                  <HeroFact label="Time" value="12—5" sub="PM, sharp" />
+                  <HeroFact label="Venue" value="Babylon" sub={EVENT.venue.area} />
+                  <HeroFact label="Entry" value={EVENT.ageLabel} sub="Photo ID" />
+                </dl>
+              </Reveal>
+
+              <Reveal delay={0.24}>
+                <div className="mt-9 flex flex-wrap items-center gap-3">
+                  <Magnetic>
+                    <Link href="/book" className="btn-primary text-base">
+                      {soldOut
+                        ? 'Join the waitlist'
+                        : fromPaise !== null
+                          ? `Buy tickets — from ${formatInr(fromPaise)}`
+                          : 'Buy tickets'}
+                    </Link>
+                  </Magnetic>
+                  <Link href="#lineup" className="btn-outline text-base">
+                    See what&apos;s on
+                  </Link>
+                </div>
+              </Reveal>
+
+              <Reveal delay={0.3}>
+                <p className="mt-5 text-[0.8125rem] text-muted">
+                  QR pass emailed the moment you pay · One scan per person ·{' '}
+                  {remaining > 0 && remaining <= 80 ? (
+                    <span className="font-semibold text-flare-600">{remaining} left</span>
+                  ) : (
+                    'Capacity capped'
+                  )}
                 </p>
               </Reveal>
-            )}
+            </div>
 
-            <Reveal delay={0.36}>
-              <div className="mt-9 flex flex-wrap gap-3">
-                <Link href="/events/offcampus" className="btn-primary">
-                  Full line-up
-                </Link>
-                {event && remaining > 0 && (
-                  <Link href="/book?event=offcampus" className="btn-ghost">
-                    Book now
-                  </Link>
-                )}
+            <Reveal delay={0.16} direction="none">
+              <div className="flex justify-center lg:justify-end">
+                <PosterCard />
               </div>
             </Reveal>
           </div>
 
-          {/* Entrance travels on Y, not X: a horizontal offset on a full-bleed
-              column pushes past the container edge and scrolls the page. */}
-          <Reveal delay={0.14}>
-            <Ticket3D
-              eventName={OFFCAMPUS.title}
-              date={event ? formatEventDate(event.starts_at) : 'Date being confirmed'}
-              venue={event?.venue_name ?? VENUE.name}
-              tierName={tiers[0]?.name ?? 'General entry'}
-            />
-            <p className="mt-4 text-center text-[12px] text-dim">
-              A preview of the pass. The real one carries your name and a scannable code.
-            </p>
-          </Reveal>
+          {event && (
+            <Reveal delay={0.36}>
+              <div className="mt-16 flex flex-col gap-5 rounded-[20px] border border-edge bg-paper/80 p-6 shadow-low backdrop-blur-sm sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="kicker">Doors open in</p>
+                  <p className="mt-1.5 text-[0.9375rem] text-slate">
+                    {dateLabel} · {doorsLabel}
+                  </p>
+                </div>
+                <Countdown target={event.doors_at ?? event.starts_at} className="sm:max-w-md" />
+              </div>
+            </Reveal>
+          )}
         </div>
       </section>
 
-      {/* ------------------------------------------------------------------ */}
-      {/* Vibe quiz — the lead magnet                                        */}
-      {/* ------------------------------------------------------------------ */}
-      <section className="section border-y border-hairline bg-ink/40" aria-label="Room finder">
-        <div className="container-hov">
-          <SectionHeading
-            eyebrow="Room finder"
-            title="Not sure which ticket?"
-            lede="Three rooms, three tempos, one night. Answer a few questions and we will tell you where you are going to spend most of it — then book the pass that gets you in."
-            align="center"
-          />
-          <div className="mt-12">
-            <VibeQuiz rooms={OFFCAMPUS.rooms} />
+      <div className="border-y border-edge bg-paper">
+        <Marquee items={TICKER} speedSeconds={44} />
+      </div>
+
+      {/* ================================================================== */}
+      {/* What it is                                                          */}
+      {/* ================================================================== */}
+      <section className="section shell" aria-labelledby="about-party">
+        <div className="grid gap-14 lg:grid-cols-[0.9fr_1.1fr] lg:gap-20">
+          <div>
+            <Reveal>
+              <p className="kicker">The party</p>
+              <h2 id="about-party" className="h-section mt-4">
+                Five hours, one rooftop, the whole batch.
+              </h2>
+            </Reveal>
+            <Reveal delay={0.08}>
+              <p className="lede mt-6">{EVENT.standfirst}</p>
+            </Reveal>
+            <Reveal delay={0.14}>
+              <div className="mt-6 space-y-4 text-[0.9375rem] leading-relaxed text-slate">
+                {EVENT.body.map((paragraph) => (
+                  <p key={paragraph.slice(0, 24)}>{paragraph}</p>
+                ))}
+              </div>
+            </Reveal>
+            <Reveal delay={0.2}>
+              <div className="mt-8 flex flex-wrap gap-3">
+                <Link href="/events/offcampus" className="btn-outline btn-sm">
+                  Full event details
+                </Link>
+                <Link href="#tickets" className="btn-quiet">
+                  Jump to prices →
+                </Link>
+              </div>
+            </Reveal>
+          </div>
+
+          <div>
+            <Reveal delay={0.1}>
+              <p className="kicker">How the day runs</p>
+            </Reveal>
+            <div className="mt-7">
+              <Runsheet />
+            </div>
           </div>
         </div>
       </section>
 
-      {/* ------------------------------------------------------------------ */}
-      {/* How it works                                                       */}
-      {/* ------------------------------------------------------------------ */}
-      <section className="section container-hov" aria-label="How booking works">
-        <SectionHeading
-          eyebrow="How it works"
-          title="Four steps from browsing to inside."
-          lede="No account, no app, no queue at a will-call desk. Book, get your QR, walk in."
-        />
-        <HowItWorks />
-      </section>
+      {/* ================================================================== */}
+      {/* Activities                                                          */}
+      {/* ================================================================== */}
+      <section id="lineup" className="section border-y border-edge bg-paper" aria-labelledby="activities">
+        <div className="shell">
+          <div className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
+            <Reveal>
+              <div className="max-w-xl">
+                <p className="kicker">What&apos;s on</p>
+                <h2 id="activities" className="h-section mt-4">
+                  Everything running, all afternoon.
+                </h2>
+                <p className="lede mt-4">
+                  All of it is included with entry. Nothing here costs extra at the door.
+                </p>
+              </div>
+            </Reveal>
+            <Reveal delay={0.1}>
+              <p className="text-[0.8125rem] text-muted sm:text-right">
+                With {PARTNER.name}
+                <br />
+                {EVENT.venue.name}, {EVENT.venue.area}
+              </p>
+            </Reveal>
+          </div>
 
-      {/* ------------------------------------------------------------------ */}
-      {/* Platform facts                                                     */}
-      {/* ------------------------------------------------------------------ */}
-      <section
-        className="border-y border-hairline bg-ink/40 py-16 sm:py-20"
-        aria-label="How the platform works"
-      >
-        <div className="container-hov">
-          <PlatformFacts />
+          <div className="mt-12">
+            <ActivityGrid />
+          </div>
         </div>
       </section>
 
-      {/* ------------------------------------------------------------------ */}
-      {/* Promises                                                           */}
-      {/* ------------------------------------------------------------------ */}
-      <section className="section container-hov" aria-label="Our commitments">
-        <SectionHeading
-          eyebrow="Commitments"
-          title="Four promises we can be held to."
-          lede="Not reviews, not ratings — the things the booking system does on every single order."
-        />
-        <Promises />
+      {/* ================================================================== */}
+      {/* Tickets                                                             */}
+      {/* ================================================================== */}
+      <section id="tickets" className="section shell" aria-labelledby="tickets-heading">
+        <Reveal>
+          <div className="max-w-2xl">
+            <p className="kicker">Tickets</p>
+            <h2 id="tickets-heading" className="h-section mt-4">
+              One price for everyone. No guest list.
+            </h2>
+            <p className="lede mt-4">
+              Stock below is live. When a tier runs out it stops selling on its own — we do not
+              oversell the room and there is no list at the gate.
+            </p>
+          </div>
+        </Reveal>
+
+        <div className="mt-12">
+          <TicketRail tiers={tiers} />
+        </div>
+
+        {/* Referral programme */}
+        <Reveal delay={0.1}>
+          <div className="mt-8 flex flex-col gap-6 rounded-[20px] border border-vybe-200 bg-vybe-50 p-7 sm:flex-row sm:items-center sm:justify-between">
+            <div className="max-w-xl">
+              <h3 className="h-card">{REFERRAL.headline}</h3>
+              <p className="mt-2 text-[0.9375rem] leading-relaxed text-slate">{REFERRAL.copy}</p>
+            </div>
+            <div className="shrink-0">
+              <p className="font-mono text-[0.75rem] uppercase tracking-[0.18em] text-vybe-600">
+                Example
+              </p>
+              <p className="mt-1 rounded-xl border border-dashed border-vybe-300 bg-paper px-4 py-3 font-mono text-[0.9375rem] font-medium tracking-[0.14em] text-ink">
+                {REFERRAL.sampleCode}
+              </p>
+            </div>
+          </div>
+        </Reveal>
       </section>
 
-      {/* ------------------------------------------------------------------ */}
-      {/* Closing CTA                                                        */}
-      {/* ------------------------------------------------------------------ */}
-      <section className="container-hov pb-24">
-        <Reveal>
-          <div className="card card-lit relative overflow-hidden px-6 py-16 text-center sm:px-12 sm:py-20">
-            <div aria-hidden className="absolute inset-0 grid-overlay opacity-70" />
-            <div
-              aria-hidden
-              className="pointer-events-none absolute inset-0 flex items-center justify-center"
-            >
-              <Globe
-                spin
-                strokeWidth={0.8}
-                className="h-[520px] w-[520px] max-w-none text-vybe-300/[0.07]"
-              />
+      {/* ================================================================== */}
+      {/* How booking works                                                   */}
+      {/* ================================================================== */}
+      <section className="section border-y border-edge bg-paper" aria-labelledby="how">
+        <div className="shell">
+          <Reveal>
+            <div className="max-w-2xl">
+              <p className="kicker">Booking</p>
+              <h2 id="how" className="h-section mt-4">
+                Three steps, about ninety seconds.
+              </h2>
             </div>
-            <div
+          </Reveal>
+
+          <HowItWorks />
+
+          <Reveal delay={0.15}>
+            <dl className="mt-16 grid gap-px overflow-hidden rounded-[20px] border border-edge bg-edge sm:grid-cols-2 lg:grid-cols-4">
+              {TICKETING_FACTS.map((fact) => (
+                <div key={fact.label} className="bg-paper p-6">
+                  <dt className="text-[0.6875rem] font-semibold uppercase tracking-[0.14em] text-muted">
+                    {fact.label}
+                  </dt>
+                  <dd className="mt-2 font-display text-[1.375rem] font-semibold tracking-[-0.02em] text-ink">
+                    {fact.value}
+                  </dd>
+                  <p className="mt-2 text-[0.8125rem] leading-relaxed text-slate">{fact.detail}</p>
+                </div>
+              ))}
+            </dl>
+          </Reveal>
+        </div>
+      </section>
+
+      {/* ================================================================== */}
+      {/* Venue                                                               */}
+      {/* ================================================================== */}
+      <section className="section shell" aria-labelledby="venue">
+        <div className="grid gap-12 lg:grid-cols-2 lg:gap-16">
+          <Reveal>
+            <div>
+              <p className="kicker">Getting there</p>
+              <h2 id="venue" className="h-section mt-4">
+                {EVENT.venue.name}, {EVENT.venue.area}.
+              </h2>
+              <address className="mt-6 not-italic text-[1.0625rem] leading-relaxed text-slate">
+                {EVENT.venue.addressLines.map((line) => (
+                  <span key={line} className="block">
+                    {line}
+                  </span>
+                ))}
+              </address>
+              <p className="mt-4 text-[0.9375rem] leading-relaxed text-slate">
+                {EVENT.venue.landmark}. Cabs drop right at the entrance. On-site parking is limited
+                on the day, so a cab is usually the faster call.
+              </p>
+              <div className="mt-8 flex flex-wrap gap-3">
+                <a
+                  href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(EVENT.venue.mapsQuery)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn-outline btn-sm"
+                >
+                  Open in Maps
+                </a>
+                <Link href="/contact" className="btn-quiet">
+                  Ask us something →
+                </Link>
+              </div>
+            </div>
+          </Reveal>
+
+          <Reveal delay={0.1}>
+            <div className="panel-raised overflow-hidden">
+              <div className="border-b border-edge bg-frost/70 px-6 py-5">
+                <p className="kicker">At the door</p>
+              </div>
+              <ul className="divide-y divide-edge">
+                {EVENT.entryRules.map((rule) => (
+                  <li key={rule} className="flex gap-3.5 px-6 py-4 text-[0.9375rem] text-slate">
+                    <span
+                      aria-hidden
+                      className="mt-[9px] h-1.5 w-1.5 shrink-0 rounded-full bg-vybe-400"
+                    />
+                    {rule}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </Reveal>
+        </div>
+      </section>
+
+      {/* ================================================================== */}
+      {/* FAQ                                                                 */}
+      {/* ================================================================== */}
+      <section className="section border-t border-edge bg-paper" aria-labelledby="faq">
+        <div className="shell grid gap-12 lg:grid-cols-[0.8fr_1.2fr] lg:gap-20">
+          <Reveal>
+            <div className="lg:sticky lg:top-28 lg:self-start">
+              <p className="kicker">Questions</p>
+              <h2 id="faq" className="h-section mt-4">
+                Everything people ask.
+              </h2>
+              <p className="lede mt-4">
+                Still stuck? Email{' '}
+                <a href={`mailto:${BRAND.supportEmail}`} className="link-swipe font-medium">
+                  {BRAND.supportEmail}
+                </a>{' '}
+                and a person will reply.
+              </p>
+            </div>
+          </Reveal>
+
+          <Reveal delay={0.08}>
+            <Accordion
+              items={EVENT.faqs.map((faq) => ({ question: faq.q, answer: faq.a }))}
+            />
+          </Reveal>
+        </div>
+      </section>
+
+      {/* ================================================================== */}
+      {/* Closing CTA                                                         */}
+      {/* ================================================================== */}
+      <section className="shell pb-24 pt-20">
+        <Reveal>
+          <div className="relative overflow-hidden rounded-[28px] bg-ink px-6 py-16 text-center sm:px-12 sm:py-20">
+            <span aria-hidden className="absolute inset-0 gridfield opacity-[0.18]" />
+            <span
               aria-hidden
-              className="absolute left-1/2 top-0 h-72 w-72 -translate-x-1/2 -translate-y-1/2 rounded-full bg-vybe-500/25 blur-[100px]"
+              className="absolute -top-24 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-vybe-500/40 blur-[90px]"
             />
             <div className="relative">
-              <h2 className="display-2 mx-auto max-w-[18ch]">
-                The room fills up <span className="text-gradient">faster than you think.</span>
+              <p className="font-mono text-[0.6875rem] uppercase tracking-[0.24em] text-vybe-200">
+                {EVENT.dateShort} · {EVENT.venue.name}
+              </p>
+              <h2 className="mx-auto mt-5 max-w-[16ch] font-display text-[clamp(2rem,5vw,3.5rem)] font-bold leading-[1.02] tracking-[-0.035em] text-white">
+                {soldOut ? 'That was quick.' : 'The room holds 400 people.'}
               </h2>
-              <p className="lede mx-auto mt-5 max-w-lg">
-                We cap capacity and stop selling when it&apos;s reached. Get your pass while there
-                is one.
+              <p className="mx-auto mt-5 max-w-md text-[1.0625rem] leading-relaxed text-vybe-100">
+                {soldOut
+                  ? 'Every ticket has gone. Returns get posted on Instagram first, so keep an eye there.'
+                  : 'Sales close on their own when it is full. Grab yours while there is one left.'}
               </p>
               <div className="mt-9">
                 <Magnetic>
-                  <Link href="/book" className="btn-primary px-10 py-4 text-[15px]">
-                    Book your ticket
+                  <Link
+                    href={soldOut ? BRAND.instagram : '/book'}
+                    className="btn inline-flex bg-white px-8 py-4 text-base text-ink shadow-mid hover:-translate-y-[2px] hover:bg-vybe-50"
+                  >
+                    {soldOut ? 'Follow for returns' : 'Buy your ticket'}
                   </Link>
                 </Magnetic>
               </div>
@@ -313,15 +431,22 @@ export default async function HomePage() {
           </div>
         </Reveal>
       </section>
+
+      <StickyBuyBar fromPaise={fromPaise} soldOut={soldOut} />
     </>
   );
 }
 
-function Detail({ label, value }: { label: string; value: string }) {
+function HeroFact({ label, value, sub }: { label: string; value: string; sub: string }) {
   return (
     <div>
-      <dt className="text-[11px] uppercase tracking-wider text-dim">{label}</dt>
-      <dd className="mt-1 font-medium text-chalk">{value}</dd>
+      <dt className="text-[0.6875rem] font-semibold uppercase tracking-[0.14em] text-muted">
+        {label}
+      </dt>
+      <dd className="tnum mt-1.5 font-display text-[1.375rem] font-semibold leading-none tracking-[-0.03em] text-ink">
+        {value}
+      </dd>
+      <p className="mt-1 text-[0.8125rem] text-slate">{sub}</p>
     </div>
   );
 }

@@ -50,6 +50,30 @@ CREATE TABLE IF NOT EXISTS ticket_tiers (
 );
 
 -- --------------------------------------------------------------------------
+-- referral_codes — flat-amount discounts handed out by promoters
+--
+-- Codes are stored upper-case and matched upper-case, so KAVYANSH100 and
+-- kavyansh100 are the same code. `discount_paise` is a flat amount off the
+-- whole order, not a per-ticket or percentage discount: percentages invite
+-- rounding disputes on a ₹ amount, and a flat cut is what gets advertised.
+-- --------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS referral_codes (
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  code            TEXT NOT NULL UNIQUE,
+  label           TEXT,
+  discount_paise  INTEGER NOT NULL DEFAULT 10000 CHECK (discount_paise > 0),
+  active          BOOLEAN NOT NULL DEFAULT true,
+  -- NULL = unlimited. Otherwise the code stops working once uses reaches it.
+  max_uses        INTEGER CHECK (max_uses IS NULL OR max_uses > 0),
+  uses            INTEGER NOT NULL DEFAULT 0 CHECK (uses >= 0),
+  starts_at       TIMESTAMPTZ,
+  expires_at      TIMESTAMPTZ,
+  created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS referral_codes_active_idx ON referral_codes (active);
+
+-- --------------------------------------------------------------------------
 -- bookings — one row per checkout, may contain many tickets
 -- --------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS bookings (
@@ -87,6 +111,16 @@ CREATE INDEX IF NOT EXISTS bookings_email_idx      ON bookings (lower(customer_e
 CREATE INDEX IF NOT EXISTS bookings_phone_idx      ON bookings (customer_phone);
 CREATE INDEX IF NOT EXISTS bookings_status_idx     ON bookings (status);
 CREATE INDEX IF NOT EXISTS bookings_created_idx    ON bookings (created_at DESC);
+
+-- Discount trail. subtotal_paise is face value before any code; amount_paise is
+-- what the customer actually owes and is the only figure the payment layer
+-- reads, so a discount can never be applied twice.
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS referral_code   TEXT;
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS discount_paise  INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS subtotal_paise  INTEGER NOT NULL DEFAULT 0;
+
+CREATE INDEX IF NOT EXISTS bookings_referral_idx ON bookings (referral_code)
+  WHERE referral_code IS NOT NULL;
 
 -- --------------------------------------------------------------------------
 -- tickets — one row per admitted head; this is what the QR resolves to

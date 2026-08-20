@@ -2,40 +2,45 @@ import Link from 'next/link';
 import type { Metadata } from 'next';
 import { getEventBySlug, listTiers } from '@/lib/bookings';
 import { env } from '@/lib/env';
-import { FEATURED_EVENT_SLUG } from '@/content/site';
+import { EVENT, FEATURED_EVENT_SLUG } from '@/content/site';
 import { BookingExperience } from '@/components/booking/BookingExperience';
 import type { TierOption } from '@/components/booking/BookingForm';
+import { Reveal } from '@/components/ui/Reveal';
+import { formatEventDate } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
-  title: 'Book tickets',
-  description:
-    'Book your pass for Houz of Vybe in Hyderabad. Name, email and phone — your QR ticket arrives instantly.',
+  title: 'Buy tickets',
+  description: `Book your pass for ${EVENT.name} ${EVENT.edition} at ${EVENT.venue.name}, ${EVENT.venue.area}. QR passes by email, referral codes accepted.`,
   alternates: { canonical: '/book' },
 };
 
 export default async function BookPage({
   searchParams,
 }: {
-  searchParams: Promise<{ event?: string; tier?: string }>;
+  searchParams: Promise<{ event?: string; tier?: string; ref?: string; code?: string }>;
 }) {
-  const { event: eventParam, tier: tierParam } = await searchParams;
+  const {
+    event: eventParam,
+    tier: tierParam,
+    ref: refParam,
+    code: codeParam,
+  } = await searchParams;
   const slug = eventParam ?? FEATURED_EVENT_SLUG;
 
   const event = await getEventBySlug(slug).catch(() => null);
 
   if (!event || event.status === 'draft' || event.status === 'archived') {
     return (
-      <div className="section container-hov">
-        <div className="card mx-auto max-w-lg p-10 text-center">
-          <h1 className="display-2 mb-3">Nothing on sale</h1>
-          <p className="lede mb-8">
-            There are no tickets available right now. Check the events page for what&apos;s coming
-            up next.
+      <div className="shell max-w-lg py-32">
+        <div className="panel-raised p-10 text-center">
+          <h1 className="h-section">Nothing on sale</h1>
+          <p className="lede mt-3">
+            There are no tickets available right now. The next date goes up here first.
           </p>
-          <Link href="/events" className="btn-primary">
-            See all events
+          <Link href="/" className="btn-primary mt-8">
+            Back to the party page
           </Link>
         </div>
       </div>
@@ -53,42 +58,64 @@ export default async function BookPage({
     perks: Array.isArray(tier.perks) ? tier.perks : [],
   }));
 
+  const left = tiers.reduce((sum, tier) => sum + tier.remaining, 0);
+
   return (
     <div className="relative">
-      <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-[420px] bg-radial-vybe" />
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 top-0 h-[420px] dotfield fade-edges opacity-70"
+      />
 
-      <div className="container-hov relative pb-24 pt-28 sm:pt-32">
-        <header className="mb-10 max-w-2xl">
-          <p className="eyebrow mb-3">Booking</p>
-          <h1 className="display-2">
-            Get on the list for <span className="text-gradient">{event.name}</span>
-          </h1>
-          <p className="lede mt-4">
-            Three details, no account, no payment. Your QR pass lands in your inbox in under a
-            minute.
-          </p>
-        </header>
-
-        {tiers.length === 0 ? (
-          <div className="card p-10 text-center">
-            <p className="font-display text-xl font-bold text-chalk">Tickets not released yet</p>
-            <p className="mt-2 text-sm text-haze">
-              Ticket tiers for this event haven&apos;t been published. Check back shortly.
+      <div className="shell relative pb-24 pt-32 sm:pt-36">
+        <Reveal>
+          <header className="max-w-2xl">
+            <p className="kicker">Step 1 of 2</p>
+            <h1 className="h-section mt-3">
+              Your pass for <span className="text-vybe-600">{event.name}</span>
+            </h1>
+            <p className="lede mt-4">
+              {formatEventDate(event.starts_at)} at {event.venue_name}, {EVENT.venue.area}. Four
+              details and a QR is on its way.
             </p>
-          </div>
-        ) : (
-          <BookingExperience
-            eventSlug={event.slug}
-            eventName={event.name}
-            eventTagline={event.tagline}
-            startsAt={event.starts_at}
-            doorsAt={event.doors_at}
-            venueName={event.venue_name}
-            tiers={tiers}
-            initialTier={tierParam}
-            maxQuantity={env.maxTicketsPerBooking}
-          />
-        )}
+            {left > 0 && left <= 60 && (
+              <p className="mt-4 inline-flex items-center gap-2 rounded-full border border-flare-300 bg-flare-200/30 px-3.5 py-1.5 text-[0.8125rem] font-semibold text-flare-600">
+                <span className="relative flex h-2 w-2">
+                  <span className="absolute inline-flex h-full w-full animate-ping2 rounded-full bg-flare-400" />
+                  <span className="relative inline-flex h-2 w-2 rounded-full bg-flare" />
+                </span>
+                {left} tickets left in total
+              </p>
+            )}
+          </header>
+        </Reveal>
+
+        <div className="mt-12">
+          {tiers.length === 0 ? (
+            <div className="panel p-10 text-center">
+              <p className="h-card">Tickets are not released yet</p>
+              <p className="mt-2 text-[0.9375rem] text-slate">
+                Nothing has been put on sale for this date. Check back shortly.
+              </p>
+            </div>
+          ) : (
+            <BookingExperience
+              eventSlug={event.slug}
+              eventName={event.name}
+              eventTagline={event.tagline}
+              startsAt={event.starts_at}
+              doorsAt={event.doors_at}
+              venueName={event.venue_name}
+              tiers={tiers}
+              initialTier={tierParam}
+              // ?ref= and ?code= both work, because promoters will share whichever
+              // one they happen to type.
+              initialReferral={refParam ?? codeParam}
+              maxQuantity={env.maxTicketsPerBooking}
+              paymentsEnabled={env.paymentsEnabled}
+            />
+          )}
+        </div>
       </div>
     </div>
   );

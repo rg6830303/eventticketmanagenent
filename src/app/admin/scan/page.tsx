@@ -18,8 +18,8 @@ export default async function ScanPage() {
   return (
     <div className="space-y-5">
       <div>
-        <h1 className="font-display text-2xl font-bold text-chalk">Scan tickets</h1>
-        <p className="mt-1 text-[13px] text-haze">
+        <h1 className="font-display text-2xl font-bold text-ink">Scan tickets</h1>
+        <p className="mt-1 text-[13px] text-slate">
           Each pass admits one person and works exactly once.
         </p>
       </div>

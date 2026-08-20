@@ -5,17 +5,17 @@ import { cn } from '@/lib/utils';
 /**
  * Infinite horizontal ticker.
  *
- * The item list is rendered twice and the track translates exactly -50%, so the
+ * The list is rendered twice and the track translates exactly -50%, so the
  * second copy is pixel-identical to the first at the loop point and the seam is
- * invisible. Duplicating in markup (rather than animating each item) keeps the
+ * invisible. Duplicating in markup rather than animating each item keeps the
  * whole thing on one composited transform.
  */
 export function Marquee({
   items,
-  speedSeconds = 32,
+  speedSeconds = 38,
   reverse = false,
   className,
-  separator = '✦',
+  separator = '✳',
 }: {
   items: readonly string[];
   speedSeconds?: number;
@@ -26,20 +26,20 @@ export function Marquee({
   const sequence = [...items, ...items];
 
   return (
-    <div className={cn('mask-fade-x relative overflow-hidden py-4', className)} aria-hidden>
+    <div className={cn('mask-fade-x relative overflow-hidden py-3.5', className)} aria-hidden>
       <div
-        className="flex w-max animate-marquee items-center gap-8 whitespace-nowrap will-change-transform"
+        className="flex w-max animate-marquee items-center gap-7 whitespace-nowrap will-change-transform"
         style={{
           animationDuration: `${speedSeconds}s`,
           animationDirection: reverse ? 'reverse' : 'normal',
         }}
       >
         {sequence.map((item, index) => (
-          <span key={`${item}-${index}`} className="flex items-center gap-8">
-            <span className="font-display text-2xl font-bold uppercase tracking-tight text-chalk/70 sm:text-3xl">
+          <span key={`${item}-${index}`} className="flex items-center gap-7">
+            <span className="font-display text-[1.25rem] font-semibold uppercase tracking-[-0.02em] text-ink/75 sm:text-[1.5rem]">
               {item}
             </span>
-            <span className="text-lg text-vybe-500">{separator}</span>
+            <span className="text-[0.9375rem] text-vybe-400">{separator}</span>
           </span>
         ))}
       </div>

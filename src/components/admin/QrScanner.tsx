@@ -357,7 +357,7 @@ export function QrScanner({ events }: { events: EventOption[] }) {
 
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_360px]">
         <div className="space-y-4">
-          <div className="relative overflow-hidden rounded-2xl border border-hairline bg-black">
+          <div className="relative overflow-hidden rounded-2xl border border-edge bg-black">
             <div className="relative aspect-[4/3] w-full sm:aspect-video">
               <video
                 ref={videoRef}
@@ -378,7 +378,7 @@ export function QrScanner({ events }: { events: EventOption[] }) {
                     <Corner className="bottom-0 left-0 border-b-2 border-l-2" />
                     <Corner className="bottom-0 right-0 border-b-2 border-r-2" />
                     <div className="absolute inset-x-0 top-0 h-full overflow-hidden rounded-2xl">
-                      <div className="h-1 w-full animate-scanline bg-gradient-to-r from-transparent via-pulse-400 to-transparent" />
+                      <div className="h-1 w-full animate-breathe bg-gradient-to-r from-transparent via-pulse-400 to-transparent" />
                     </div>
                   </div>
                 </div>
@@ -387,19 +387,19 @@ export function QrScanner({ events }: { events: EventOption[] }) {
               {cameraState !== 'running' && (
                 <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 p-6 text-center">
                   {cameraState === 'starting' ? (
-                    <p className="text-sm text-haze">Starting camera…</p>
+                    <p className="text-sm text-slate">Starting camera…</p>
                   ) : cameraState === 'error' ? (
                     <>
                       <p className="max-w-[42ch] text-[13px] leading-relaxed text-red-300">
                         {cameraError}
                       </p>
-                      <button type="button" onClick={startCamera} className="btn-secondary px-5 py-2.5 text-[13px]">
+                      <button type="button" onClick={startCamera} className="btn-outline px-5 py-2.5 text-[13px]">
                         Try again
                       </button>
                     </>
                   ) : (
                     <>
-                      <p className="max-w-[36ch] text-sm text-haze">
+                      <p className="max-w-[36ch] text-sm text-slate">
                         Camera is off. Start it to begin scanning tickets.
                       </p>
                       <button type="button" onClick={startCamera} className="btn-primary px-6 py-3 text-sm">
@@ -411,15 +411,15 @@ export function QrScanner({ events }: { events: EventOption[] }) {
               )}
 
               {busy && (
-                <div className="absolute right-3 top-3 rounded-full bg-void/80 px-3 py-1.5 font-mono text-[10px] uppercase tracking-wider text-vybe-200">
+                <div className="absolute right-3 top-3 rounded-full bg-canvas/80 px-3 py-1.5 font-mono text-[10px] uppercase tracking-wider text-vybe-700">
                   Checking…
                 </div>
               )}
             </div>
 
             {cameraState === 'running' && (
-              <div className="flex flex-wrap items-center gap-2 border-t border-hairline bg-ink/70 p-3">
-                <button type="button" onClick={stopCamera} className="btn-ghost px-4 py-2 text-[12px]">
+              <div className="flex flex-wrap items-center gap-2 border-t border-edge bg-mist/70 p-3">
+                <button type="button" onClick={stopCamera} className="btn-outline btn-sm px-4 py-2 text-[12px]">
                   Stop
                 </button>
                 {torchAvailable && (
@@ -431,7 +431,7 @@ export function QrScanner({ events }: { events: EventOption[] }) {
                       'btn px-4 py-2 text-[12px]',
                       torchOn
                         ? 'bg-vybe-500 text-white'
-                        : 'border border-hairline text-haze hover:text-chalk',
+                        : 'border border-edge text-slate hover:text-ink',
                     )}
                   >
                     Torch {torchOn ? 'on' : 'off'}
@@ -441,7 +441,7 @@ export function QrScanner({ events }: { events: EventOption[] }) {
                   type="button"
                   onClick={() => setMuted((m) => !m)}
                   aria-pressed={muted}
-                  className="btn border border-hairline px-4 py-2 text-[12px] text-haze hover:text-chalk"
+                  className="btn border border-edge px-4 py-2 text-[12px] text-slate hover:text-ink"
                 >
                   {muted ? 'Sound off' : 'Sound on'}
                 </button>
@@ -453,7 +453,7 @@ export function QrScanner({ events }: { events: EventOption[] }) {
                       stopCamera();
                     }}
                     aria-label="Camera"
-                    className="ml-auto rounded-full border border-hairline bg-ink px-3 py-2 text-[12px] text-haze"
+                    className="ml-auto rounded-full border border-edge bg-mist px-3 py-2 text-[12px] text-slate"
                   >
                     <option value="">Default camera</option>
                     {devices.map((device, index) => (
@@ -471,8 +471,8 @@ export function QrScanner({ events }: { events: EventOption[] }) {
         </div>
 
         <aside className="space-y-4">
-          <div className="card p-4">
-            <p className="mb-3 font-mono text-[10px] uppercase tracking-[0.2em] text-vybe-300">
+          <div className="panel p-4">
+            <p className="mb-3 font-mono text-[10px] uppercase tracking-[0.2em] text-vybe-600">
               Shift setup
             </p>
 
@@ -489,13 +489,13 @@ export function QrScanner({ events }: { events: EventOption[] }) {
                       'rounded-xl border px-3 py-3 text-left transition-colors',
                       mode === option
                         ? 'border-vybe-500 bg-vybe-500/15'
-                        : 'border-hairline hover:border-vybe-700',
+                        : 'border-edge hover:border-vybe-700',
                     )}
                   >
-                    <span className="block text-[13px] font-semibold text-chalk">
+                    <span className="block text-[13px] font-semibold text-ink">
                       {option === 'admit' ? 'Admit' : 'Check'}
                     </span>
-                    <span className="mt-0.5 block text-[11px] leading-snug text-dim">
+                    <span className="mt-0.5 block text-[11px] leading-snug text-muted">
                       {option === 'admit' ? 'Uses up the ticket' : 'Preview only'}
                     </span>
                   </button>
@@ -539,18 +539,18 @@ export function QrScanner({ events }: { events: EventOption[] }) {
             </div>
           </div>
 
-          <div className="card p-4">
-            <p className="mb-3 font-mono text-[10px] uppercase tracking-[0.2em] text-vybe-300">
+          <div className="panel p-4">
+            <p className="mb-3 font-mono text-[10px] uppercase tracking-[0.2em] text-vybe-600">
               This session
             </p>
             <div className="grid grid-cols-3 gap-2 text-center">
               <Tally label="Scanned" value={tally.scanned} />
-              <Tally label="Admitted" value={tally.admitted} tone="text-vybe-300" />
+              <Tally label="Admitted" value={tally.admitted} tone="text-vybe-600" />
               <Tally label="Rejected" value={tally.rejected} tone="text-red-300" />
             </div>
           </div>
 
-          <div className="card p-4">
+          <div className="panel p-4">
             <label htmlFor="manual" className="label">
               Manual entry
             </label>
@@ -573,7 +573,7 @@ export function QrScanner({ events }: { events: EventOption[] }) {
                 autoComplete="off"
                 spellCheck={false}
               />
-              <button type="submit" disabled={!manualCode.trim() || busy} className="btn-secondary shrink-0 px-4 py-3 text-[12px]">
+              <button type="submit" disabled={!manualCode.trim() || busy} className="btn-outline shrink-0 px-4 py-3 text-[12px]">
                 Check
               </button>
             </form>
@@ -594,9 +594,9 @@ function Corner({ className }: { className?: string }) {
 
 function Tally({ label, value, tone }: { label: string; value: number; tone?: string }) {
   return (
-    <div className="rounded-xl border border-hairline bg-ink/60 py-3">
-      <p className={cn('font-display text-2xl font-bold tabular-nums text-chalk', tone)}>{value}</p>
-      <p className="mt-0.5 font-mono text-[9px] uppercase tracking-wider text-dim">{label}</p>
+    <div className="rounded-xl border border-edge bg-mist/60 py-3">
+      <p className={cn('font-display text-2xl font-bold tabular-nums text-ink', tone)}>{value}</p>
+      <p className="mt-0.5 font-mono text-[9px] uppercase tracking-wider text-muted">{label}</p>
     </div>
   );
 }

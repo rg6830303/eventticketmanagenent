@@ -10,30 +10,30 @@ import {
   useMotionValueEvent,
 } from 'framer-motion';
 import { useEffect, useState } from 'react';
-import { NAV_LINKS } from '@/content/site';
+import { NAV_LINKS, EVENT } from '@/content/site';
 import { cn } from '@/lib/utils';
 import { Logo } from '@/components/brand/Logo';
-import { Globe } from '@/components/brand/Globe';
 
 /**
  * Sticky header.
  *
- * It condenses after ~40px of scroll rather than at 0, so the hero keeps its
- * full-bleed look while the bar is still translucent, then firms up into a
- * readable surface once content is behind it.
+ * Transparent over the hero, then it lands on a solid surface once anything is
+ * scrolling underneath it — a permanently frosted bar over a white page is just
+ * a grey stripe. The CTA is always visible: on a single-event site, every
+ * screen is a chance to sell the one ticket.
  */
 export function Header() {
   const pathname = usePathname();
-  const [condensed, setCondensed] = useState(false);
+  const [landed, setLanded] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const { scrollY, scrollYProgress } = useScroll();
 
-  // Spring the raw ratio so the line eases into place instead of tracking every
-  // wheel tick — a bare scrollYProgress reads as jitter on trackpads.
-  const progress = useSpring(scrollYProgress, { stiffness: 180, damping: 32, mass: 0.35 });
+  // Spring the raw ratio so the reading line eases instead of tracking every
+  // wheel tick — bare scrollYProgress reads as jitter on trackpads.
+  const progress = useSpring(scrollYProgress, { stiffness: 180, damping: 34, mass: 0.35 });
 
   useMotionValueEvent(scrollY, 'change', (latest) => {
-    setCondensed(latest > 40);
+    setLanded(latest > 24);
   });
 
   // Route change closes the drawer; without this a back-navigation leaves it open.
@@ -49,37 +49,40 @@ export function Header() {
     };
   }, [menuOpen]);
 
-  const isActive = (href: string) => (href === '/' ? pathname === '/' : pathname.startsWith(href));
+  const isActive = (href: string) => {
+    if (href.startsWith('/#')) return false;
+    return href === '/' ? pathname === '/' : pathname.startsWith(href);
+  };
 
   return (
     <>
       <motion.header
-        initial={{ y: -80, opacity: 0 }}
+        initial={{ y: -72, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
-        transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+        transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
         className={cn(
-          'fixed inset-x-0 top-0 z-50 transition-all duration-300',
-          condensed
-            ? 'border-b border-hairline/80 bg-void/80 backdrop-blur-xl'
+          'fixed inset-x-0 top-0 z-50 transition-[background-color,border-color,box-shadow] duration-300',
+          landed
+            ? 'border-b border-edge bg-paper/85 shadow-low backdrop-blur-xl'
             : 'border-b border-transparent bg-transparent',
         )}
       >
         <nav
           className={cn(
-            'container-hov flex items-center justify-between gap-4 transition-[height] duration-300',
-            condensed ? 'h-[60px]' : 'h-[74px]',
+            'shell flex items-center justify-between gap-4 transition-[height] duration-300',
+            landed ? 'h-[62px]' : 'h-[78px]',
           )}
           aria-label="Main"
         >
           <Link
             href="/"
-            className="shrink-0 rounded-full transition-opacity hover:opacity-90"
+            className="shrink-0 rounded-xl text-ink transition-opacity hover:opacity-80"
             aria-label="Houz of Vybe — home"
           >
             <Logo variant="inline" />
           </Link>
 
-          <ul className="hidden items-center gap-1 lg:flex">
+          <ul className="hidden items-center gap-0.5 lg:flex">
             {NAV_LINKS.map((link) => {
               const active = isActive(link.href);
               return (
@@ -88,17 +91,17 @@ export function Header() {
                     href={link.href}
                     aria-current={active ? 'page' : undefined}
                     className={cn(
-                      'relative rounded-full px-4 py-2 text-sm font-medium transition-colors',
-                      active ? 'text-chalk' : 'text-haze hover:text-chalk',
+                      'relative rounded-lg px-3.5 py-2 text-[0.875rem] font-medium transition-colors',
+                      active ? 'text-ink' : 'text-slate hover:text-ink',
                     )}
                   >
-                    {/* Shared layoutId slides the pill between links instead of
-                        cross-fading two separate backgrounds. */}
+                    {/* Shared layoutId slides the underline between links rather
+                        than cross-fading two separate ones. */}
                     {active && (
                       <motion.span
-                        layoutId="nav-pill"
-                        className="absolute inset-0 rounded-full border border-vybe-500/35 bg-vybe-500/10 shadow-inset"
-                        transition={{ type: 'spring', stiffness: 340, damping: 30 }}
+                        layoutId="nav-underline"
+                        className="absolute inset-x-3 -bottom-0.5 h-[2px] rounded-full bg-vybe-500"
+                        transition={{ type: 'spring', stiffness: 380, damping: 32 }}
                       />
                     )}
                     <span className="relative">{link.label}</span>
@@ -109,11 +112,8 @@ export function Header() {
           </ul>
 
           <div className="flex items-center gap-2">
-            <Link
-              href="/book"
-              className="btn-primary hidden px-6 py-2.5 text-[13px] sm:inline-flex"
-            >
-              Book tickets
+            <Link href="/book" className="btn-primary hidden py-3 text-[0.875rem] sm:inline-flex">
+              Buy tickets
             </Link>
 
             <button
@@ -122,25 +122,25 @@ export function Header() {
               aria-expanded={menuOpen}
               aria-controls="mobile-nav"
               aria-label={menuOpen ? 'Close menu' : 'Open menu'}
-              className="flex h-10 w-10 items-center justify-center rounded-full border border-hairline text-chalk transition-colors hover:border-vybe-600 lg:hidden"
+              className="flex h-11 w-11 items-center justify-center rounded-xl border border-edgeStrong bg-paper text-ink transition-colors hover:border-vybe-400 lg:hidden"
             >
-              <span className="relative block h-3.5 w-5">
+              <span className="relative block h-3 w-[18px]">
                 <span
                   className={cn(
-                    'absolute left-0 h-[1.5px] w-5 bg-current transition-all duration-300',
-                    menuOpen ? 'top-1.5 rotate-45' : 'top-0',
+                    'absolute left-0 h-[1.75px] w-[18px] rounded-full bg-current transition-all duration-300',
+                    menuOpen ? 'top-[5px] rotate-45' : 'top-0',
                   )}
                 />
                 <span
                   className={cn(
-                    'absolute left-0 top-1.5 h-[1.5px] w-5 bg-current transition-all duration-200',
+                    'absolute left-0 top-[5px] h-[1.75px] w-[18px] rounded-full bg-current transition-all duration-200',
                     menuOpen && 'opacity-0',
                   )}
                 />
                 <span
                   className={cn(
-                    'absolute left-0 h-[1.5px] w-5 bg-current transition-all duration-300',
-                    menuOpen ? 'top-1.5 -rotate-45' : 'top-3',
+                    'absolute left-0 h-[1.75px] w-[18px] rounded-full bg-current transition-all duration-300',
+                    menuOpen ? 'top-[5px] -rotate-45' : 'top-[10px]',
                   )}
                 />
               </span>
@@ -153,7 +153,10 @@ export function Header() {
         <motion.div
           aria-hidden
           style={{ scaleX: progress }}
-          className="absolute inset-x-0 bottom-0 h-[2px] origin-left bg-gradient-to-r from-vybe-600 via-vybe-400 to-pulse-400"
+          className={cn(
+            'absolute inset-x-0 bottom-0 h-[2px] origin-left bg-vybe-500 transition-opacity duration-300',
+            landed ? 'opacity-100' : 'opacity-0',
+          )}
         />
       </motion.header>
 
@@ -164,57 +167,54 @@ export function Header() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.25 }}
-            className="fixed inset-0 z-40 overflow-hidden bg-void/95 backdrop-blur-2xl lg:hidden"
+            transition={{ duration: 0.22 }}
+            className="fixed inset-0 z-40 overflow-y-auto bg-canvas lg:hidden"
           >
-            <div
-              aria-hidden
-              className="pointer-events-none absolute -right-24 top-16 h-[420px] w-[420px] text-flare/[0.07]"
-            >
-              <Globe spin strokeWidth={2.6} className="h-full w-full" />
-            </div>
+            <div aria-hidden className="pointer-events-none absolute inset-0 dotfield opacity-60" />
 
-            <div className="container-hov relative flex h-full flex-col pt-24">
-              <ul className="flex flex-col gap-1">
+            <div className="shell relative flex min-h-full flex-col pb-10 pt-24">
+              <ul className="flex flex-col">
                 {NAV_LINKS.map((link, index) => {
                   const active = isActive(link.href);
                   return (
                     <motion.li
                       key={link.href}
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: 0.05 + index * 0.05, duration: 0.4 }}
+                      initial={{ opacity: 0, y: 14 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.04 + index * 0.045, duration: 0.35 }}
                     >
                       <Link
                         href={link.href}
                         aria-current={active ? 'page' : undefined}
                         className={cn(
-                          'flex items-center gap-3 border-b border-hairline/60 py-4 font-display text-2xl font-semibold transition-colors',
-                          active ? 'text-chalk' : 'text-haze',
+                          'flex items-baseline justify-between border-b border-edge py-4 font-display text-[1.75rem] font-semibold tracking-[-0.03em] transition-colors',
+                          active ? 'text-vybe-600' : 'text-ink',
                         )}
                       >
-                        <span
-                          aria-hidden
-                          className={cn(
-                            'h-1.5 w-1.5 shrink-0 rounded-full transition-colors',
-                            active ? 'bg-flare' : 'bg-transparent',
-                          )}
-                        />
                         {link.label}
+                        <span className="font-mono text-[0.6875rem] text-muted">
+                          {String(index + 1).padStart(2, '0')}
+                        </span>
                       </Link>
                     </motion.li>
                   );
                 })}
               </ul>
+
               <motion.div
-                initial={{ opacity: 0, y: 20 }}
+                initial={{ opacity: 0, y: 16 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.4 }}
+                transition={{ delay: 0.32 }}
                 className="mt-8"
               >
                 <Link href="/book" className="btn-primary w-full">
-                  Book tickets
+                  Buy tickets
                 </Link>
+                <p className="mt-4 text-center text-[0.8125rem] text-slate">
+                  {EVENT.dateLabel} · {EVENT.timeLabel}
+                  <br />
+                  {EVENT.venue.name}, {EVENT.venue.area}
+                </p>
               </motion.div>
             </div>
           </motion.div>

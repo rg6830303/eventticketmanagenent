@@ -17,7 +17,7 @@ export function Accordion({ items }: { items: AccordionItem[] }) {
   const [open, setOpen] = useState<number | null>(0);
 
   return (
-    <div className="divide-y divide-hairline border-y border-hairline">
+    <div className="divide-y divide-edge border-y border-edge">
       {items.map((item, index) => {
         const expanded = open === index;
         return (
@@ -29,14 +29,14 @@ export function Accordion({ items }: { items: AccordionItem[] }) {
                 aria-expanded={expanded}
                 aria-controls={`faq-panel-${index}`}
                 id={`faq-trigger-${index}`}
-                className="flex w-full items-start justify-between gap-6 py-5 text-left"
+                className="flex w-full items-start justify-between gap-6 py-5 text-left transition-colors hover:text-vybe-600"
               >
-                <span className="text-[15px] font-medium text-chalk sm:text-base">
+                <span className="font-display text-[1.0625rem] font-semibold tracking-[-0.015em] text-ink">
                   {item.question}
                 </span>
                 <span
                   aria-hidden
-                  className={`mt-1 shrink-0 text-vybe-400 transition-transform duration-300 ${
+                  className={`mt-1 shrink-0 text-vybe-500 transition-transform duration-300 ${
                     expanded ? 'rotate-45' : ''
                   }`}
                 >
@@ -59,7 +59,7 @@ export function Accordion({ items }: { items: AccordionItem[] }) {
                   transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
                   className="overflow-hidden"
                 >
-                  <p className="pb-6 pr-10 text-[14px] leading-relaxed text-haze">{item.answer}</p>
+                  <p className="pb-6 pr-10 text-[14px] leading-relaxed text-slate">{item.answer}</p>
                 </motion.div>
               )}
             </AnimatePresence>

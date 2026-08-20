@@ -1,18 +1,22 @@
 'use client';
 
 import { Canvas, useFrame } from '@react-three/fiber';
-import { Float, Environment, MeshDistortMaterial } from '@react-three/drei';
+import { Float } from '@react-three/drei';
 import { useReducedMotion } from 'framer-motion';
 import { Suspense, useMemo, useRef, useState, useEffect } from 'react';
 import * as THREE from 'three';
 
 /**
- * WebGL backdrop for the hero.
+ * WebGL ornament for the hero.
  *
- * Everything here is decorative. It sits behind the copy at low opacity, mounts
- * only after the page is interactive, and is skipped entirely when the device
- * cannot do WebGL or the user prefers reduced motion — the hero reads perfectly
- * well as flat gradients, so this never becomes a dependency for content.
+ * A small cluster of glossy shapes lit like a product shot: one big azure
+ * sphere, two satellites and a thin ring, drifting on the pointer. It reads as
+ * daylight rather than as a nightclub, which is the whole point of a party that
+ * starts at noon.
+ *
+ * Everything here is decorative. It mounts only after first paint, is skipped
+ * entirely without WebGL or under reduced motion, and retires itself on a lost
+ * context. The hero is complete without it.
  */
 
 function detectWebGL(): boolean {
@@ -30,104 +34,68 @@ function detectWebGL(): boolean {
   }
 }
 
-/** Slow-rotating distorted sphere — the main light source of the composition. */
-function Orb() {
+/** The hero shape. Heavy damping on the pointer so it drifts rather than tracks. */
+function Sphere({
+  radius,
+  color,
+  position,
+  roughness,
+  drift,
+}: {
+  radius: number;
+  color: string;
+  position: [number, number, number];
+  roughness: number;
+  drift: number;
+}) {
   const mesh = useRef<THREE.Mesh>(null);
+  const home = useMemo(() => new THREE.Vector3(...position), [position]);
 
   useFrame((state, delta) => {
     if (!mesh.current) return;
-    mesh.current.rotation.y += delta * 0.12;
-    mesh.current.rotation.z += delta * 0.05;
-    // Drift with the pointer, heavily damped so it never feels twitchy.
+    mesh.current.rotation.y += delta * 0.08;
     const { x, y } = state.pointer;
-    mesh.current.position.x = THREE.MathUtils.lerp(mesh.current.position.x, x * 0.4, 0.02);
-    mesh.current.position.y = THREE.MathUtils.lerp(mesh.current.position.y, y * 0.25, 0.02);
+    mesh.current.position.x = THREE.MathUtils.lerp(
+      mesh.current.position.x,
+      home.x + x * drift,
+      0.025,
+    );
+    mesh.current.position.y = THREE.MathUtils.lerp(
+      mesh.current.position.y,
+      home.y + y * drift * 0.6,
+      0.025,
+    );
   });
 
   return (
-    <Float speed={1.2} rotationIntensity={0.35} floatIntensity={0.9}>
-      <mesh ref={mesh} scale={2.35}>
-        <icosahedronGeometry args={[1, 24]} />
-        <MeshDistortMaterial
-          color="#1f6bff"
-          distort={0.42}
-          speed={1.4}
-          roughness={0.18}
-          metalness={0.85}
-          emissive="#0a2f8a"
-          emissiveIntensity={0.5}
+    <Float speed={1.1} rotationIntensity={0.25} floatIntensity={0.7}>
+      <mesh ref={mesh} position={position} castShadow>
+        <sphereGeometry args={[radius, 64, 64]} />
+        <meshStandardMaterial
+          color={color}
+          roughness={roughness}
+          metalness={0.05}
         />
       </mesh>
     </Float>
   );
 }
 
-/** Wireframe torus, counter-rotating against the orb to give the scene depth. */
-function Ring({ radius, tube, speed, tilt }: { radius: number; tube: number; speed: number; tilt: number }) {
+/** Thin ring, counter-rotating against the spheres to give the cluster depth. */
+function Ring({ radius, speed, tilt }: { radius: number; speed: number; tilt: number }) {
   const mesh = useRef<THREE.Mesh>(null);
 
   useFrame((_, delta) => {
     if (!mesh.current) return;
     mesh.current.rotation.z += delta * speed;
-    mesh.current.rotation.x += delta * speed * 0.35;
+    mesh.current.rotation.x += delta * speed * 0.3;
   });
 
   return (
     <mesh ref={mesh} rotation={[tilt, 0, 0]}>
-      <torusGeometry args={[radius, tube, 12, 96]} />
-      <meshStandardMaterial
-        color="#38dcf5"
-        wireframe
-        transparent
-        opacity={0.28}
-        emissive="#12c2e9"
-        emissiveIntensity={0.4}
-      />
+      <torusGeometry args={[radius, 0.022, 16, 128]} />
+      <meshStandardMaterial color="#8ac3ff" roughness={0.35} metalness={0.4} />
     </mesh>
-  );
-}
-
-/** Drifting point field. Positions are generated once and never re-allocated. */
-function Particles({ count = 420 }: { count?: number }) {
-  const points = useRef<THREE.Points>(null);
-
-  const positions = useMemo(() => {
-    const array = new Float32Array(count * 3);
-    for (let i = 0; i < count; i += 1) {
-      // Spherical shell distribution — a cube would visibly stack at the corners.
-      const radius = 4 + Math.random() * 5;
-      const theta = Math.random() * Math.PI * 2;
-      const phi = Math.acos(2 * Math.random() - 1);
-      array[i * 3] = radius * Math.sin(phi) * Math.cos(theta);
-      array[i * 3 + 1] = radius * Math.sin(phi) * Math.sin(theta);
-      array[i * 3 + 2] = radius * Math.cos(phi);
-    }
-    return array;
-  }, [count]);
-
-  useFrame((_, delta) => {
-    if (points.current) points.current.rotation.y += delta * 0.02;
-  });
-
-  return (
-    <points ref={points}>
-      <bufferGeometry>
-        <bufferAttribute
-          attach="attributes-position"
-          args={[positions, 3]}
-          count={count}
-          itemSize={3}
-        />
-      </bufferGeometry>
-      <pointsMaterial
-        size={0.035}
-        color="#7db6ff"
-        transparent
-        opacity={0.65}
-        sizeAttenuation
-        depthWrite={false}
-      />
-    </points>
   );
 }
 
@@ -138,7 +106,7 @@ export function HeroScene({ className }: { className?: string }) {
   useEffect(() => {
     if (reduce) return;
     // Defer past first paint so the WebGL context never competes with LCP.
-    const id = window.setTimeout(() => setReady(detectWebGL()), 400);
+    const id = window.setTimeout(() => setReady(detectWebGL()), 450);
     return () => window.clearTimeout(id);
   }, [reduce]);
 
@@ -147,10 +115,10 @@ export function HeroScene({ className }: { className?: string }) {
   return (
     <div className={className} aria-hidden>
       <Canvas
-        camera={{ position: [0, 0, 7.5], fov: 45 }}
+        camera={{ position: [0, 0, 8], fov: 42 }}
         dpr={[1, 1.75]}
         gl={{ antialias: true, alpha: true, powerPreference: 'high-performance' }}
-        // Pointer events belong to the copy sitting on top of this canvas.
+        // Pointer events belong to the copy sitting over this canvas.
         style={{ pointerEvents: 'none' }}
         onCreated={({ gl }) => {
           // A GPU reset or tab-memory eviction fires this. Swallow the default
@@ -167,14 +135,24 @@ export function HeroScene({ className }: { className?: string }) {
         }}
       >
         <Suspense fallback={null}>
-          <ambientLight intensity={0.4} />
-          <directionalLight position={[5, 5, 5]} intensity={1.6} color="#7db6ff" />
-          <pointLight position={[-6, -3, -4]} intensity={2.4} color="#12c2e9" />
-          <Orb />
-          <Ring radius={3.4} tube={0.012} speed={0.09} tilt={1.15} />
-          <Ring radius={4.2} tube={0.01} speed={-0.06} tilt={-0.7} />
-          <Particles />
-          <Environment preset="night" />
+          {/* Lit entirely with lights rather than drei's <Environment>: that
+              helper fetches an HDR from a CDN at runtime, which the site's CSP
+              blocks — and correctly so, an ornament has no business making a
+              cross-origin request. A hemisphere fill plus two keys gets the
+              same soft product-shot look with nothing to download. */}
+          <hemisphereLight args={['#ffffff', '#bcdcff', 1.15]} />
+          <ambientLight intensity={0.5} />
+          <directionalLight position={[4, 6, 5]} intensity={2.4} color="#ffffff" />
+          <directionalLight position={[-6, -2, 3]} intensity={1.1} color="#8ac3ff" />
+          <pointLight position={[0, -4, 4]} intensity={12} color="#dfeeff" />
+
+          <Sphere radius={1.65} color="#2586ef" position={[0.4, 0.1, 0]} roughness={0.22} drift={0.5} />
+          <Sphere radius={0.62} color="#ffffff" position={[-2.3, 1.2, 1.4]} roughness={0.12} drift={0.9} />
+          <Sphere radius={0.44} color="#7fe2ef" position={[2.5, -1.3, 0.9]} roughness={0.18} drift={1.2} />
+          <Sphere radius={0.3} color="#e1303c" position={[-1.9, -1.7, 1.9]} roughness={0.25} drift={1.5} />
+
+          <Ring radius={3.1} speed={0.07} tilt={1.2} />
+          <Ring radius={3.9} speed={-0.05} tilt={-0.6} />
         </Suspense>
       </Canvas>
     </div>

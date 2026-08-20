@@ -17,7 +17,7 @@ export default function ContactPage() {
   return (
     <div className="relative overflow-hidden pb-24 pt-32 sm:pt-40">
       <div aria-hidden className="pointer-events-none absolute inset-0 -z-10">
-        <div className="absolute inset-0 grid-overlay" />
+        <div className="absolute inset-0 gridfield fade-edges" />
         <div className="absolute left-[-8%] top-[-14%] h-[440px] w-[440px] rounded-full bg-vybe-600/15 blur-[140px]" />
         <Globe
           spin
@@ -26,9 +26,9 @@ export default function ContactPage() {
         />
       </div>
 
-      <div className="container-hov">
+      <div className="shell">
         <SectionHeading
-          eyebrow="Contact"
+          kicker="Contact"
           title="Talk to a human."
           lede="Ticket problems, tables, press, or you want to play — this reaches the crew directly."
         />
@@ -36,43 +36,43 @@ export default function ContactPage() {
         <div className="mt-14 grid gap-10 lg:grid-cols-[minmax(0,360px)_1fr] lg:gap-16">
           <Stagger className="space-y-4" amount={0.1}>
             <StaggerItem>
-              <div className="card card-lit p-6">
-                <h2 className="font-mono text-[10px] uppercase tracking-[0.26em] text-vybe-300">
+              <div className="panel shadow-mid p-6">
+                <h2 className="font-mono text-[10px] uppercase tracking-[0.26em] text-vybe-600">
                   Reach us
                 </h2>
                 <dl className="mt-5 space-y-5 text-[14px]">
                   <div>
-                    <dt className="text-[11px] uppercase tracking-[0.16em] text-dim">
+                    <dt className="text-[11px] uppercase tracking-[0.16em] text-muted">
                       Ticket support
                     </dt>
                     <dd className="mt-1">
                       <a
                         href={`mailto:${BRAND.supportEmail}`}
-                        className="break-all text-chalk underline-offset-4 transition-colors hover:text-vybe-300 hover:underline"
+                        className="break-all text-ink underline-offset-4 transition-colors hover:text-vybe-600 hover:underline"
                       >
                         {BRAND.supportEmail}
                       </a>
                     </dd>
                   </div>
                   <div>
-                    <dt className="text-[11px] uppercase tracking-[0.16em] text-dim">
+                    <dt className="text-[11px] uppercase tracking-[0.16em] text-muted">
                       Everything else
                     </dt>
                     <dd className="mt-1">
                       <a
                         href={`mailto:${BRAND.email}`}
-                        className="break-all text-chalk underline-offset-4 transition-colors hover:text-vybe-300 hover:underline"
+                        className="break-all text-ink underline-offset-4 transition-colors hover:text-vybe-600 hover:underline"
                       >
                         {BRAND.email}
                       </a>
                     </dd>
                   </div>
                   <div>
-                    <dt className="text-[11px] uppercase tracking-[0.16em] text-dim">Phone</dt>
+                    <dt className="text-[11px] uppercase tracking-[0.16em] text-muted">Phone</dt>
                     <dd className="mt-1">
                       <a
                         href={`tel:${BRAND.phone.replace(/\s/g, '')}`}
-                        className="text-chalk underline-offset-4 transition-colors hover:text-vybe-300 hover:underline"
+                        className="text-ink underline-offset-4 transition-colors hover:text-vybe-600 hover:underline"
                       >
                         {BRAND.phone}
                       </a>
@@ -83,18 +83,18 @@ export default function ContactPage() {
             </StaggerItem>
 
             <StaggerItem>
-              <div className="card card-lit relative overflow-hidden p-6">
+              <div className="panel shadow-mid relative overflow-hidden p-6">
                 <Globe
                   spin
                   strokeWidth={1.6}
-                  className="pointer-events-none absolute -bottom-12 -right-10 h-40 w-40 text-flare/12 [animation-duration:70s]"
+                  className="pointer-events-none absolute -bottom-12 -right-10 h-40 w-40 text-vybe-500/10 [animation-duration:70s]"
                 />
                 <div className="relative">
-                  <h2 className="font-mono text-[10px] uppercase tracking-[0.26em] text-vybe-300">
+                  <h2 className="font-mono text-[10px] uppercase tracking-[0.26em] text-vybe-600">
                     Where we are
                   </h2>
-                  <address className="mt-5 not-italic text-[14px] leading-relaxed text-haze">
-                    <span className="block font-display text-base font-semibold text-chalk">
+                  <address className="mt-5 not-italic text-[14px] leading-relaxed text-slate">
+                    <span className="block font-display text-base font-semibold text-ink">
                       {VENUE.name}
                     </span>
                     {VENUE.addressLines.map((line) => (
@@ -102,13 +102,13 @@ export default function ContactPage() {
                         {line}
                       </span>
                     ))}
-                    <span className="mt-1.5 block text-[12px] text-dim">{VENUE.landmark}</span>
+                    <span className="mt-1.5 block text-[12px] text-muted">{VENUE.landmark}</span>
                   </address>
                   <a
                     href={mapsUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="btn-ghost mt-5 px-6 py-3 text-[12px]"
+                    className="btn-outline btn-sm mt-5 px-6 py-3 text-[12px]"
                   >
                     Get directions
                     <svg
@@ -127,8 +127,8 @@ export default function ContactPage() {
             </StaggerItem>
 
             <StaggerItem>
-              <div className="card card-lit p-6">
-                <h2 className="font-mono text-[10px] uppercase tracking-[0.26em] text-vybe-300">
+              <div className="panel shadow-mid p-6">
+                <h2 className="font-mono text-[10px] uppercase tracking-[0.26em] text-vybe-600">
                   Follow
                 </h2>
                 <div className="mt-5 flex flex-wrap gap-2">
@@ -138,7 +138,7 @@ export default function ContactPage() {
                       href={social.href}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="rounded-full border border-hairline px-4 py-2 text-[12px] text-haze transition-all duration-300 hover:-translate-y-0.5 hover:border-vybe-600 hover:text-chalk"
+                      className="rounded-full border border-edge px-4 py-2 text-[12px] text-slate transition-all duration-300 hover:-translate-y-0.5 hover:border-vybe-600 hover:text-ink"
                     >
                       {social.label}
                     </a>
@@ -149,7 +149,7 @@ export default function ContactPage() {
           </Stagger>
 
           <Reveal delay={0.1} direction="left">
-            <div className="card card-lit p-6 sm:p-8">
+            <div className="panel shadow-mid p-6 sm:p-8">
               <ContactForm />
             </div>
           </Reveal>
