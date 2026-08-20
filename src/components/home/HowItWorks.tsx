@@ -2,18 +2,24 @@
 
 import { motion, useReducedMotion, type MotionProps, type Variants } from 'framer-motion';
 import { HOW_IT_WORKS } from '@/content/site';
-import { CountUp } from './CountUp';
 
 const list: Variants = {
   hidden: {},
-  show: { transition: { staggerChildren: 0.12, delayChildren: 0.15 } },
+  show: { transition: { staggerChildren: 0.12, delayChildren: 0.1 } },
 };
 
 const item: Variants = {
-  hidden: { opacity: 0, y: 26 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.65, ease: [0.16, 1, 0.3, 1] } },
+  hidden: { opacity: 0, y: 24 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.6, ease: [0.16, 1, 0.3, 1] } },
 };
 
+/**
+ * Three steps, ruled off from each other like columns in a programme.
+ *
+ * The numerals are set enormous and in outline, half-cropped by the top rule,
+ * so the sequence is legible from across the room. Vertical rules do the
+ * separating — no cards, no discs, no connector line trying to be clever.
+ */
 export function HowItWorks() {
   const reduce = useReducedMotion();
 
@@ -26,58 +32,44 @@ export function HowItWorks() {
         viewport: { once: true, amount: 0.25 },
       };
   const itemMotion: MotionProps = reduce ? {} : { variants: item };
-  const lineMotion: MotionProps = reduce
-    ? {}
-    : {
-        initial: { pathLength: 0 },
-        whileInView: { pathLength: 1 },
-        viewport: { once: true, amount: 0.4 },
-        transition: { duration: 1.7, ease: [0.16, 1, 0.3, 1] },
-      };
 
   return (
-    <div className="relative mt-14">
-      {/* Draws itself left-to-right as the row arrives. Sits at the vertical
-          centre of the numbered discs, which are opaque and mask it. */}
-      <svg
-        aria-hidden
-        viewBox="0 0 100 1"
-        preserveAspectRatio="none"
-        className="pointer-events-none absolute left-0 top-6 hidden h-px w-full lg:block"
-      >
-        <defs>
-          <linearGradient id="hov-step-line" x1="0" y1="0" x2="1" y2="0">
-            <stop offset="0%" stopColor="#2586ef" stopOpacity="0" />
-            <stop offset="18%" stopColor="#2586ef" stopOpacity="0.9" />
-            <stop offset="82%" stopColor="#3fcbe0" stopOpacity="0.9" />
-            <stop offset="100%" stopColor="#3fcbe0" stopOpacity="0" />
-          </linearGradient>
-        </defs>
-        <motion.path
-          d="M0 0.5H100"
-          fill="none"
-          stroke="url(#hov-step-line)"
-          strokeWidth={1}
-          vectorEffect="non-scaling-stroke"
-          {...lineMotion}
-        />
-      </svg>
-
-      <motion.ol
-        data-reveal=""
-        className="grid gap-10 sm:grid-cols-3 lg:gap-10"
-        {...listMotion}
-      >
-        {HOW_IT_WORKS.map((step) => (
-          <motion.li data-reveal="" key={step.step} className="relative" {...itemMotion}>
-            <span className="flex h-12 w-12 items-center justify-center rounded-full border border-vybe-200 bg-paper font-mono text-[0.8125rem] font-medium text-vybe-600 shadow-low">
-              <CountUp value={step.step} pad={2} duration={1} />
-            </span>
-            <h3 className="mt-5 font-display text-[1.25rem] font-semibold tracking-[-0.02em] text-ink">{step.title}</h3>
-            <p className="mt-2 text-[0.9375rem] leading-relaxed text-slate">{step.copy}</p>
-          </motion.li>
-        ))}
-      </motion.ol>
-    </div>
+    <motion.ol
+      data-reveal=""
+      className="mt-12 grid border-t-2 border-ink sm:grid-cols-3"
+      {...listMotion}
+    >
+      {HOW_IT_WORKS.map((step, index) => (
+        <motion.li
+          data-reveal=""
+          key={step.step}
+          className={cnStep(index)}
+          {...itemMotion}
+        >
+          <span
+            aria-hidden
+            className="outline-type block font-display text-[4.5rem] font-bold leading-[0.85] tracking-[-0.04em] sm:text-[5.5rem]"
+          >
+            {step.step}
+          </span>
+          <h3 className="mt-4 font-display text-[1.3rem] font-semibold tracking-[-0.02em] text-ink">
+            {step.title}
+          </h3>
+          <p className="mt-2 max-w-[36ch] text-[0.9375rem] leading-relaxed text-slate">
+            {step.copy}
+          </p>
+        </motion.li>
+      ))}
+    </motion.ol>
   );
+}
+
+function cnStep(index: number): string {
+  return [
+    'relative px-0 pt-6 pb-8 sm:px-8 sm:pt-8',
+    index > 0 ? 'border-t border-ink/20 sm:border-t-0 sm:border-l' : '',
+    index === 0 ? 'sm:pl-0' : '',
+  ]
+    .filter(Boolean)
+    .join(' ');
 }

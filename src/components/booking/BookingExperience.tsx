@@ -73,11 +73,22 @@ export function BookingExperience(props: BookingExperienceProps) {
       </div>
 
       <aside className="lg:sticky lg:top-28 lg:self-start">
-        <div className="panel-raised overflow-hidden">
-          <div className="border-b border-edge bg-frost/70 px-6 py-5">
-            <p className="kicker">Order summary</p>
-            <p className="h-card mt-1.5">
-              {EVENT.name} <span className="text-vybe-600">{EVENT.edition}</span>
+        {/* The summary is set as a till receipt: header band, dashed rules,
+            mono figures. A receipt is the one artefact everyone already reads
+            as "what am I being charged", which beats any card layout at the
+            same job. */}
+        <div className="card-print overflow-hidden">
+          <div className="border-b-[1.5px] border-ink bg-vybe-100 px-6 py-4">
+            <div className="flex items-baseline justify-between">
+              <p className="font-mono text-[0.6875rem] font-medium uppercase tracking-[0.22em] text-ink">
+                Order summary
+              </p>
+              <p className="font-mono text-[0.6875rem] uppercase tracking-[0.14em] text-ink/60">
+                Step 1 / 2
+              </p>
+            </div>
+            <p className="h-card mt-2">
+              {EVENT.name} <span className="accent text-vybe-600">{EVENT.edition}</span>
             </p>
             <p className="mt-1 text-[0.8125rem] text-slate">
               {formatEventDate(props.startsAt)} · {formatEventTime(props.doorsAt ?? props.startsAt)}
@@ -98,7 +109,7 @@ export function BookingExperience(props: BookingExperienceProps) {
               reduce={Boolean(reduce)}
             />
 
-            <div className="rule my-4" />
+            <div className="rule-receipt my-4" />
 
             <Row label="Subtotal" value={subtotal === 0 ? '₹0' : formatInr(subtotal)} />
 
@@ -124,7 +135,7 @@ export function BookingExperience(props: BookingExperienceProps) {
               )}
             </AnimatePresence>
 
-            <div className="rule my-4" />
+            <div className="rule-receipt my-4" />
 
             <div className="flex items-baseline justify-between gap-4">
               <span className="font-semibold text-ink">

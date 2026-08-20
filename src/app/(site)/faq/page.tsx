@@ -88,7 +88,7 @@ export default function FaqPage() {
                 >
                   Tickets &amp; booking
                 </h2>
-                <span aria-hidden className="h-px flex-1 bg-edge" />
+                <span aria-hidden className="h-[2px] flex-1 bg-ink/20" />
                 <span className="font-mono text-[11px] text-muted">
                   {String(PLATFORM_FAQS.length).padStart(2, '0')}
                 </span>
@@ -101,7 +101,7 @@ export default function FaqPage() {
                 <h2 id="faq-night" className="font-display text-[1.125rem] font-semibold tracking-[-0.02em] text-ink">
                   At the party
                 </h2>
-                <span aria-hidden className="h-px flex-1 bg-edge" />
+                <span aria-hidden className="h-[2px] flex-1 bg-ink/20" />
                 <span className="font-mono text-[11px] text-muted">
                   {String(EVENT.faqs.length).padStart(2, '0')}
                 </span>
@@ -111,7 +111,7 @@ export default function FaqPage() {
           </div>
 
           <Reveal delay={0.1} direction="left" className="lg:sticky lg:top-28 lg:h-fit">
-            <aside className="panel-raised relative overflow-hidden p-6">
+            <aside className="card-print relative overflow-hidden p-6">
               <div className="relative">
                 <h2 className="h-card">Still stuck?</h2>
                 <p className="mt-2.5 text-[0.875rem] leading-relaxed text-slate">

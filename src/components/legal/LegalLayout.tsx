@@ -65,7 +65,7 @@ export function LegalCallout({
   className?: string;
 }) {
   return (
-    <div className={cn('panel shadow-mid mt-6 border-vybe-500/25 bg-vybe-950/40 p-5 sm:p-6', className)}>
+    <div className={cn('card-print mt-6 border-l-[5px] border-l-vybe-500 bg-vybe-50 p-5 sm:p-6', className)}>
       <p className="mb-3 font-display text-[15px] font-semibold text-vybe-700">{title}</p>
       <div className={cn(PROSE, 'text-[14px]')}>{children}</div>
     </div>
@@ -176,7 +176,7 @@ export function LegalLayout({
 
       <div className="shell relative pb-24 pt-16 sm:pt-24 lg:pb-32">
         <header className="max-w-3xl">
-          <p className="kicker mb-4 flex items-center gap-2.5">
+          <p className="edit-index mb-4 flex items-center gap-2.5">
             <span aria-hidden="true" className="h-px w-6 bg-vybe-500/60" />
             {kicker}
           </p>
@@ -195,7 +195,7 @@ export function LegalLayout({
 
         <div
           role="note"
-          className="panel shadow-mid mt-10 flex items-start gap-4 border-vybe-500/30 bg-vybe-950/50 p-5 sm:p-6"
+          className="card-print mt-10 flex items-start gap-4 border-l-[5px] border-l-vybe-500 bg-vybe-50 p-5 sm:p-6"
         >
           <ShieldIcon />
           <div>
@@ -215,7 +215,7 @@ export function LegalLayout({
         <div className="mt-14 grid gap-12 lg:mt-16 lg:grid-cols-[236px_minmax(0,1fr)] lg:gap-16">
           <nav aria-label="On this page" className="hidden lg:block">
             <div className="sticky top-28 max-h-[calc(100dvh-9rem)] overflow-y-auto pr-1">
-              <p className="kicker mb-5">On this page</p>
+              <p className="edit-index mb-5 block border-b-2 border-ink pb-2">On this page</p>
               <div className="relative pl-5">
                 <span
                   aria-hidden="true"
@@ -261,7 +261,7 @@ export function LegalLayout({
           </nav>
 
           <div>
-            <details className="panel mb-10 rounded-2xl px-5 py-4 lg:hidden">
+            <details className="card-print mb-10 px-5 py-4 lg:hidden">
               <summary className="cursor-pointer list-none font-display text-sm font-semibold text-ink marker:hidden">
                 <span className="flex items-center justify-between gap-3">
                   On this page

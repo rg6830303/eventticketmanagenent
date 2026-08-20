@@ -289,11 +289,11 @@ export function BookingForm({
                 <label
                   key={tier.code}
                   className={cn(
-                    'relative flex cursor-pointer items-start gap-4 rounded-[16px] border bg-paper p-5 transition-all duration-200',
+                    'relative flex cursor-pointer items-start gap-4 rounded-[14px] border-[1.5px] bg-paper p-5 transition-all duration-200',
                     selected
-                      ? 'border-vybe-400 shadow-mid'
-                      : 'border-edge hover:border-edgeStrong hover:shadow-low',
-                    soldOut && 'cursor-not-allowed opacity-50 hover:border-edge hover:shadow-none',
+                      ? 'border-ink shadow-press'
+                      : 'border-ink/25 hover:border-ink/60',
+                    soldOut && 'cursor-not-allowed opacity-50 hover:border-ink/25',
                   )}
                 >
                   {/* One travelling outline rather than four static ones, so the
@@ -303,7 +303,7 @@ export function BookingForm({
                       aria-hidden
                       layoutId="tier-outline"
                       transition={{ type: 'spring', stiffness: 420, damping: 36 }}
-                      className="pointer-events-none absolute inset-0 rounded-[16px] ring-2 ring-vybe-400/60"
+                      className="pointer-events-none absolute inset-0 rounded-[14px] ring-2 ring-vybe-500/50"
                     />
                   )}
                   <input
@@ -334,7 +334,7 @@ export function BookingForm({
                         {tier.perks.map((perk) => (
                           <span
                             key={perk}
-                            className="rounded-md border border-edge bg-frost px-2 py-0.5 text-[0.6875rem] font-medium text-slate"
+                            className="rounded-[6px] border border-ink/25 bg-frost px-2 py-0.5 font-mono text-[0.625rem] uppercase tracking-[0.06em] text-slate"
                           >
                             {perk}
                           </span>
@@ -364,7 +364,7 @@ export function BookingForm({
         <section aria-labelledby="step-qty">
           <StepHeading id="step-qty" number="02" title="How many of you?" />
           <div className="mt-4 flex flex-wrap items-center gap-5">
-            <div className="flex items-center gap-1 rounded-[14px] border border-edgeStrong bg-paper p-1 shadow-low">
+            <div className="flex items-center gap-1 rounded-[12px] border-[1.5px] border-ink bg-paper p-1 shadow-press-sm">
               <StepButton
                 label="Remove one ticket"
                 onClick={() => setQuantity((q) => Math.max(1, q - 1))}
@@ -416,7 +416,7 @@ export function BookingForm({
                   aria-describedby="referral-help"
                   className={cn(
                     'field font-mono uppercase tracking-[0.12em]',
-                    referral.status === 'valid' && 'border-leaf-400 focus:border-leaf-500',
+                    referral.status === 'valid' && 'border-leaf-500 focus:border-leaf-500 focus:shadow-[2px_2px_0_0_theme(colors.leaf.500)]',
                     referral.status === 'invalid' && 'field-error',
                   )}
                   placeholder={REFERRAL.sampleCode}
@@ -566,8 +566,8 @@ export function BookingForm({
 
             <label
               className={cn(
-                'flex cursor-pointer items-start gap-3 rounded-[14px] border p-4 transition-colors',
-                consent ? 'border-vybe-300 bg-vybe-50' : 'border-edge bg-paper',
+                'flex cursor-pointer items-start gap-3 rounded-[12px] border-[1.5px] p-4 transition-colors',
+                consent ? 'border-ink bg-vybe-50 shadow-press-sm' : 'border-ink/25 bg-paper',
               )}
             >
               <input
@@ -650,15 +650,17 @@ function StepHeading({
   optional?: boolean;
 }) {
   return (
-    <h2 id={id} className="flex items-baseline gap-3">
-      <span className="font-mono text-[0.6875rem] font-medium tracking-[0.2em] text-vybe-500">
+    <h2 id={id} className="flex items-center gap-3 border-t-2 border-ink pt-5">
+      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[8px] border-[1.5px] border-ink bg-vybe-100 font-mono text-[0.75rem] font-medium text-ink shadow-press-sm">
         {number}
       </span>
       <span className="font-display text-[1.15rem] font-semibold tracking-[-0.02em] text-ink">
         {title}
       </span>
       {optional && (
-        <span className="text-[0.75rem] font-normal text-muted">optional</span>
+        <span className="font-mono text-[0.6875rem] uppercase tracking-[0.14em] text-muted">
+          optional
+        </span>
       )}
     </h2>
   );
@@ -749,7 +751,7 @@ function StepButton({
       onClick={onClick}
       disabled={disabled}
       aria-label={label}
-      className="flex h-10 w-10 items-center justify-center rounded-[11px] text-xl text-ink transition-colors hover:bg-frost disabled:opacity-25"
+      className="flex h-10 w-10 items-center justify-center rounded-[9px] text-xl text-ink transition-colors hover:bg-vybe-100 disabled:opacity-25"
     >
       {children}
     </button>

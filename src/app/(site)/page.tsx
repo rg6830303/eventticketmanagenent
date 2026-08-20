@@ -7,10 +7,6 @@ import { Reveal } from '@/components/ui/Reveal';
 import { Marquee } from '@/components/ui/Marquee';
 import { Magnetic } from '@/components/ui/Magnetic';
 import { Countdown } from '@/components/ui/Countdown';
-import { SafeDecoration } from '@/components/ui/SafeDecoration';
-// Renders null until it has mounted and confirmed WebGL, so it contributes
-// nothing to SSR and never blocks the hero's first paint.
-import { HeroScene } from '@/components/three/HeroScene';
 import { PosterCard } from '@/components/event/PosterCard';
 import { ActivityGrid } from '@/components/event/ActivityGrid';
 import { Runsheet } from '@/components/event/Runsheet';
@@ -72,13 +68,6 @@ export default async function HomePage() {
       {/* Hero                                                               */}
       {/* ================================================================== */}
       <section className="relative overflow-hidden pb-20 pt-32 sm:pt-36 lg:pb-28 lg:pt-40">
-        {/* The glossy cluster sits behind the poster card, not behind the
-            headline: spheres drifting under running text is the fastest way to
-            make a hero unreadable, and grouping the two three-dimensional
-            things puts all the depth on one side of the composition. */}
-        <SafeDecoration label="hero-webgl">
-          <HeroScene className="pointer-events-none absolute -right-[22%] top-[-8%] -z-10 hidden h-[840px] w-[840px] opacity-75 lg:block" />
-        </SafeDecoration>
         {/* Halftone off the artwork, opposite the cluster so the hero has
             texture on the type side without anything sitting under the words. */}
         <div
@@ -105,7 +94,7 @@ export default async function HomePage() {
               </Reveal>
 
               <Reveal delay={0.18}>
-                <dl className="mt-9 grid max-w-xl grid-cols-2 gap-px overflow-hidden rounded-[18px] border border-white/70 bg-edge/60 shadow-mid backdrop-blur-md sm:grid-cols-4">
+                <dl className="mt-9 grid max-w-xl grid-cols-2 border-y-2 border-ink sm:grid-cols-4">
                   <HeroFact label="Date" value={EVENT.dateShort} sub="Saturday" />
                   <HeroFact label="Time" value="12—5" sub="PM, sharp" />
                   <HeroFact label="Venue" value="Babylon" sub={EVENT.venue.area} />
@@ -151,7 +140,7 @@ export default async function HomePage() {
 
           {event && (
             <Reveal delay={0.36}>
-              <div className="panel-glass mt-16 flex flex-col gap-5 p-6 sm:flex-row sm:items-center sm:justify-between sm:p-7">
+              <div className="card-print mt-16 flex flex-col gap-5 p-6 sm:flex-row sm:items-center sm:justify-between sm:p-7">
                 <div>
                   <p className="kicker kicker-rule">Doors open in</p>
                   <p className="mt-1.5 text-[0.9375rem] text-slate">
@@ -165,7 +154,7 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <div className="slab">
+      <div className="border-y-2 border-ink bg-vybe-500">
         <Marquee items={TICKER} speedSeconds={44} />
       </div>
 
@@ -176,10 +165,12 @@ export default async function HomePage() {
         <div className="grid gap-14 lg:grid-cols-[0.9fr_1.1fr] lg:gap-20">
           <div>
             <Reveal>
-              <p className="kicker kicker-rule">The party</p>
-              <h2 id="about-party" className="h-section mt-4">
-                Five hours, one rooftop, the whole batch.
-              </h2>
+              <div className="edit-head">
+                <h2 id="about-party" className="h-section max-w-[16ch]">
+                  Five hours, one rooftop, the whole batch.
+                </h2>
+                <span className="edit-index">01 — The party</span>
+              </div>
             </Reveal>
             <Reveal delay={0.08}>
               <p className="lede mt-6">{EVENT.standfirst}</p>
@@ -205,9 +196,14 @@ export default async function HomePage() {
 
           <div>
             <Reveal delay={0.1}>
-              <p className="kicker">How the day runs</p>
+              <div className="flex items-baseline justify-between border-b-2 border-ink pb-3">
+                <p className="font-display text-[1.15rem] font-semibold tracking-[-0.02em] text-ink">
+                  How the day runs
+                </p>
+                <span className="edit-index">12 — 5 PM</span>
+              </div>
             </Reveal>
-            <div className="mt-7">
+            <div className="mt-8">
               <Runsheet />
             </div>
           </div>
@@ -223,28 +219,24 @@ export default async function HomePage() {
           className="pointer-events-none absolute -right-24 top-0 h-full w-[42%] halftone opacity-[0.35] mask-fade-x"
         />
         <div className="shell relative">
-          <div className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
-            <Reveal>
-              <div className="max-w-xl">
-                <p className="kicker kicker-rule">What&apos;s on</p>
-                <h2 id="activities" className="h-section mt-4">
-                  Everything running, all afternoon.
-                </h2>
-                <p className="lede mt-4">
-                  All of it is included with entry. Nothing here costs extra at the door.
-                </p>
-              </div>
-            </Reveal>
-            <Reveal delay={0.1}>
-              <p className="text-[0.8125rem] text-muted sm:text-right">
-                With {PARTNER.name}
-                <br />
-                {EVENT.venue.name}, {EVENT.venue.area}
+          <Reveal>
+            <div className="edit-head">
+              <h2 id="activities" className="h-section">
+                Everything running, all afternoon.
+              </h2>
+              <span className="edit-index">02 — What&apos;s on</span>
+            </div>
+            <div className="mt-4 flex flex-wrap items-baseline justify-between gap-3">
+              <p className="lede max-w-xl">
+                All of it is included with entry. Nothing here costs extra at the door.
               </p>
-            </Reveal>
-          </div>
+              <p className="font-mono text-[0.75rem] uppercase tracking-[0.12em] text-muted">
+                With {PARTNER.name}
+              </p>
+            </div>
+          </Reveal>
 
-          <div className="mt-12">
+          <div className="mt-10">
             <ActivityGrid />
           </div>
         </div>
@@ -255,16 +247,16 @@ export default async function HomePage() {
       {/* ================================================================== */}
       <section id="tickets" className="section shell" aria-labelledby="tickets-heading">
         <Reveal>
-          <div className="max-w-2xl">
-            <p className="kicker kicker-rule">Tickets</p>
-            <h2 id="tickets-heading" className="h-section mt-4">
+          <div className="edit-head">
+            <h2 id="tickets-heading" className="h-section">
               One price for everyone. No guest list.
             </h2>
-            <p className="lede mt-4">
-              Stock below is live. When a tier runs out it stops selling on its own — we do not
-              oversell the room and there is no list at the gate.
-            </p>
+            <span className="edit-index">03 — Tickets</span>
           </div>
+          <p className="lede mt-4 max-w-2xl">
+            Stock below is live. When a tier runs out it stops selling on its own — we do not
+            oversell the room and there is no list at the gate.
+          </p>
         </Reveal>
 
         <div className="mt-12">
@@ -273,17 +265,18 @@ export default async function HomePage() {
 
         {/* Referral programme */}
         <Reveal delay={0.1}>
-          <div className="mt-8 flex flex-col gap-6 rounded-[22px] border border-white/70 bg-white/75 p-7 shadow-mid backdrop-blur-xl sm:flex-row sm:items-center sm:justify-between">
+          <div className="card-print mt-10 flex flex-col gap-6 p-7 sm:flex-row sm:items-center sm:justify-between">
             <div className="max-w-xl">
               <h3 className="h-card">{REFERRAL.headline}</h3>
               <p className="mt-2 text-[0.9375rem] leading-relaxed text-slate">{REFERRAL.copy}</p>
             </div>
-            <div className="shrink-0">
-              <p className="font-mono text-[0.75rem] uppercase tracking-[0.18em] text-vybe-600">
-                Example
-              </p>
-              <p className="mt-1 rounded-xl border border-dashed border-vybe-300 bg-paper px-4 py-3 font-mono text-[0.9375rem] font-medium tracking-[0.14em] text-ink">
+            {/* The code as a coupon to tear off: dashed rule, rotated a hair. */}
+            <div className="shrink-0 -rotate-1">
+              <p className="rounded-[10px] border-[1.5px] border-dashed border-ink bg-vybe-100 px-5 py-3.5 font-mono text-[1rem] font-medium tracking-[0.16em] text-ink shadow-press-sm">
                 {REFERRAL.sampleCode}
+              </p>
+              <p className="mt-1.5 text-center font-mono text-[0.625rem] uppercase tracking-[0.2em] text-muted">
+                ₹100 off · try it
               </p>
             </div>
           </div>
@@ -300,21 +293,24 @@ export default async function HomePage() {
         />
         <div className="shell relative">
           <Reveal>
-            <div className="max-w-2xl">
-              <p className="kicker kicker-rule">Booking</p>
-              <h2 id="how" className="h-section mt-4">
+            <div className="edit-head">
+              <h2 id="how" className="h-section">
                 Three steps, about ninety seconds.
               </h2>
+              <span className="edit-index">04 — Booking</span>
             </div>
           </Reveal>
 
           <HowItWorks />
 
           <Reveal delay={0.15}>
-            <dl className="mt-16 grid gap-px overflow-hidden rounded-[20px] border border-edge bg-edge shadow-low sm:grid-cols-2 lg:grid-cols-4">
+            <dl className="mt-14 grid border-t-2 border-ink sm:grid-cols-2 lg:grid-cols-4">
               {TICKETING_FACTS.map((fact) => (
-                <div key={fact.label} className="bg-frost p-6 shadow-bevel">
-                  <dt className="text-[0.6875rem] font-semibold uppercase tracking-[0.14em] text-muted">
+                <div
+                  key={fact.label}
+                  className="border-b border-ink/20 px-0 py-5 sm:px-6 lg:border-b-0 lg:py-6 lg:first:pl-0 lg:[&:not(:first-child)]:border-l lg:[&:not(:first-child)]:border-l-ink/20"
+                >
+                  <dt className="font-mono text-[0.625rem] font-medium uppercase tracking-[0.18em] text-vybe-700">
                     {fact.label}
                   </dt>
                   <dd className="mt-2 font-display text-[1.375rem] font-semibold tracking-[-0.02em] text-ink">
@@ -335,11 +331,13 @@ export default async function HomePage() {
         <div className="grid gap-12 lg:grid-cols-2 lg:gap-16">
           <Reveal>
             <div>
-              <p className="kicker kicker-rule">Getting there</p>
-              <h2 id="venue" className="h-section mt-4">
-                {EVENT.venue.name}, {EVENT.venue.area}.
-              </h2>
-              <address className="mt-6 not-italic text-[1.0625rem] leading-relaxed text-slate">
+              <div className="edit-head">
+                <h2 id="venue" className="h-section">
+                  {EVENT.venue.name}, {EVENT.venue.area}.
+                </h2>
+                <span className="edit-index">05 — Getting there</span>
+              </div>
+              <address className="mt-5 not-italic text-[1.0625rem] leading-relaxed text-slate">
                 {EVENT.venue.addressLines.map((line) => (
                   <span key={line} className="block">
                     {line}
@@ -367,21 +365,25 @@ export default async function HomePage() {
           </Reveal>
 
           <Reveal delay={0.1}>
-            <div className="panel-raised overflow-hidden shadow-high">
-              <div className="border-b border-edge bg-frost px-6 py-5">
-                <p className="kicker kicker-rule">At the door</p>
+            <div className="card-print overflow-hidden">
+              <div className="flex items-center justify-between border-b-[1.5px] border-ink bg-vybe-100 px-6 py-3.5">
+                <p className="font-mono text-[0.6875rem] font-medium uppercase tracking-[0.2em] text-ink">
+                  At the door
+                </p>
+                <span className="font-mono text-[0.6875rem] uppercase tracking-[0.14em] text-ink/60">
+                  House rules
+                </span>
               </div>
-              <ul className="divide-y divide-edge">
-                {EVENT.entryRules.map((rule) => (
-                  <li key={rule} className="flex gap-3.5 px-6 py-4 text-[0.9375rem] text-slate">
-                    <span
-                      aria-hidden
-                      className="mt-[9px] h-1.5 w-1.5 shrink-0 rounded-full bg-vybe-400"
-                    />
+              <ol className="divide-y divide-ink/15">
+                {EVENT.entryRules.map((rule, index) => (
+                  <li key={rule} className="flex gap-4 px-6 py-4 text-[0.9375rem] text-slate">
+                    <span className="shrink-0 font-mono text-[0.75rem] text-vybe-600">
+                      {String(index + 1).padStart(2, '0')}
+                    </span>
                     {rule}
                   </li>
                 ))}
-              </ul>
+              </ol>
             </div>
           </Reveal>
         </div>
@@ -393,17 +395,13 @@ export default async function HomePage() {
       <section className="section slab overflow-hidden" aria-labelledby="faq">
         <div
           aria-hidden
-          className="pointer-events-none absolute left-[-8%] bottom-[-10%] h-[420px] w-[420px] rounded-full bg-pulse-200/50 blur-[110px]"
-        />
-        <div
-          aria-hidden
-          className="pointer-events-none absolute right-[-12%] top-[6%] h-[560px] w-[560px] rounded-full bg-orchid-300/40 blur-[120px]"
+          className="pointer-events-none absolute -right-20 bottom-0 h-[60%] w-[36%] halftone opacity-[0.35] mask-fade-x"
         />
         <div className="shell relative grid gap-12 lg:grid-cols-[0.8fr_1.2fr] lg:gap-20">
           <Reveal>
             <div className="lg:sticky lg:top-28 lg:self-start">
-              <p className="kicker kicker-rule">Questions</p>
-              <h2 id="faq" className="h-section mt-4">
+              <span className="edit-index">06 — Questions</span>
+              <h2 id="faq" className="h-section mt-3">
                 Everything people ask.
               </h2>
               <p className="lede mt-4">
@@ -429,34 +427,56 @@ export default async function HomePage() {
       {/* ================================================================== */}
       <section className="shell pb-24 pt-20">
         <Reveal>
-          <div className="relative overflow-hidden rounded-[28px] bg-ink px-6 py-16 text-center sm:px-12 sm:py-20">
-            <span aria-hidden className="absolute inset-0 gridfield opacity-[0.18]" />
-            <span
-              aria-hidden
-              className="absolute -top-24 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-vybe-500/40 blur-[90px]"
-            />
-            <div className="relative">
-              <p className="font-mono text-[0.6875rem] uppercase tracking-[0.24em] text-vybe-200">
-                {EVENT.dateShort} · {EVENT.venue.name}
-              </p>
-              <h2 className="mx-auto mt-5 max-w-[16ch] font-display text-[clamp(2rem,5vw,3.5rem)] font-bold leading-[1.02] tracking-[-0.035em] text-white">
-                {soldOut ? 'That was quick.' : 'The room holds 400 people.'}
-              </h2>
-              <p className="mx-auto mt-5 max-w-md text-[1.0625rem] leading-relaxed text-vybe-100">
-                {soldOut
-                  ? 'Every ticket has gone. Returns get posted on Instagram first, so keep an eye there.'
-                  : 'Sales close on their own when it is full. Grab yours while there is one left.'}
-              </p>
-              <div className="mt-9">
-                <Magnetic>
-                  <Link
-                    href={soldOut ? BRAND.instagram : '/book'}
-                    className="btn inline-flex bg-white px-8 py-4 text-base text-ink shadow-mid hover:-translate-y-[2px] hover:bg-vybe-50"
-                  >
-                    {soldOut ? 'Follow for returns' : 'Buy your ticket'}
-                  </Link>
-                </Magnetic>
+          {/* The closing move is one oversized ticket, not a centred slogan
+              band: stub column on the left with a real tear line, the pitch
+              set left in the body, a barcode along the foot. */}
+          <div className="relative overflow-hidden rounded-[18px] border-2 border-ink bg-ink text-white shadow-stamp-lg">
+            <span aria-hidden className="absolute inset-0 gridfield opacity-[0.14]" />
+            <div className="relative grid sm:grid-cols-[110px_1fr]">
+              {/* Stub. Rotated caption, punched notches on the tear line. */}
+              <div className="relative hidden items-center justify-center border-r-2 border-dashed border-white/35 sm:flex">
+                <span
+                  aria-hidden
+                  className="absolute -top-[11px] right-[-11px] h-5 w-5 rounded-full border-b-2 border-ink bg-canvas"
+                />
+                <span
+                  aria-hidden
+                  className="absolute -bottom-[11px] right-[-11px] h-5 w-5 rounded-full border-t-2 border-ink bg-canvas"
+                />
+                <p className="-rotate-90 whitespace-nowrap font-mono text-[0.6875rem] uppercase tracking-[0.32em] text-white/60">
+                  Admit one · {EVENT.dateShort}
+                </p>
               </div>
+
+              <div className="px-6 py-12 sm:px-12 sm:py-14">
+                <p className="font-mono text-[0.6875rem] uppercase tracking-[0.24em] text-vybe-200">
+                  {EVENT.dateShort} · {EVENT.venue.name} · {EVENT.timeLabel}
+                </p>
+                <h2 className="mt-5 max-w-[18ch] font-display text-[clamp(2rem,5vw,3.5rem)] font-bold leading-[1.02] tracking-[-0.035em] text-white">
+                  {soldOut ? 'That was quick.' : 'The room holds 400 people.'}
+                </h2>
+                <p className="mt-4 max-w-md text-[1.0625rem] leading-relaxed text-vybe-100">
+                  {soldOut
+                    ? 'Every ticket has gone. Returns get posted on Instagram first, so keep an eye there.'
+                    : 'Sales close on their own when it is full. Grab yours while there is one left.'}
+                </p>
+                <div className="mt-8">
+                  <Magnetic>
+                    <Link
+                      href={soldOut ? BRAND.instagram : '/book'}
+                      className="btn inline-flex border-white bg-white px-8 py-4 text-base text-ink shadow-[3px_3px_0_0_rgba(255,255,255,0.35)] hover:-translate-x-[2px] hover:-translate-y-[2px] hover:shadow-[5px_5px_0_0_rgba(255,255,255,0.35)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
+                    >
+                      {soldOut ? 'Follow for returns' : 'Buy your ticket'}
+                    </Link>
+                  </Magnetic>
+                </div>
+              </div>
+            </div>
+            <div className="relative flex items-center justify-between gap-4 border-t border-white/25 px-6 py-3 sm:px-12">
+              <span aria-hidden className="barcode h-6 w-32 opacity-60 invert" />
+              <p className="font-mono text-[0.625rem] uppercase tracking-[0.2em] text-white/50">
+                Non-transferable · one scan per pass
+              </p>
             </div>
           </div>
         </Reveal>
@@ -469,8 +489,8 @@ export default async function HomePage() {
 
 function HeroFact({ label, value, sub }: { label: string; value: string; sub: string }) {
   return (
-    <div className="bg-white/85 px-5 py-4">
-      <dt className="text-[0.625rem] font-semibold uppercase tracking-[0.16em] text-muted">
+    <div className="border-l border-ink/25 px-4 py-4 first:border-l-0 first:pl-0 max-sm:[&:nth-child(3)]:border-l-0 max-sm:[&:nth-child(3)]:pl-0 max-sm:[&:nth-child(n+3)]:border-t max-sm:[&:nth-child(n+3)]:border-t-ink/25">
+      <dt className="font-mono text-[0.625rem] font-medium uppercase tracking-[0.18em] text-vybe-700">
         {label}
       </dt>
       <dd className="tnum mt-2 font-display text-[1.375rem] font-semibold leading-none tracking-[-0.03em] text-ink">

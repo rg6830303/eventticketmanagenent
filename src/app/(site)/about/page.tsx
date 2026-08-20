@@ -18,10 +18,10 @@ export default function AboutPage() {
 
         <div className="shell">
           <Reveal>
-            <p className="kicker">About us</p>
+            <span className="edit-index">Houz of Vybe — About</span>
           </Reveal>
           <Reveal delay={0.06}>
-            <h1 className="h-hero mt-5 max-w-[16ch]">{ABOUT_STORY.heading}</h1>
+            <h1 className="h-hero mt-4 max-w-[16ch]">{ABOUT_STORY.heading}</h1>
           </Reveal>
           <Reveal delay={0.14}>
             <p className="mt-8 flex flex-wrap items-center gap-x-4 gap-y-2 font-mono text-[0.6875rem] uppercase tracking-[0.2em] text-muted">
@@ -70,9 +70,9 @@ export default function AboutPage() {
       <section className="section slab">
         <div className="shell">
           <Reveal>
-            <div className="max-w-2xl">
-              <p className="kicker">How we work</p>
-              <h2 className="h-section mt-4">Three things we do not bend on.</h2>
+            <div className="edit-head">
+              <h2 className="h-section">Three things we do not bend on.</h2>
+              <span className="edit-index">01 — How we work</span>
             </div>
           </Reveal>
 
@@ -102,14 +102,14 @@ export default function AboutPage() {
 
       <section className="section shell">
         <Reveal>
-          <div className="max-w-2xl">
-            <p className="kicker">The ticketing</p>
-            <h2 className="h-section mt-4">Built here, not bought in.</h2>
-            <p className="lede mt-4">
-              The booking system on this site is ours. Every line below describes something it
-              enforces on the day, rather than a claim about a night that has not happened yet.
-            </p>
+          <div className="edit-head">
+            <h2 className="h-section">Built here, not bought in.</h2>
+            <span className="edit-index">02 — The ticketing</span>
           </div>
+          <p className="lede mt-4 max-w-2xl">
+            The booking system on this site is ours. Every line below describes something it
+            enforces on the day, rather than a claim about a night that has not happened yet.
+          </p>
         </Reveal>
 
         <Stagger className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

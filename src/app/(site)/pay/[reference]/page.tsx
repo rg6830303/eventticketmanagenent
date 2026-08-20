@@ -63,9 +63,11 @@ export default async function PayPage({
           {/* ---------------- Order ---------------- */}
           <Reveal delay={0.06}>
             <div className="panel-raised overflow-hidden">
-              <div className="flex items-start justify-between gap-4 border-b border-edge bg-frost/60 px-6 py-5">
+              <div className="flex items-start justify-between gap-4 border-b-[1.5px] border-ink bg-vybe-100 px-6 py-5">
                 <div>
-                  <p className="kicker">Your order</p>
+                  <p className="font-mono text-[0.6875rem] font-medium uppercase tracking-[0.22em] text-ink">
+                    Your order
+                  </p>
                   <p className="h-card mt-1.5 whitespace-nowrap">
                     {EVENT.name} <span className="accent text-vybe-600">{EVENT.edition}</span>
                   </p>
@@ -94,7 +96,7 @@ export default async function PayPage({
                     tone="credit"
                   />
                 )}
-                <div className="rule my-4" />
+                <div className="rule-receipt my-4" />
                 <div className="flex items-baseline justify-between">
                   <span className="font-semibold text-ink">Total payable</span>
                   <span className="tnum font-display text-3xl font-bold text-ink">
@@ -104,6 +106,12 @@ export default async function PayPage({
                 <p className="text-[0.75rem] text-muted">
                   All taxes and platform fees included. Charged once, in INR.
                 </p>
+                <div aria-hidden className="mt-4 flex items-center justify-between gap-4 border-t-[1.5px] border-ink pt-4">
+                  <span className="barcode h-6 w-28 opacity-70" />
+                  <span className="font-mono text-[0.625rem] uppercase tracking-[0.2em] text-muted">
+                    {booking.reference}
+                  </span>
+                </div>
               </div>
             </div>
           </Reveal>

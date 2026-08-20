@@ -17,8 +17,10 @@ export default function GalleryPage() {
 
         <div className="shell">
           <Reveal>
-            <p className="kicker">Gallery</p>
-            <h1 className="h-section mt-4 max-w-[18ch]">Photos land the week after.</h1>
+            <div className="edit-head">
+              <h1 className="h-section max-w-[18ch]">Photos land the week after.</h1>
+              <span className="edit-index">Gallery</span>
+            </div>
             <p className="lede mt-4 max-w-xl">
               {EVENT.name} {EVENT.edition} has not happened yet, so there is nothing real to show.
               Rather than fill this page with stock photos of somebody else&apos;s party, the tiles

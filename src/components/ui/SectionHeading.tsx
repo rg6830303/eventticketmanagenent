@@ -3,8 +3,10 @@ import { cn } from '@/lib/utils';
 import { Reveal } from './Reveal';
 
 /**
- * The one heading block every marketing section uses, so kicker/title/lede
- * rhythm and entrance timing stay identical down the page.
+ * The section opener, set editorially: heading and index label share a heavy
+ * baseline rule, the lede hangs under it. One pattern for every page, so
+ * "kicker above centred heading above lede" — the generated-landing-page
+ * signature — appears nowhere.
  */
 export function SectionHeading({
   kicker,
@@ -17,33 +19,27 @@ export function SectionHeading({
   kicker?: string;
   title: ReactNode;
   lede?: ReactNode;
+  /** Kept for call-site compatibility; the ruled head is always left-set. */
   align?: 'left' | 'center';
   className?: string;
   children?: ReactNode;
 }) {
+  void align;
   return (
-    <div
-      className={cn(
-        'max-w-3xl',
-        align === 'center' && 'mx-auto text-center',
-        className,
-      )}
-    >
-      {kicker && (
-        <Reveal>
-          <p className="kicker mb-4">{kicker}</p>
-        </Reveal>
-      )}
-      <Reveal delay={0.06}>
-        <h2 className="h-section">{title}</h2>
+    <div className={cn('max-w-none', className)}>
+      <Reveal>
+        <div className="edit-head">
+          <h2 className="h-section max-w-[20ch]">{title}</h2>
+          {kicker && <span className="edit-index">{kicker}</span>}
+        </div>
       </Reveal>
       {lede && (
-        <Reveal delay={0.12}>
-          <p className={cn('lede mt-5', align === 'center' && 'mx-auto max-w-2xl')}>{lede}</p>
+        <Reveal delay={0.08}>
+          <p className="lede mt-4 max-w-2xl">{lede}</p>
         </Reveal>
       )}
       {children && (
-        <Reveal delay={0.18}>
+        <Reveal delay={0.14}>
           <div className="mt-8">{children}</div>
         </Reveal>
       )}

@@ -119,7 +119,7 @@ export default async function OffCampusPage() {
               </Reveal>
 
               <Reveal delay={0.14}>
-                <dl className="mt-9 grid max-w-xl grid-cols-2 gap-x-6 gap-y-6 border-y border-edge py-7 sm:grid-cols-4">
+                <dl className="mt-9 grid max-w-xl grid-cols-2 gap-x-6 gap-y-6 border-y-2 border-ink py-6 sm:grid-cols-4">
                   <Fact
                     label="Date"
                     value={event ? formatEventDate(event.starts_at) : EVENT.dateLabel}
@@ -178,24 +178,31 @@ export default async function OffCampusPage() {
       <section className="section slab" aria-labelledby="detail">
         <div className="shell grid gap-14 lg:grid-cols-[1fr_1fr] lg:gap-20">
           <div>
-            <p className="kicker">The long version</p>
-            <h2 id="detail" className="h-section mt-4">
-              What actually happens.
-            </h2>
+            <div className="edit-head">
+              <h2 id="detail" className="h-section">
+                What actually happens.
+              </h2>
+              <span className="edit-index">01 — The long version</span>
+            </div>
             <div className="mt-6 space-y-4 text-[1.0625rem] leading-[1.7] text-slate">
               {EVENT.body.map((paragraph) => (
                 <p key={paragraph.slice(0, 24)}>{paragraph}</p>
               ))}
             </div>
-            <p className="mt-8 rounded-[16px] border border-edge bg-frost px-5 py-4 text-[0.875rem] leading-relaxed text-slate">
+            <p className="mt-8 rounded-[12px] border-[1.5px] border-ink/25 bg-frost px-5 py-4 text-[0.875rem] leading-relaxed text-slate">
               {EVENT.name} is produced by {BRAND.name} in partnership with {PARTNER.name}. It is an
               independent event, not affiliated with any college or university.
             </p>
           </div>
 
           <div>
-            <p className="kicker">Hour by hour</p>
-            <div className="mt-7">
+            <div className="flex items-baseline justify-between border-b-2 border-ink pb-3">
+              <p className="font-display text-[1.15rem] font-semibold tracking-[-0.02em] text-ink">
+                Hour by hour
+              </p>
+              <span className="edit-index">12 — 5 PM</span>
+            </div>
+            <div className="mt-8">
               <Runsheet />
             </div>
           </div>
@@ -204,14 +211,14 @@ export default async function OffCampusPage() {
 
       {/* ---------------------------------------------------------------- */}
       <section className="section shell" aria-labelledby="whats-on">
-        <div className="max-w-2xl">
-          <p className="kicker">What&apos;s on</p>
-          <h2 id="whats-on" className="h-section mt-4">
+        <div className="edit-head">
+          <h2 id="whats-on" className="h-section">
             Six things running at once.
           </h2>
-          <p className="lede mt-4">All included with entry. Nothing costs extra inside.</p>
+          <span className="edit-index">02 — What&apos;s on</span>
         </div>
-        <div className="mt-12">
+        <p className="lede mt-4 max-w-2xl">All included with entry. Nothing costs extra inside.</p>
+        <div className="mt-10">
           <ActivityGrid />
         </div>
       </section>
@@ -223,17 +230,17 @@ export default async function OffCampusPage() {
         aria-labelledby="event-tickets"
       >
         <div className="shell">
-          <div className="max-w-2xl">
-            <p className="kicker">Tickets</p>
-            <h2 id="event-tickets" className="h-section mt-4">
+          <div className="edit-head">
+            <h2 id="event-tickets" className="h-section">
               {soldOut ? 'Sold out.' : 'Live stock, live prices.'}
             </h2>
-            <p className="lede mt-4">
-              {soldOut
-                ? 'Every tier has gone. Returns are posted on Instagram before anywhere else.'
-                : `Prices go up as tiers sell out, and a referral code is a flat ₹${REFERRAL.discountRupees} off whatever you end up paying.`}
-            </p>
+            <span className="edit-index">03 — Tickets</span>
           </div>
+          <p className="lede mt-4 max-w-2xl">
+            {soldOut
+              ? 'Every tier has gone. Returns are posted on Instagram before anywhere else.'
+              : `Prices go up as tiers sell out, and a referral code is a flat ₹${REFERRAL.discountRupees} off whatever you end up paying.`}
+          </p>
 
           <div className="mt-12">
             <TicketRail tiers={tiers} />
@@ -245,10 +252,12 @@ export default async function OffCampusPage() {
       <section className="section shell" aria-labelledby="event-venue">
         <div className="grid gap-12 lg:grid-cols-2 lg:gap-16">
           <div>
-            <p className="kicker">Venue</p>
-            <h2 id="event-venue" className="h-section mt-4">
-              {EVENT.venue.name}
-            </h2>
+            <div className="edit-head">
+              <h2 id="event-venue" className="h-section">
+                {EVENT.venue.name}
+              </h2>
+              <span className="edit-index">04 — Venue</span>
+            </div>
             <address className="mt-6 not-italic text-[1.0625rem] leading-relaxed text-slate">
               {EVENT.venue.addressLines.map((line) => (
                 <span key={line} className="block">
@@ -269,18 +278,25 @@ export default async function OffCampusPage() {
             </a>
           </div>
 
-          <div className="panel-raised overflow-hidden">
-            <div className="border-b border-edge bg-frost/70 px-6 py-5">
-              <p className="kicker">Door policy</p>
+          <div className="card-print overflow-hidden">
+            <div className="flex items-center justify-between border-b-[1.5px] border-ink bg-vybe-100 px-6 py-3.5">
+              <p className="font-mono text-[0.6875rem] font-medium uppercase tracking-[0.2em] text-ink">
+                Door policy
+              </p>
+              <span className="font-mono text-[0.6875rem] uppercase tracking-[0.14em] text-ink/60">
+                House rules
+              </span>
             </div>
-            <ul className="divide-y divide-edge">
-              {EVENT.entryRules.map((rule) => (
-                <li key={rule} className="flex gap-3.5 px-6 py-4 text-[0.9375rem] text-slate">
-                  <span aria-hidden className="mt-[9px] h-1.5 w-1.5 shrink-0 rounded-full bg-vybe-400" />
+            <ol className="divide-y divide-ink/15">
+              {EVENT.entryRules.map((rule, index) => (
+                <li key={rule} className="flex gap-4 px-6 py-4 text-[0.9375rem] text-slate">
+                  <span className="shrink-0 font-mono text-[0.75rem] text-vybe-600">
+                    {String(index + 1).padStart(2, '0')}
+                  </span>
                   {rule}
                 </li>
               ))}
-            </ul>
+            </ol>
           </div>
         </div>
       </section>
@@ -289,8 +305,8 @@ export default async function OffCampusPage() {
       <section className="section slab" aria-labelledby="event-faq">
         <div className="shell grid gap-12 lg:grid-cols-[0.8fr_1.2fr] lg:gap-20">
           <div className="lg:sticky lg:top-28 lg:self-start">
-            <p className="kicker">Questions</p>
-            <h2 id="event-faq" className="h-section mt-4">
+            <span className="edit-index">05 — Questions</span>
+            <h2 id="event-faq" className="h-section mt-3">
               Before you book.
             </h2>
           </div>

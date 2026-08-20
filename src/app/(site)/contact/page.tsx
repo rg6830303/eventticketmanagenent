@@ -36,7 +36,7 @@ export default function ContactPage() {
         <div className="mt-14 grid gap-10 lg:grid-cols-[minmax(0,360px)_1fr] lg:gap-16">
           <Stagger className="space-y-4" amount={0.1}>
             <StaggerItem>
-              <div className="panel shadow-mid p-6">
+              <div className="card-print p-6">
                 <h2 className="font-mono text-[10px] uppercase tracking-[0.26em] text-vybe-600">
                   Reach us
                 </h2>
@@ -83,7 +83,7 @@ export default function ContactPage() {
             </StaggerItem>
 
             <StaggerItem>
-              <div className="panel shadow-mid relative overflow-hidden p-6">
+              <div className="card-print relative overflow-hidden p-6">
                 <Globe
                   spin
                   strokeWidth={1.6}
@@ -127,7 +127,7 @@ export default function ContactPage() {
             </StaggerItem>
 
             <StaggerItem>
-              <div className="panel shadow-mid p-6">
+              <div className="card-print p-6">
                 <h2 className="font-mono text-[10px] uppercase tracking-[0.26em] text-vybe-600">
                   Follow
                 </h2>
@@ -149,7 +149,7 @@ export default function ContactPage() {
           </Stagger>
 
           <Reveal delay={0.1} direction="left">
-            <div className="panel shadow-mid p-6 sm:p-8">
+            <div className="card-print p-6 sm:p-8">
               <ContactForm />
             </div>
           </Reveal>

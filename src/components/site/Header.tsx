@@ -63,8 +63,8 @@ export function Header() {
         className={cn(
           'fixed inset-x-0 top-0 z-50 transition-[background-color,border-color,box-shadow] duration-300',
           landed
-            ? 'border-b border-white/60 bg-white/75 shadow-low backdrop-blur-2xl backdrop-saturate-150'
-            : 'border-b border-transparent bg-transparent',
+            ? 'border-b-2 border-ink bg-paper/95 backdrop-blur-md'
+            : 'border-b-2 border-transparent bg-transparent',
         )}
       >
         <nav
@@ -122,7 +122,7 @@ export function Header() {
               aria-expanded={menuOpen}
               aria-controls="mobile-nav"
               aria-label={menuOpen ? 'Close menu' : 'Open menu'}
-              className="flex h-11 w-11 items-center justify-center rounded-xl border border-edgeStrong bg-paper text-ink transition-colors hover:border-vybe-400 lg:hidden"
+              className="flex h-11 w-11 items-center justify-center rounded-[10px] border-[1.5px] border-ink bg-paper text-ink shadow-press-sm transition-transform hover:-translate-y-[1px] lg:hidden"
             >
               <span className="relative block h-3 w-[18px]">
                 <span
@@ -154,7 +154,7 @@ export function Header() {
           aria-hidden
           style={{ scaleX: progress }}
           className={cn(
-            'absolute inset-x-0 bottom-0 h-[2px] origin-left bg-vybe-500 transition-opacity duration-300',
+            'absolute inset-x-0 -bottom-[2px] h-[2px] origin-left bg-vybe-500 transition-opacity duration-300',
             landed ? 'opacity-100' : 'opacity-0',
           )}
         />

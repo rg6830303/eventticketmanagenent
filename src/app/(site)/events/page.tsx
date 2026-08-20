@@ -34,7 +34,7 @@ export default async function EventsPage() {
 
       {upcoming.length === 0 ? (
         <Reveal className="mt-14">
-          <div className="panel shadow-mid relative overflow-hidden px-6 py-16 text-center sm:px-12">
+          <div className="card-print relative overflow-hidden px-6 py-16 text-center sm:px-12">
             <div aria-hidden className="absolute inset-0 gridfield fade-edges opacity-70" />
             {/* The mark stands in for the listing that isn't there yet — an empty
                 state that still looks like the brand, not like a failure. */}
@@ -76,7 +76,7 @@ export default async function EventsPage() {
           <Stagger className="space-y-3">
             {past.map((event) => (
               <StaggerItem key={event.id}>
-                <div className="panel flex flex-wrap items-center justify-between gap-4 p-5 opacity-60 transition-opacity duration-300 hover:opacity-90">
+                <div className="card-print flex flex-wrap items-center justify-between gap-4 p-5 opacity-60 transition-opacity duration-300 hover:opacity-100">
                   <div>
                     <p className="font-display text-lg font-semibold text-ink">{event.name}</p>
                     <p className="text-[12px] text-muted">

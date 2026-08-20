@@ -36,10 +36,10 @@ export function Marquee({
       >
         {sequence.map((item, index) => (
           <span key={`${item}-${index}`} className="flex items-center gap-7">
-            <span className="font-display text-[1.25rem] font-semibold uppercase tracking-[-0.02em] text-ink/75 sm:text-[1.5rem]">
+            <span className="font-display text-[1.25rem] font-semibold uppercase tracking-[-0.02em] text-white sm:text-[1.5rem]">
               {item}
             </span>
-            <span className="text-[0.9375rem] text-vybe-400">{separator}</span>
+            <span className="text-[0.9375rem] text-white/60">{separator}</span>
           </span>
         ))}
       </div>

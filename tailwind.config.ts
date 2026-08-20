@@ -102,19 +102,27 @@ const config: Config = {
         spring: 'cubic-bezier(0.34, 1.4, 0.64, 1)',
       },
       boxShadow: {
-        // A blue-tinted shadow ramp. Neutral grey shadows go muddy on a blue
-        // ground, so every level carries the same hue as the background. Each
-        // step pairs a tight contact shadow with a wide ambient one, which is
-        // what stops a white card on blue from looking like a sticker.
-        low: '0 1px 2px rgba(10,45,85,0.06), 0 3px 10px -3px rgba(10,45,85,0.08)',
-        mid: '0 2px 4px rgba(10,45,85,0.06), 0 14px 32px -12px rgba(10,45,85,0.2)',
-        high: '0 4px 8px rgba(10,45,85,0.07), 0 32px 68px -24px rgba(10,45,85,0.3)',
-        lift: '0 12px 24px -10px rgba(10,45,85,0.2), 0 40px 80px -28px rgba(10,45,85,0.34)',
-        azure: '0 10px 24px -10px rgba(37,134,239,0.55)',
-        'azure-lg': '0 18px 40px -14px rgba(37,134,239,0.6)',
+        // Print shadows: solid offsets, no blur. A blurred drop shadow says
+        // "floating UI chrome"; a hard offset says "a card laid on a table",
+        // which is the whole visual argument of this system. Interactive
+        // things cast ink; large passive surfaces cast a paler blue so the
+        // page doesn't turn into a woodcut.
+        press: '3px 3px 0 0 #0a2138',
+        'press-lg': '5px 5px 0 0 #0a2138',
+        'press-sm': '2px 2px 0 0 #0a2138',
+        stamp: '6px 6px 0 0 rgba(15,83,164,0.16)',
+        'stamp-lg': '10px 10px 0 0 rgba(15,83,164,0.16)',
+        'stamp-blue': '6px 6px 0 0 #bcdcff',
         ring: 'inset 0 0 0 1px rgba(194,216,238,0.9)',
-        // Reads as light catching the top edge of a raised surface.
         bevel: 'inset 0 1px 0 0 rgba(255,255,255,0.9)',
+        // Legacy names still referenced by the admin console; mapped onto the
+        // print ramp so nothing there silently loses its elevation.
+        low: '3px 3px 0 0 rgba(15,83,164,0.12)',
+        mid: '6px 6px 0 0 rgba(15,83,164,0.16)',
+        high: '10px 10px 0 0 rgba(15,83,164,0.16)',
+        lift: '12px 12px 0 0 rgba(15,83,164,0.18)',
+        azure: '3px 3px 0 0 #0a2138',
+        'azure-lg': '5px 5px 0 0 #0a2138',
       },
       keyframes: {
         marquee: {
@@ -141,20 +149,6 @@ const config: Config = {
           from: { transform: 'rotate(0deg)' },
           to: { transform: 'rotate(360deg)' },
         },
-        // The aurora behind the page. Three blobs on different periods, so the
-        // composite never visibly repeats.
-        aurora1: {
-          '0%,100%': { transform: 'translate3d(0,0,0) scale(1)' },
-          '50%': { transform: 'translate3d(6%,-4%,0) scale(1.12)' },
-        },
-        aurora2: {
-          '0%,100%': { transform: 'translate3d(0,0,0) scale(1.05)' },
-          '50%': { transform: 'translate3d(-7%,5%,0) scale(0.94)' },
-        },
-        aurora3: {
-          '0%,100%': { transform: 'translate3d(0,0,0) scale(0.96)' },
-          '50%': { transform: 'translate3d(4%,7%,0) scale(1.1)' },
-        },
       },
       animation: {
         marquee: 'marquee 38s linear infinite',
@@ -163,9 +157,6 @@ const config: Config = {
         breathe: 'breathe 6s ease-in-out infinite',
         ping2: 'ping2 2.2s cubic-bezier(0,0,0.2,1) infinite',
         'spin-slow': 'spinSlow 40s linear infinite',
-        aurora1: 'aurora1 26s ease-in-out infinite',
-        aurora2: 'aurora2 34s ease-in-out infinite',
-        aurora3: 'aurora3 30s ease-in-out infinite',
       },
     },
   },

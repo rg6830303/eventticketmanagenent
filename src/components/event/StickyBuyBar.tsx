@@ -35,7 +35,7 @@ export function StickyBuyBar({
           animate={{ y: 0 }}
           exit={{ y: 90 }}
           transition={{ type: 'spring', stiffness: 320, damping: 32 }}
-          className="fixed inset-x-0 bottom-0 z-40 border-t border-edge bg-paper px-4 py-3 shadow-[0_-8px_24px_-12px_rgba(12,45,80,0.3)] lg:hidden"
+          className="fixed inset-x-0 bottom-0 z-40 border-t-2 border-ink bg-paper px-4 py-3 lg:hidden"
         >
           <div className="flex items-center justify-between gap-4">
             <div className="min-w-0">
