@@ -132,8 +132,8 @@ export function Ticket3D({
   const front = (
     <div className="relative flex h-full flex-col overflow-hidden rounded-[24px] border border-edge bg-paper shadow-high">
       <Globe
-        className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 text-vybe-500/[0.08]"
-        strokeWidth={1.8}
+        className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 text-vybe-500/[0.06]"
+        strokeWidth={1.1}
       />
       <span
         aria-hidden
@@ -168,8 +168,8 @@ export function Ticket3D({
   const back = (
     <div className="relative flex h-full flex-col overflow-hidden rounded-[24px] border border-edge bg-frost shadow-high">
       <Globe
-        className="pointer-events-none absolute -bottom-20 -left-16 h-56 w-56 text-vybe-500/[0.06]"
-        strokeWidth={1.8}
+        className="pointer-events-none absolute -bottom-20 -left-16 h-56 w-56 text-vybe-500/[0.05]"
+        strokeWidth={1.1}
       />
 
       <div className="px-6 pt-6">

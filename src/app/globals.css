@@ -12,20 +12,26 @@
 
     /* Rhythm tokens the component layer reads, so spacing scales in one place. */
     --rail: clamp(1.25rem, 4vw, 2.75rem);
-    --section-y: clamp(4.5rem, 9vw, 8.5rem);
+    --section-y: clamp(4rem, 7.5vw, 7rem);
     --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+    --ease-spring: cubic-bezier(0.34, 1.4, 0.64, 1);
   }
 
   html {
     -webkit-tap-highlight-color: transparent;
     scroll-behavior: smooth;
     scroll-padding-top: 6rem;
+    background-color: theme('colors.canvas');
   }
 
   body {
     @apply bg-canvas font-sans text-slate antialiased;
     font-feature-settings: 'ss01', 'cv05';
     text-rendering: optimizeLegibility;
+    /* The page has to be transparent to its own backdrop: the aurora and the
+       grain are painted by #env below, which sits behind everything. */
+    position: relative;
+    isolation: isolate;
   }
 
   h1,
@@ -41,11 +47,11 @@
   }
 
   ::selection {
-    @apply bg-vybe-200 text-vybe-900;
+    @apply bg-vybe-500 text-white;
   }
 
   :focus-visible {
-    @apply outline-none ring-2 ring-vybe-500 ring-offset-2 ring-offset-canvas;
+    @apply outline-none ring-2 ring-vybe-600 ring-offset-2 ring-offset-canvas;
   }
 
   /* Numbers that sit in columns — prices, counters, ticket counts — must not
@@ -61,13 +67,54 @@
     height: 12px;
   }
   ::-webkit-scrollbar-track {
-    @apply bg-frost;
+    @apply bg-canvasDeep;
   }
   ::-webkit-scrollbar-thumb {
-    @apply rounded-full border-[3px] border-solid border-frost bg-edgeStrong;
+    @apply rounded-full border-[3px] border-solid border-canvasDeep bg-edgeStrong;
   }
   ::-webkit-scrollbar-thumb:hover {
     @apply bg-vybe-400;
+  }
+}
+
+/* ===========================================================================
+   The environment
+   ---------------------------------------------------------------------------
+   Everything in this block is behind the content. It exists because a flat fill
+   under a page of white cards reads as an unfinished template: the cards need
+   something with depth to sit on before their shadows mean anything.
+
+   Four layers, cheapest first:
+     1. a fixed base wash, so overscroll never exposes bare white
+     2. three slow aurora blobs on different periods, blurred past recognition
+     3. a fine dot lattice, masked so it fades before the edges
+     4. grain, which is what stops large blue gradients from banding on 8-bit
+        panels and is the single biggest thing separating this from a CSS demo
+   =========================================================================== */
+
+@layer components {
+  .env {
+    @apply pointer-events-none fixed inset-0 -z-10 overflow-hidden;
+    background:
+      linear-gradient(180deg, #eef5fd 0%, #e4eefa 38%, #dbe9f8 72%, #e9f2fc 100%);
+  }
+
+  .env__blob {
+    @apply absolute rounded-full opacity-70 will-change-transform;
+    filter: blur(90px);
+  }
+
+  .env__lattice {
+    @apply absolute inset-0;
+    background-image: radial-gradient(circle, rgba(28, 92, 165, 0.16) 1px, transparent 1px);
+    background-size: 26px 26px;
+    mask-image: radial-gradient(ellipse 90% 70% at 50% 30%, #000 20%, transparent 85%);
+    -webkit-mask-image: radial-gradient(ellipse 90% 70% at 50% 30%, #000 20%, transparent 85%);
+  }
+
+  .env__grain {
+    @apply absolute inset-0 opacity-[0.5] mix-blend-multiply;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.14'/%3E%3C/svg%3E");
   }
 }
 
@@ -91,9 +138,27 @@
     padding-block: var(--section-y);
   }
 
+  /* ---------- Section grounds ----------
+     The page alternates between the open blue ground and a raised white slab.
+     The slab is what gives the scroll a rhythm; without it every section runs
+     into the next one. */
+  .slab {
+    @apply relative bg-paper;
+    box-shadow: 0 -1px 0 0 theme('colors.edge'), 0 1px 0 0 theme('colors.edge');
+  }
+
+  /* A slab that floats instead of spanning, for shorter sections. */
+  .slab-float {
+    @apply relative rounded-[32px] border border-edge bg-paper shadow-high;
+  }
+
+  .slab-deep {
+    @apply relative overflow-hidden bg-ink text-white;
+  }
+
   /* ---------- Type scale ----------
-     Sizes are fluid between a phone and a 1440 desktop so headings never step
-     awkwardly at a single breakpoint. */
+     Fluid between a phone and a 1440 desktop, so headings never step awkwardly
+     at a single breakpoint. */
   .h-hero {
     @apply font-display font-bold text-ink;
     font-size: clamp(2.75rem, 8.5vw, 6.5rem);
@@ -118,7 +183,14 @@
   }
 
   .kicker {
-    @apply font-mono text-[0.6875rem] font-medium uppercase tracking-[0.24em] text-vybe-600;
+    @apply inline-flex items-center gap-2 font-mono text-[0.6875rem] font-medium uppercase
+           tracking-[0.24em] text-vybe-700;
+  }
+
+  /* A kicker with the little rule in front of it, for section openers. */
+  .kicker-rule::before {
+    content: '';
+    @apply inline-block h-px w-6 bg-vybe-500;
   }
 
   .accent {
@@ -139,12 +211,13 @@
     @apply rounded-[20px] border border-vybe-200 bg-vybe-50;
   }
 
-  .hairline {
-    @apply border-edge;
+  /* Frosted panel for anything that sits directly on the aurora. */
+  .panel-glass {
+    @apply rounded-[24px] border border-white/70 bg-white/70 shadow-mid backdrop-blur-xl;
   }
 
   /* ---------- Buttons ----------
-     One geometry, three weights. Every button uses the same 14px radius and the
+     One geometry, four weights. Every button uses the same 14px radius and the
      same press behaviour so the whole site feels like one control set. */
   .btn {
     @apply inline-flex select-none items-center justify-center gap-2 rounded-[14px]
@@ -167,11 +240,12 @@
 
   .btn-outline {
     @apply btn border border-edgeStrong bg-paper px-7 py-4 text-ink shadow-low
-           hover:-translate-y-[2px] hover:border-vybe-400 hover:text-vybe-700 active:translate-y-0;
+           hover:-translate-y-[2px] hover:border-vybe-400 hover:text-vybe-700 hover:shadow-mid
+           active:translate-y-0;
   }
 
   .btn-quiet {
-    @apply btn px-4 py-2.5 text-slate hover:bg-frost hover:text-ink;
+    @apply btn px-4 py-2.5 text-slate hover:bg-white/70 hover:text-ink;
   }
 
   .btn-sm {
@@ -181,7 +255,7 @@
   /* ---------- Forms ---------- */
   .field {
     @apply w-full rounded-[13px] border border-edgeStrong bg-paper px-4 py-3.5 text-[0.9375rem]
-           text-ink shadow-[inset_0_1px_2px_rgba(12,45,80,0.05)] transition-colors
+           text-ink shadow-[inset_0_1px_2px_rgba(10,45,85,0.06)] transition-colors
            placeholder:text-muted
            focus:border-vybe-500 focus:outline-none focus:ring-4 focus:ring-vybe-500/15;
   }
@@ -209,32 +283,42 @@
   }
 
   .chip-hot {
-    @apply border-flare-200 bg-flare-200/40 text-flare-600;
+    @apply border-flare-300 bg-flare-200/60 text-flare-600;
   }
 
   .rule {
     @apply h-px w-full bg-edge;
   }
 
-  /* Perforated edge used on ticket-shaped cards — a real ticket has a tear
-     line, and it is the fastest way to read a card as "a pass". */
+  /* Perforated edge for ticket-shaped cards — a real ticket has a tear line,
+     and it is the fastest way to read a card as "a pass". */
   .perforation {
     background-image: radial-gradient(circle, theme('colors.edge') 1.5px, transparent 1.6px);
     background-size: 12px 1px;
     background-repeat: repeat-x;
   }
 
-  /* ---------- Backdrops ---------- */
+  /* ---------- Local backdrops ---------- */
   .dotfield {
-    background-image: radial-gradient(circle, rgba(37, 134, 239, 0.16) 1px, transparent 1px);
+    background-image: radial-gradient(circle, rgba(37, 134, 239, 0.18) 1px, transparent 1px);
     background-size: 22px 22px;
   }
 
   .gridfield {
     background-image:
-      linear-gradient(to right, rgba(37, 134, 239, 0.07) 1px, transparent 1px),
-      linear-gradient(to bottom, rgba(37, 134, 239, 0.07) 1px, transparent 1px);
+      linear-gradient(to right, rgba(37, 134, 239, 0.08) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(37, 134, 239, 0.08) 1px, transparent 1px);
     background-size: 64px 64px;
+  }
+
+  /* The poster's halftone, as a section texture. Two offset dot grids at
+     different scales read as a printed screen rather than as a CSS pattern. */
+  .halftone {
+    background-image:
+      radial-gradient(circle, rgba(37, 134, 239, 0.22) 1.6px, transparent 1.7px),
+      radial-gradient(circle, rgba(139, 92, 240, 0.14) 1px, transparent 1.1px);
+    background-size: 18px 18px, 18px 18px;
+    background-position: 0 0, 9px 9px;
   }
 
   .fade-edges {
@@ -266,6 +350,10 @@
     mask-image: linear-gradient(to bottom, #000 60%, transparent 100%);
     -webkit-mask-image: linear-gradient(to bottom, #000 60%, transparent 100%);
   }
+  .mask-fade-t {
+    mask-image: linear-gradient(to top, #000 60%, transparent 100%);
+    -webkit-mask-image: linear-gradient(to top, #000 60%, transparent 100%);
+  }
   /* Underline that grows from the left on hover — used on text links so they
      read as links without being permanently underlined. */
   .link-swipe {
@@ -279,6 +367,12 @@
   .link-swipe:hover::after,
   .link-swipe:focus-visible::after {
     @apply origin-left scale-x-100;
+  }
+  /* Locks scrolling while the intro is on screen, without the layout shift a
+     plain `overflow: hidden` causes when the scrollbar disappears. */
+  .scroll-locked {
+    overflow: hidden;
+    touch-action: none;
   }
 }
 
@@ -301,7 +395,26 @@
   body {
     background: #fff !important;
   }
+  .env,
   .no-print {
+    display: none !important;
+  }
+}
+
+/* ===========================================================================
+   Poster intro
+   ---------------------------------------------------------------------------
+   Both rules have to land before first paint, which is why they are plain CSS
+   rather than component state: React cannot un-render an overlay it has not
+   hydrated yet, and a flash of the intro on every navigation is worse than no
+   intro at all.
+   =========================================================================== */
+html[data-intro-seen='1'] #poster-intro {
+  display: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #poster-intro {
     display: none !important;
   }
 }

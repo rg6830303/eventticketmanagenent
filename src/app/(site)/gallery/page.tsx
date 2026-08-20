@@ -14,7 +14,6 @@ export default function GalleryPage() {
   return (
     <>
       <section className="relative overflow-hidden pb-6 pt-32 sm:pt-40">
-        <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 dotfield fade-edges opacity-60" />
 
         <div className="shell">
           <Reveal>

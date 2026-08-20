@@ -62,10 +62,6 @@ export default async function BookPage({
 
   return (
     <div className="relative">
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-x-0 top-0 h-[420px] dotfield fade-edges opacity-70"
-      />
 
       <div className="shell relative pb-24 pt-32 sm:pt-36">
         <Reveal>

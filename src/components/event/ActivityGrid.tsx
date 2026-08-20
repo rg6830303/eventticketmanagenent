@@ -33,9 +33,9 @@ export function ActivityGrid() {
             <motion.div
               whileHover={reduce ? undefined : { y: -5 }}
               transition={{ type: 'spring', stiffness: 360, damping: 26 }}
-              className="group h-full rounded-[18px] border border-edge bg-paper p-6 shadow-low transition-shadow duration-300 hover:border-vybe-200 hover:shadow-mid"
+              className="group h-full rounded-[18px] border border-edge bg-frost p-6 transition-[background-color,border-color,box-shadow] duration-300 hover:border-vybe-300 hover:bg-white hover:shadow-mid"
             >
-              <span className="flex h-12 w-12 items-center justify-center rounded-[14px] bg-vybe-50 text-vybe-600 transition-colors duration-300 group-hover:bg-vybe-500 group-hover:text-white">
+              <span className="flex h-12 w-12 items-center justify-center rounded-[14px] border border-vybe-200 bg-white text-vybe-600 shadow-low transition-colors duration-300 group-hover:border-vybe-500 group-hover:bg-vybe-500 group-hover:text-white">
                 <Icon className="h-6 w-6 transition-transform duration-300 group-hover:-rotate-6" />
               </span>
               <h3 className="mt-5 font-display text-[1.125rem] font-semibold tracking-[-0.02em] text-ink">

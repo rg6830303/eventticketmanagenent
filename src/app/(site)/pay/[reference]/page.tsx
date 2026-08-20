@@ -48,7 +48,6 @@ export default async function PayPage({
 
   return (
     <div className="relative">
-      <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-[380px] dotfield fade-edges opacity-70" />
 
       <div className="shell relative max-w-[900px] pb-24 pt-32 sm:pt-36">
         <Reveal>
@@ -67,8 +66,8 @@ export default async function PayPage({
               <div className="flex items-start justify-between gap-4 border-b border-edge bg-frost/60 px-6 py-5">
                 <div>
                   <p className="kicker">Your order</p>
-                  <p className="h-card mt-1.5">
-                    {EVENT.name} <span className="text-vybe-600">{EVENT.edition}</span>
+                  <p className="h-card mt-1.5 whitespace-nowrap">
+                    {EVENT.name} <span className="accent text-vybe-600">{EVENT.edition}</span>
                   </p>
                 </div>
                 <span className="chip shrink-0">Held · {booking.reference}</span>

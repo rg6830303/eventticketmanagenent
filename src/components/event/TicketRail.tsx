@@ -26,7 +26,14 @@ const EASE = [0.16, 1, 0.3, 1] as const;
  * recommended one because on a three-price grid people pick the middle
  * anyway — saying so out loud just removes a decision.
  */
-export function TicketRail({ tiers }: { tiers: RailTier[] }) {
+export function TicketRail({
+  tiers,
+  showReferralNote = true,
+}: {
+  tiers: RailTier[];
+  /** Off where the page already carries a full referral callout of its own. */
+  showReferralNote?: boolean;
+}) {
   const reduce = useReducedMotion();
   const feature = tiers.length === 3 ? 1 : 0;
 
@@ -58,10 +65,10 @@ export function TicketRail({ tiers }: { tiers: RailTier[] }) {
               viewport={{ once: true, margin: '-70px' }}
               transition={{ duration: 0.55, delay: index * 0.08, ease: EASE }}
               className={cn(
-                'relative flex flex-col overflow-hidden rounded-[20px] border bg-paper transition-shadow duration-300',
+                'relative flex flex-col overflow-hidden rounded-[22px] border bg-paper transition-[transform,box-shadow,border-color] duration-300 ease-out',
                 featured
-                  ? 'border-vybe-400 shadow-mid md:-mt-3 md:mb-3'
-                  : 'border-edge shadow-low hover:shadow-mid',
+                  ? 'border-vybe-300 shadow-lift md:-mt-4 md:mb-4'
+                  : 'border-edge shadow-mid hover:-translate-y-1 hover:shadow-high',
                 soldOut && 'opacity-60',
               )}
             >
@@ -98,11 +105,11 @@ export function TicketRail({ tiers }: { tiers: RailTier[] }) {
               <div className="relative">
                 <span
                   aria-hidden
-                  className="absolute -left-2.5 top-1/2 h-5 w-5 -translate-y-1/2 rounded-full border border-edge bg-canvas"
+                  className="absolute -left-2.5 top-1/2 h-5 w-5 -translate-y-1/2 rounded-full border border-edge bg-canvasDeep"
                 />
                 <span
                   aria-hidden
-                  className="absolute -right-2.5 top-1/2 h-5 w-5 -translate-y-1/2 rounded-full border border-edge bg-canvas"
+                  className="absolute -right-2.5 top-1/2 h-5 w-5 -translate-y-1/2 rounded-full border border-edge bg-canvasDeep"
                 />
                 <span aria-hidden className="perforation mx-5 block h-px" />
               </div>
@@ -144,10 +151,12 @@ export function TicketRail({ tiers }: { tiers: RailTier[] }) {
         })}
       </div>
 
-      <p className="mt-6 text-center text-[0.875rem] text-slate">
-        Got a referral code? Enter it at checkout for a flat ₹{REFERRAL.discountRupees} off your
-        order.
-      </p>
+      {showReferralNote && (
+        <p className="mt-6 text-center text-[0.875rem] text-slate">
+          Got a referral code? Enter it at checkout for a flat ₹{REFERRAL.discountRupees} off your
+          order.
+        </p>
+      )}
     </div>
   );
 }

@@ -71,10 +71,13 @@ function Sphere({
     <Float speed={1.1} rotationIntensity={0.25} floatIntensity={0.7}>
       <mesh ref={mesh} position={position} castShadow>
         <sphereGeometry args={[radius, 64, 64]} />
-        <meshStandardMaterial
+        <meshPhysicalMaterial
           color={color}
           roughness={roughness}
-          metalness={0.05}
+          metalness={0.1}
+          clearcoat={0.9}
+          clearcoatRoughness={0.15}
+          reflectivity={0.6}
         />
       </mesh>
     </Float>
@@ -93,8 +96,8 @@ function Ring({ radius, speed, tilt }: { radius: number; speed: number; tilt: nu
 
   return (
     <mesh ref={mesh} rotation={[tilt, 0, 0]}>
-      <torusGeometry args={[radius, 0.022, 16, 128]} />
-      <meshStandardMaterial color="#8ac3ff" roughness={0.35} metalness={0.4} />
+      <torusGeometry args={[radius, 0.026, 16, 128]} />
+      <meshStandardMaterial color="#5a9ae8" roughness={0.3} metalness={0.55} />
     </mesh>
   );
 }
@@ -140,16 +143,20 @@ export function HeroScene({ className }: { className?: string }) {
               blocks — and correctly so, an ornament has no business making a
               cross-origin request. A hemisphere fill plus two keys gets the
               same soft product-shot look with nothing to download. */}
-          <hemisphereLight args={['#ffffff', '#bcdcff', 1.15]} />
-          <ambientLight intensity={0.5} />
-          <directionalLight position={[4, 6, 5]} intensity={2.4} color="#ffffff" />
-          <directionalLight position={[-6, -2, 3]} intensity={1.1} color="#8ac3ff" />
-          <pointLight position={[0, -4, 4]} intensity={12} color="#dfeeff" />
+          <hemisphereLight args={['#ffffff', '#7fa8d8', 0.7]} />
+          <ambientLight intensity={0.25} />
+          {/* One hard key does the modelling; everything else is fill. Lighting a
+              sphere evenly from all sides is how you get a flat disc. */}
+          <directionalLight position={[5, 7, 4]} intensity={3.4} color="#ffffff" />
+          <directionalLight position={[-7, -1, 2]} intensity={0.7} color="#6f9fd8" />
+          <pointLight position={[-2, -3, 5]} intensity={26} color="#c9b0ff" />
+          <pointLight position={[4, 2, 6]} intensity={18} color="#ffffff" />
 
-          <Sphere radius={1.65} color="#2586ef" position={[0.4, 0.1, 0]} roughness={0.22} drift={0.5} />
-          <Sphere radius={0.62} color="#ffffff" position={[-2.3, 1.2, 1.4]} roughness={0.12} drift={0.9} />
-          <Sphere radius={0.44} color="#7fe2ef" position={[2.5, -1.3, 0.9]} roughness={0.18} drift={1.2} />
-          <Sphere radius={0.3} color="#e1303c" position={[-1.9, -1.7, 1.9]} roughness={0.25} drift={1.5} />
+          <Sphere radius={1.65} color="#1268cd" position={[0.4, 0.1, 0]} roughness={0.16} drift={0.5} />
+          <Sphere radius={0.62} color="#f0f7ff" position={[-2.3, 1.2, 1.4]} roughness={0.1} drift={0.9} />
+          <Sphere radius={0.44} color="#3fcbe0" position={[2.5, -1.3, 0.9]} roughness={0.14} drift={1.2} />
+          <Sphere radius={0.32} color="#8b5cf0" position={[-1.9, -1.7, 1.9]} roughness={0.2} drift={1.5} />
+          <Sphere radius={0.24} color="#e1303c" position={[2.1, 1.9, 1.6]} roughness={0.22} drift={1.7} />
 
           <Ring radius={3.1} speed={0.07} tilt={1.2} />
           <Ring radius={3.9} speed={-0.05} tilt={-0.6} />

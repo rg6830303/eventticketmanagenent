@@ -63,7 +63,7 @@ export function Header() {
         className={cn(
           'fixed inset-x-0 top-0 z-50 transition-[background-color,border-color,box-shadow] duration-300',
           landed
-            ? 'border-b border-edge bg-paper/85 shadow-low backdrop-blur-xl'
+            ? 'border-b border-white/60 bg-white/75 shadow-low backdrop-blur-2xl backdrop-saturate-150'
             : 'border-b border-transparent bg-transparent',
         )}
       >
@@ -168,9 +168,9 @@ export function Header() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.22 }}
-            className="fixed inset-0 z-40 overflow-y-auto bg-canvas lg:hidden"
+            className="fixed inset-0 z-40 overflow-y-auto bg-canvas/95 backdrop-blur-2xl lg:hidden"
           >
-            <div aria-hidden className="pointer-events-none absolute inset-0 dotfield opacity-60" />
+            <div aria-hidden className="pointer-events-none absolute inset-0 halftone opacity-30" />
 
             <div className="shell relative flex min-h-full flex-col pb-10 pt-24">
               <ul className="flex flex-col">

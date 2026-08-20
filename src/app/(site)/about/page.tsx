@@ -15,7 +15,6 @@ export default function AboutPage() {
   return (
     <>
       <section className="relative overflow-hidden pb-14 pt-32 sm:pt-40">
-        <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 dotfield fade-edges opacity-60" />
 
         <div className="shell">
           <Reveal>
@@ -68,7 +67,7 @@ export default function AboutPage() {
         </div>
       </section>
 
-      <section className="section border-y border-edge bg-paper">
+      <section className="section slab">
         <div className="shell">
           <Reveal>
             <div className="max-w-2xl">

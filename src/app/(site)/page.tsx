@@ -16,6 +16,7 @@ import { ActivityGrid } from '@/components/event/ActivityGrid';
 import { Runsheet } from '@/components/event/Runsheet';
 import { TicketRail, type RailTier } from '@/components/event/TicketRail';
 import { StickyBuyBar } from '@/components/event/StickyBuyBar';
+import { PosterIntro } from '@/components/site/PosterIntro';
 import { HowItWorks } from '@/components/home/HowItWorks';
 import { Accordion } from '@/components/events/Accordion';
 
@@ -63,14 +64,27 @@ export default async function HomePage() {
 
   return (
     <>
+      {/* The artwork, staged as the way in. Landing page only — an intro in
+          front of a checkout would be sabotage. */}
+      <PosterIntro />
+
       {/* ================================================================== */}
       {/* Hero                                                               */}
       {/* ================================================================== */}
-      <section className="relative overflow-hidden pb-16 pt-32 sm:pt-36 lg:pb-24 lg:pt-40">
-        <div aria-hidden className="pointer-events-none absolute inset-0 -z-20 gridfield fade-edges" />
+      <section className="relative overflow-hidden pb-20 pt-32 sm:pt-36 lg:pb-28 lg:pt-40">
+        {/* The glossy cluster sits behind the poster card, not behind the
+            headline: spheres drifting under running text is the fastest way to
+            make a hero unreadable, and grouping the two three-dimensional
+            things puts all the depth on one side of the composition. */}
         <SafeDecoration label="hero-webgl">
-          <HeroScene className="pointer-events-none absolute -left-[28%] top-[4%] -z-10 hidden h-[640px] w-[640px] opacity-35 lg:block lg:opacity-45" />
+          <HeroScene className="pointer-events-none absolute -right-[22%] top-[-8%] -z-10 hidden h-[840px] w-[840px] opacity-75 lg:block" />
         </SafeDecoration>
+        {/* Halftone off the artwork, opposite the cluster so the hero has
+            texture on the type side without anything sitting under the words. */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute -left-24 bottom-[-4%] -z-10 hidden h-[440px] w-[440px] halftone opacity-40 mask-fade-t lg:block"
+        />
 
         <div className="shell relative">
           <div className="grid items-center gap-14 lg:grid-cols-[1.05fr_0.95fr] lg:gap-12">
@@ -91,7 +105,7 @@ export default async function HomePage() {
               </Reveal>
 
               <Reveal delay={0.18}>
-                <dl className="mt-9 grid max-w-lg grid-cols-2 gap-x-6 gap-y-5 border-t border-edge pt-7 sm:grid-cols-4">
+                <dl className="mt-9 grid max-w-xl grid-cols-2 gap-px overflow-hidden rounded-[18px] border border-white/70 bg-edge/60 shadow-mid backdrop-blur-md sm:grid-cols-4">
                   <HeroFact label="Date" value={EVENT.dateShort} sub="Saturday" />
                   <HeroFact label="Time" value="12—5" sub="PM, sharp" />
                   <HeroFact label="Venue" value="Babylon" sub={EVENT.venue.area} />
@@ -137,9 +151,9 @@ export default async function HomePage() {
 
           {event && (
             <Reveal delay={0.36}>
-              <div className="mt-16 flex flex-col gap-5 rounded-[20px] border border-edge bg-paper/80 p-6 shadow-low backdrop-blur-sm sm:flex-row sm:items-center sm:justify-between">
+              <div className="panel-glass mt-16 flex flex-col gap-5 p-6 sm:flex-row sm:items-center sm:justify-between sm:p-7">
                 <div>
-                  <p className="kicker">Doors open in</p>
+                  <p className="kicker kicker-rule">Doors open in</p>
                   <p className="mt-1.5 text-[0.9375rem] text-slate">
                     {dateLabel} · {doorsLabel}
                   </p>
@@ -151,7 +165,7 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <div className="border-y border-edge bg-paper">
+      <div className="slab">
         <Marquee items={TICKER} speedSeconds={44} />
       </div>
 
@@ -162,7 +176,7 @@ export default async function HomePage() {
         <div className="grid gap-14 lg:grid-cols-[0.9fr_1.1fr] lg:gap-20">
           <div>
             <Reveal>
-              <p className="kicker">The party</p>
+              <p className="kicker kicker-rule">The party</p>
               <h2 id="about-party" className="h-section mt-4">
                 Five hours, one rooftop, the whole batch.
               </h2>
@@ -203,12 +217,16 @@ export default async function HomePage() {
       {/* ================================================================== */}
       {/* Activities                                                          */}
       {/* ================================================================== */}
-      <section id="lineup" className="section border-y border-edge bg-paper" aria-labelledby="activities">
-        <div className="shell">
+      <section id="lineup" className="section slab overflow-hidden" aria-labelledby="activities">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute -right-24 top-0 h-full w-[42%] halftone opacity-[0.35] mask-fade-x"
+        />
+        <div className="shell relative">
           <div className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
             <Reveal>
               <div className="max-w-xl">
-                <p className="kicker">What&apos;s on</p>
+                <p className="kicker kicker-rule">What&apos;s on</p>
                 <h2 id="activities" className="h-section mt-4">
                   Everything running, all afternoon.
                 </h2>
@@ -238,7 +256,7 @@ export default async function HomePage() {
       <section id="tickets" className="section shell" aria-labelledby="tickets-heading">
         <Reveal>
           <div className="max-w-2xl">
-            <p className="kicker">Tickets</p>
+            <p className="kicker kicker-rule">Tickets</p>
             <h2 id="tickets-heading" className="h-section mt-4">
               One price for everyone. No guest list.
             </h2>
@@ -250,12 +268,12 @@ export default async function HomePage() {
         </Reveal>
 
         <div className="mt-12">
-          <TicketRail tiers={tiers} />
+          <TicketRail tiers={tiers} showReferralNote={false} />
         </div>
 
         {/* Referral programme */}
         <Reveal delay={0.1}>
-          <div className="mt-8 flex flex-col gap-6 rounded-[20px] border border-vybe-200 bg-vybe-50 p-7 sm:flex-row sm:items-center sm:justify-between">
+          <div className="mt-8 flex flex-col gap-6 rounded-[22px] border border-white/70 bg-white/75 p-7 shadow-mid backdrop-blur-xl sm:flex-row sm:items-center sm:justify-between">
             <div className="max-w-xl">
               <h3 className="h-card">{REFERRAL.headline}</h3>
               <p className="mt-2 text-[0.9375rem] leading-relaxed text-slate">{REFERRAL.copy}</p>
@@ -275,11 +293,15 @@ export default async function HomePage() {
       {/* ================================================================== */}
       {/* How booking works                                                   */}
       {/* ================================================================== */}
-      <section className="section border-y border-edge bg-paper" aria-labelledby="how">
-        <div className="shell">
+      <section className="section slab overflow-hidden" aria-labelledby="how">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute -left-24 bottom-0 h-[70%] w-[38%] halftone opacity-[0.3] mask-fade-x"
+        />
+        <div className="shell relative">
           <Reveal>
             <div className="max-w-2xl">
-              <p className="kicker">Booking</p>
+              <p className="kicker kicker-rule">Booking</p>
               <h2 id="how" className="h-section mt-4">
                 Three steps, about ninety seconds.
               </h2>
@@ -289,9 +311,9 @@ export default async function HomePage() {
           <HowItWorks />
 
           <Reveal delay={0.15}>
-            <dl className="mt-16 grid gap-px overflow-hidden rounded-[20px] border border-edge bg-edge sm:grid-cols-2 lg:grid-cols-4">
+            <dl className="mt-16 grid gap-px overflow-hidden rounded-[20px] border border-edge bg-edge shadow-low sm:grid-cols-2 lg:grid-cols-4">
               {TICKETING_FACTS.map((fact) => (
-                <div key={fact.label} className="bg-paper p-6">
+                <div key={fact.label} className="bg-frost p-6 shadow-bevel">
                   <dt className="text-[0.6875rem] font-semibold uppercase tracking-[0.14em] text-muted">
                     {fact.label}
                   </dt>
@@ -313,7 +335,7 @@ export default async function HomePage() {
         <div className="grid gap-12 lg:grid-cols-2 lg:gap-16">
           <Reveal>
             <div>
-              <p className="kicker">Getting there</p>
+              <p className="kicker kicker-rule">Getting there</p>
               <h2 id="venue" className="h-section mt-4">
                 {EVENT.venue.name}, {EVENT.venue.area}.
               </h2>
@@ -345,9 +367,9 @@ export default async function HomePage() {
           </Reveal>
 
           <Reveal delay={0.1}>
-            <div className="panel-raised overflow-hidden">
-              <div className="border-b border-edge bg-frost/70 px-6 py-5">
-                <p className="kicker">At the door</p>
+            <div className="panel-raised overflow-hidden shadow-high">
+              <div className="border-b border-edge bg-frost px-6 py-5">
+                <p className="kicker kicker-rule">At the door</p>
               </div>
               <ul className="divide-y divide-edge">
                 {EVENT.entryRules.map((rule) => (
@@ -368,11 +390,19 @@ export default async function HomePage() {
       {/* ================================================================== */}
       {/* FAQ                                                                 */}
       {/* ================================================================== */}
-      <section className="section border-t border-edge bg-paper" aria-labelledby="faq">
-        <div className="shell grid gap-12 lg:grid-cols-[0.8fr_1.2fr] lg:gap-20">
+      <section className="section slab overflow-hidden" aria-labelledby="faq">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute left-[-8%] bottom-[-10%] h-[420px] w-[420px] rounded-full bg-pulse-200/50 blur-[110px]"
+        />
+        <div
+          aria-hidden
+          className="pointer-events-none absolute right-[-12%] top-[6%] h-[560px] w-[560px] rounded-full bg-orchid-300/40 blur-[120px]"
+        />
+        <div className="shell relative grid gap-12 lg:grid-cols-[0.8fr_1.2fr] lg:gap-20">
           <Reveal>
             <div className="lg:sticky lg:top-28 lg:self-start">
-              <p className="kicker">Questions</p>
+              <p className="kicker kicker-rule">Questions</p>
               <h2 id="faq" className="h-section mt-4">
                 Everything people ask.
               </h2>
@@ -439,11 +469,11 @@ export default async function HomePage() {
 
 function HeroFact({ label, value, sub }: { label: string; value: string; sub: string }) {
   return (
-    <div>
-      <dt className="text-[0.6875rem] font-semibold uppercase tracking-[0.14em] text-muted">
+    <div className="bg-white/85 px-5 py-4">
+      <dt className="text-[0.625rem] font-semibold uppercase tracking-[0.16em] text-muted">
         {label}
       </dt>
-      <dd className="tnum mt-1.5 font-display text-[1.375rem] font-semibold leading-none tracking-[-0.03em] text-ink">
+      <dd className="tnum mt-2 font-display text-[1.375rem] font-semibold leading-none tracking-[-0.03em] text-ink">
         {value}
       </dd>
       <p className="mt-1 text-[0.8125rem] text-slate">{sub}</p>

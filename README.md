@@ -11,6 +11,27 @@ and the admin/door console all ship together.
 
 ---
 
+## The intro
+
+`/` opens with the event artwork drawing itself — the chain heart, the wordmark,
+the cherries — before the landing page appears. It is in
+`components/site/PosterIntro.tsx` and is deliberately cheap to escape:
+
+- **once per browser session**, not per page view
+- **any click, tap, key or scroll** skips it
+- **`prefers-reduced-motion`** removes it before it ever paints
+- **no JavaScript** removes it too, via the `<noscript>` rule in the layout
+
+The overlay is server-rendered so there is no flash of the page behind it. A tiny
+inline script in `app/layout.tsx` sets a flag on `<html>` before first paint, and
+CSS hides the overlay in the same paint for anyone who has already seen it —
+React cannot un-render markup it has not hydrated yet, which is why that check is
+not component state.
+
+It is on the landing page only. An intro in front of a checkout is sabotage.
+
+---
+
 ## Payments
 
 Payments run through **Razorpay** and are gated on `PAYMENTS_ENABLED`.
@@ -80,6 +101,7 @@ VALUES ('SOMECODE', 'Who it belongs to', 10000, 200);
 | --- | --- | --- |
 | Framework | Next.js 15 (App Router), React 19 | One deployable for site + API + admin |
 | Styling | Tailwind CSS 3.4 | Light-blue design tokens in `tailwind.config.ts` |
+| Backdrop | CSS only (`components/site/Environment.tsx`) | Fixed aurora, dot lattice and grain behind every page |
 | Motion | Framer Motion 11 | Scroll reveals, shared-layout nav, pointer-tracked 3D tilt |
 | 3D | React Three Fiber + drei | Decorative hero only; skipped without WebGL |
 | Payments | Razorpay Checkout | Server-created orders, HMAC-verified callbacks and webhook |

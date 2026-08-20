@@ -6,10 +6,14 @@ export function Footer() {
   const year = new Date().getFullYear();
 
   return (
-    <footer className="relative mt-auto border-t border-edge bg-paper">
+    <footer className="relative mt-auto border-t border-edge bg-frost">
       {/* Last chance to sell the ticket, before the small print. */}
-      <div className="border-b border-edge bg-vybe-50">
-        <div className="shell flex flex-col items-start gap-6 py-10 sm:flex-row sm:items-center sm:justify-between">
+      <div className="relative overflow-hidden border-b border-edge bg-gradient-to-r from-vybe-50 via-white to-orchid-200/40">
+        <span
+          aria-hidden
+          className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 halftone opacity-40"
+        />
+        <div className="shell relative flex flex-col items-start gap-6 py-10 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="font-display text-[1.5rem] font-semibold tracking-[-0.03em] text-ink">
               {EVENT.name} <span className="accent text-vybe-600">{EVENT.edition}</span>

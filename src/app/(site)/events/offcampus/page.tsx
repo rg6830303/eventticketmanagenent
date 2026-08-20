@@ -88,7 +88,6 @@ export default async function OffCampusPage() {
 
       {/* ---------------------------------------------------------------- */}
       <section className="relative overflow-hidden pb-14 pt-32 sm:pt-36">
-        <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 dotfield fade-edges opacity-60" />
 
         <div className="shell">
           <Reveal>
@@ -176,7 +175,7 @@ export default async function OffCampusPage() {
       </section>
 
       {/* ---------------------------------------------------------------- */}
-      <section className="section border-t border-edge bg-paper" aria-labelledby="detail">
+      <section className="section slab" aria-labelledby="detail">
         <div className="shell grid gap-14 lg:grid-cols-[1fr_1fr] lg:gap-20">
           <div>
             <p className="kicker">The long version</p>
@@ -220,7 +219,7 @@ export default async function OffCampusPage() {
       {/* ---------------------------------------------------------------- */}
       <section
         id="tickets"
-        className="section border-y border-edge bg-paper"
+        className="section slab"
         aria-labelledby="event-tickets"
       >
         <div className="shell">
@@ -287,7 +286,7 @@ export default async function OffCampusPage() {
       </section>
 
       {/* ---------------------------------------------------------------- */}
-      <section className="section border-t border-edge bg-paper" aria-labelledby="event-faq">
+      <section className="section slab" aria-labelledby="event-faq">
         <div className="shell grid gap-12 lg:grid-cols-[0.8fr_1.2fr] lg:gap-20">
           <div className="lg:sticky lg:top-28 lg:self-start">
             <p className="kicker">Questions</p>

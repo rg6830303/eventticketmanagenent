@@ -4,7 +4,6 @@ import type { Metadata } from 'next';
 import { getBookingByReference } from '@/lib/bookings';
 import { getSiteUrl } from '@/lib/site-url';
 import { cn, formatEventDate, formatEventTime, formatInr, maskEmail, formatDateTime } from '@/lib/utils';
-import { Globe } from '@/components/brand/Globe';
 import { Reveal } from '@/components/ui/Reveal';
 import { ShareCrew } from '@/components/game/ShareCrew';
 import { TicketCard } from '@/components/booking/TicketCard';
@@ -41,23 +40,9 @@ export default async function BookingConfirmationPage({
       {/* Only a live booking is worth celebrating. */}
       {!cancelled && !unpaid && <BookingCelebration reference={booking.reference} />}
 
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-x-0 top-0 h-[520px] dotfield print:hidden"
-      />
-
       <div className="shell relative pb-24 pt-28 sm:pt-32">
         <Reveal>
           <div className="relative mx-auto max-w-2xl text-center">
-            {/* Positioning stays on the wrapper: `spin` animates `transform`, and
-                a translate utility on the same element would be overwritten. */}
-            <span
-              aria-hidden
-              className="pointer-events-none absolute left-1/2 top-[-60px] block h-[280px] w-[280px] -translate-x-1/2 print:hidden"
-            >
-              <Globe className="h-full w-full text-vybe-500/[0.06]" strokeWidth={1} spin />
-            </span>
-
             <div className="relative">
               {unpaid ? (
                 <>

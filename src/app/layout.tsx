@@ -3,6 +3,7 @@ import { Bricolage_Grotesque, Instrument_Sans, Instrument_Serif, DM_Mono } from 
 import './globals.css';
 import { BRAND, EVENT } from '@/content/site';
 import { getSiteUrl } from '@/lib/site-url';
+import { Environment } from '@/components/site/Environment';
 
 /**
  * Type system.
@@ -108,16 +109,30 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     >
       <head>
         {/*
+          Runs before first paint. The poster intro is server-rendered as an
+          opaque overlay, so a returning visitor would otherwise see a frame of
+          it on every navigation before React could take it away. Setting the
+          flag here lets CSS hide it in the same paint.
+        */}
+        <script
+          // eslint-disable-next-line react/no-danger -- must execute synchronously, before paint.
+          dangerouslySetInnerHTML={{
+            __html: `try{if(sessionStorage.getItem('hov:intro-seen')==='1'){document.documentElement.setAttribute('data-intro-seen','1')}}catch(e){}`,
+          }}
+        />
+        {/*
           Scroll-triggered entrances render at opacity 0 and are animated in by
           JavaScript. With scripting off they would never arrive, and whole
           sections — the activity grid, the prices — would simply be blank. This
-          hands every one of them back the moment JS is unavailable.
+          hands every one of them back the moment JS is unavailable, and drops
+          the intro overlay that would otherwise never lift.
         */}
         <noscript>
-          <style>{`[data-reveal]{opacity:1!important;transform:none!important}`}</style>
+          <style>{`[data-reveal]{opacity:1!important;transform:none!important}#poster-intro{display:none!important}`}</style>
         </noscript>
       </head>
       <body className="min-h-dvh">
+        <Environment />
         {/* Keyboard users land here first; the nav is long on mobile. */}
         <a
           href="#main"
