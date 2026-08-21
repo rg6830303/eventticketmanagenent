@@ -68,6 +68,50 @@ returns per request rather than baking into the bundle.
 
 ---
 
+## Direct UPI (manual reconciliation)
+
+An alternative rail for collecting money without a gateway, gated on
+`UPI_ENABLED` and `UPI_VPA`. It can run alongside Razorpay or on its own.
+
+1. `/pay/<reference>` renders a QR encoding
+   `upi://pay?pa=…&pn=…&am=…&cu=INR&tr=<reference>&tn=…`.
+2. The customer pays from their own UPI app and types the 12-digit UTR back in.
+3. `POST /api/payments/upi/claim` records the claim. **It does not confirm the
+   booking.**
+4. An operator finds the payment in their bank or UPI app and approves it at
+   `/admin/payments`, which mints the passes and emails them.
+
+### Why step 4 exists
+
+A UTR is a number the customer types. There is no signature to verify and no
+callback to trust, so nothing in software can tell a real reference from twelve
+invented digits. Issuing tickets on submission would hand a free pass to anyone
+who typed a number, so a claim only ever parks the order in a queue.
+
+The one control that does exist is a partial unique index: a given UTR backs at
+most one live claim, so the same reference cannot be spent twice. Rejected
+claims are excluded from it, so a genuine payer whose first attempt was refused
+can resubmit.
+
+Some deliberate details:
+
+- **The QR is generated server-side** from `bookings.amount_paise`, using the
+  `qrcode` package already in the tree. No QR library reaches the browser, and
+  a tampered client cannot render a ₹1 code and then claim the real order.
+- **`tr` carries the booking reference**, not `tn`. `tr` is the merchant
+  transaction reference and is what appears in the payee's statement, which is
+  the entire basis for matching a payment later.
+- **The amount is formatted to exactly two decimals.** `500.5` has been seen to
+  render as ₹500.50 in one PSP and ₹500.05 in another.
+- **Approving reuses `confirmPendingBooking`**, the same transaction the gateway
+  uses, so a UPI pass is identical to a Razorpay one.
+- **Rejecting returns the booking to payable** so the customer can try again.
+
+If nobody is going to watch `/admin/payments`, leave `UPI_ENABLED=false`.
+Bookings on this rail hold inventory and have no passes until someone acts.
+
+---
+
 ## Referral codes
 
 A referral code takes a **flat amount off the whole order**, not a percentage and not per ticket.

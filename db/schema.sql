@@ -123,6 +123,51 @@ CREATE INDEX IF NOT EXISTS bookings_referral_idx ON bookings (referral_code)
   WHERE referral_code IS NOT NULL;
 
 -- --------------------------------------------------------------------------
+-- upi_payment_claims — customer-declared UPI payments awaiting a human check
+--
+-- A UTR is a number the customer types into a form. Nothing about it can be
+-- verified without bank API access, so a claim NEVER confirms a booking on its
+-- own: it parks the order until an operator finds the payment in their UPI app
+-- and approves it, which is what actually mints the tickets.
+--
+-- The partial unique index below is the one real fraud control available here:
+-- a given UTR can back exactly one live claim, so the same reference number
+-- cannot be reused across two bookings.
+-- --------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS upi_payment_claims (
+  id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  booking_id    UUID NOT NULL REFERENCES bookings(id) ON DELETE CASCADE,
+  -- Stored normalised: digits only, no spaces.
+  utr           TEXT NOT NULL,
+  -- Snapshot of what was owed when the claim was made, so a later price change
+  -- cannot make an old claim look short-paid.
+  amount_paise  INTEGER NOT NULL CHECK (amount_paise >= 0),
+  vpa           TEXT NOT NULL,
+  status        TEXT NOT NULL DEFAULT 'submitted'
+                  CHECK (status IN ('submitted', 'approved', 'rejected')),
+  note          TEXT,
+  reviewed_by   UUID REFERENCES admin_users(id) ON DELETE SET NULL,
+  reviewed_at   TIMESTAMPTZ,
+  ip_address    INET,
+  user_agent    TEXT,
+  created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS upi_claims_booking_idx ON upi_payment_claims (booking_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS upi_claims_status_idx  ON upi_payment_claims (status, created_at DESC);
+
+-- One UTR backs one booking. Rejected claims are excluded so a genuine payer
+-- whose first attempt was refused can resubmit the same reference.
+CREATE UNIQUE INDEX IF NOT EXISTS upi_claims_utr_live_idx
+  ON upi_payment_claims (utr) WHERE status <> 'rejected';
+
+-- Allow 'upi' alongside the existing providers. Written as a drop-and-add so
+-- the whole file stays re-runnable.
+ALTER TABLE bookings DROP CONSTRAINT IF EXISTS bookings_payment_provider_check;
+ALTER TABLE bookings ADD CONSTRAINT bookings_payment_provider_check
+  CHECK (payment_provider IN ('none', 'razorpay', 'upi', 'comp', 'cash'));
+
+-- --------------------------------------------------------------------------
 -- tickets — one row per admitted head; this is what the QR resolves to
 -- --------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS tickets (
