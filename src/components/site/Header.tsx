@@ -112,7 +112,10 @@ export function Header() {
           </ul>
 
           <div className="flex items-center gap-2">
-            <Link href="/book" className="btn-primary hidden py-3 text-[0.875rem] sm:inline-flex">
+            <Link
+              href="/events/offcampus#tickets"
+              className="btn-primary hidden py-3 text-[0.875rem] sm:inline-flex"
+            >
               Buy tickets
             </Link>
             <Link href="/cart" className="btn-outline hidden py-3 text-[0.875rem] sm:inline-flex">
@@ -210,7 +213,7 @@ export function Header() {
                 transition={{ delay: 0.32 }}
                 className="mt-8"
               >
-                <Link href="/book" className="btn-primary w-full">
+                <Link href="/events/offcampus#tickets" className="btn-primary w-full">
                   Buy tickets
                 </Link>
                 <p className="mt-4 text-center text-[0.8125rem] text-slate">
