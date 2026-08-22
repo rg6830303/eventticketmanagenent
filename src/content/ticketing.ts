@@ -1,35 +1,48 @@
 export const FALLBACK_TICKET_TIERS = [
   {
-    code: 'VVIP',
-    name: 'VVIP',
+    code: 'NORMAL',
+    name: 'Normal Pass',
     description:
-      'The premium party experience with priority-style entry and the most elevated arrival.',
-    pricePaise: 200_000,
-    remaining: 80,
-    total: 80,
-    perks: ['Premium entry experience', 'All party activities included', 'Ideal for groups'],
-  },
-  {
-    code: 'VIP',
-    name: 'VIP',
-    description:
-      'A balanced premium ticket for guests who want extra comfort while enjoying the full party.',
-    pricePaise: 150_000,
-    remaining: 140,
-    total: 140,
-    perks: ['Priority-style entry', 'All party activities included', 'Most popular choice'],
-  },
-  {
-    code: 'GA',
-    name: 'GA',
-    description:
-      'The straightforward all-access ticket for the complete non-alcoholic party experience.',
+      'Solo entry to the complete non-alcoholic party, with part of the pass value redeemable at the venue.',
     pricePaise: 111_100,
-    remaining: 220,
-    total: 220,
-    perks: ['Full event access', 'All party activities included', 'Best-value entry'],
+    redeemablePaise: 50_000,
+    pax: 1,
+    priceUnit: '/ pass',
+    remaining: 200,
+    total: 200,
+    perks: ['Admits 1 guest', '₹500 redeemable', 'Full party access'],
+  },
+  {
+    code: 'COUPLE',
+    name: 'Couple Pass',
+    description:
+      'A two-person pass designed for pairs, with a shared redeemable value at the venue.',
+    pricePaise: 200_000,
+    redeemablePaise: 100_000,
+    pax: 2,
+    priceUnit: '/ couple',
+    remaining: 75,
+    total: 75,
+    perks: ['Admits 2 guests', '₹1,000 redeemable', 'Best for pairs'],
+  },
+  {
+    code: 'VIPTABLE',
+    name: 'VIP Table - 5 Pass',
+    description:
+      'A reserved VIP table package for five guests, with a generous redeemable value at the venue.',
+    pricePaise: 1_000_000,
+    redeemablePaise: 500_000,
+    pax: 5,
+    priceUnit: '/ table',
+    remaining: 10,
+    total: 10,
+    perks: ['Admits 5 guests', '₹5,000 redeemable', 'Reserved VIP table'],
   },
 ] as const;
+
+export function getTicketTierMeta(code: string) {
+  return FALLBACK_TICKET_TIERS.find((tier) => tier.code === code.toUpperCase());
+}
 
 export const REFERRAL_CODES = [
   { code: 'KRISH100', label: 'Krish' },
@@ -50,4 +63,3 @@ export const REFERRAL_CODES = [
 ] as const;
 
 export const REFERRAL_DISCOUNT_PAISE = 10_000;
-

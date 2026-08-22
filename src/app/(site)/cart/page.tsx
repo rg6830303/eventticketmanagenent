@@ -3,7 +3,7 @@ import { getEventBySlug, listTiers } from '@/lib/bookings';
 import { EVENT, FEATURED_EVENT_SLUG } from '@/content/site';
 import { formatEventDate, formatEventTime } from '@/lib/utils';
 import { CartClient } from '@/components/cart/CartClient';
-import { FALLBACK_TICKET_TIERS } from '@/content/ticketing';
+import { FALLBACK_TICKET_TIERS, getTicketTierMeta } from '@/content/ticketing';
 
 export const dynamic = 'force-dynamic';
 
@@ -16,15 +16,22 @@ export const metadata: Metadata = {
 export default async function CartPage() {
   const event = await getEventBySlug(FEATURED_EVENT_SLUG).catch(() => null);
   const tierRows = event ? await listTiers(event.id).catch(() => []) : [];
-  const tiers = tierRows.length
-    ? tierRows.map((tier) => ({
-        code: tier.code,
-        name: tier.name,
-        description: tier.description,
-        pricePaise: tier.price_paise,
-        remaining: Math.max(0, tier.quantity - tier.sold),
-        perks: Array.isArray(tier.perks) ? tier.perks : [],
-      }))
+  const phaseOneRows = tierRows.filter((tier) => getTicketTierMeta(tier.code));
+  const tiers = phaseOneRows.length === FALLBACK_TICKET_TIERS.length
+    ? phaseOneRows.map((tier) => {
+        const meta = getTicketTierMeta(tier.code);
+        return {
+          code: tier.code,
+          name: tier.name,
+          description: tier.description,
+          pricePaise: tier.price_paise,
+          remaining: Math.max(0, tier.quantity - tier.sold),
+          perks: Array.isArray(tier.perks) ? tier.perks : [],
+          redeemablePaise: meta?.redeemablePaise ?? 0,
+          pax: meta?.pax ?? 1,
+          priceUnit: meta?.priceUnit ?? '/ pass',
+        };
+      })
     : FALLBACK_TICKET_TIERS.map(({ total: _total, ...tier }) => ({
         ...tier,
         perks: [...tier.perks],

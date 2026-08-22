@@ -15,7 +15,7 @@ import { StickyBuyBar } from '@/components/event/StickyBuyBar';
 import { PosterIntro } from '@/components/site/PosterIntro';
 import { HowItWorks } from '@/components/home/HowItWorks';
 import { Accordion } from '@/components/events/Accordion';
-import { FALLBACK_TICKET_TIERS } from '@/content/ticketing';
+import { FALLBACK_TICKET_TIERS, getTicketTierMeta } from '@/content/ticketing';
 
 export const dynamic = 'force-dynamic';
 
@@ -32,23 +32,30 @@ const TICKER = [
   '12.09.2026',
   'NON-STOP DJ',
   'FINANCIAL DISTRICT',
-  '12PM — 5PM',
+  '12PM — 4PM',
 ];
 
 export default async function HomePage() {
   const event = await getEventBySlug(FEATURED_EVENT_SLUG).catch(() => null);
   const tierRows = event ? await listTiers(event.id).catch(() => []) : [];
+  const phaseOneRows = tierRows.filter((tier) => getTicketTierMeta(tier.code));
 
-  const tiers: RailTier[] = tierRows.length
-    ? tierRows.map((tier) => ({
-        code: tier.code,
-        name: tier.name,
-        description: tier.description,
-        pricePaise: tier.price_paise,
-        remaining: Math.max(0, tier.quantity - tier.sold),
-        total: tier.quantity,
-        perks: Array.isArray(tier.perks) ? tier.perks : [],
-      }))
+  const tiers: RailTier[] = phaseOneRows.length === FALLBACK_TICKET_TIERS.length
+    ? phaseOneRows.map((tier) => {
+        const meta = getTicketTierMeta(tier.code);
+        return {
+          code: tier.code,
+          name: tier.name,
+          description: tier.description,
+          pricePaise: tier.price_paise,
+          remaining: Math.max(0, tier.quantity - tier.sold),
+          total: tier.quantity,
+          perks: Array.isArray(tier.perks) ? tier.perks : [],
+          redeemablePaise: meta?.redeemablePaise ?? 0,
+          pax: meta?.pax ?? 1,
+          priceUnit: meta?.priceUnit ?? '/ pass',
+        };
+      })
     : FALLBACK_TICKET_TIERS.map((tier) => ({ ...tier, perks: [...tier.perks] }));
 
   const onSale = tiers.filter((tier) => tier.remaining > 0);
@@ -86,9 +93,12 @@ export default async function HomePage() {
               </Reveal>
 
               <Reveal delay={0.06}>
-                <h1 className="h-hero mt-5">
-                  The first party of your{' '}
-                  <span className="accent text-vybe-600">first year</span>.
+                <h1 className="h-hero mt-5 font-semibold lg:w-[118%]">
+                  <span className="lg:block">The first</span>{' '}
+                  <span className="lg:block lg:whitespace-nowrap">party of your</span>{' '}
+                  <span className="lg:block lg:whitespace-nowrap">
+                    <span className="accent text-vybe-600">first year</span>.
+                  </span>
                 </h1>
               </Reveal>
 
@@ -99,7 +109,7 @@ export default async function HomePage() {
               <Reveal delay={0.18}>
                 <dl className="mt-9 grid max-w-xl grid-cols-2 border-y-2 border-ink sm:grid-cols-4">
                   <HeroFact label="Date" value={EVENT.dateShort} sub="Saturday" />
-                  <HeroFact label="Time" value="12—5" sub="PM, sharp" />
+                  <HeroFact label="Time" value="12—4" sub="PM, sharp" />
                   <HeroFact label="Venue" value="Kingdome" sub={EVENT.venue.area} />
                   <div className="border-l border-ink/25 px-4 py-4 first:border-l-0 first:pl-0 max-sm:[&:nth-child(3)]:border-l-0 max-sm:[&:nth-child(3)]:pl-0 max-sm:[&:nth-child(n+3)]:border-t max-sm:[&:nth-child(n+3)]:border-t-ink/25">
                     <p className="tnum mt-2 font-display text-[1.375rem] font-semibold leading-none tracking-[-0.03em] text-ink">
@@ -174,7 +184,7 @@ export default async function HomePage() {
             <Reveal>
               <div className="edit-head">
                 <h2 id="about-party" className="h-section max-w-[16ch]">
-                  Five hours, one rooftop, the whole batch.
+                  Four hours, one rooftop, the whole batch.
                 </h2>
                 <span className="edit-index">01 — The party</span>
               </div>
@@ -256,13 +266,13 @@ export default async function HomePage() {
         <Reveal>
           <div className="edit-head">
             <h2 id="tickets-heading" className="h-section">
-              One price for everyone. No guest list.
+              Phase 1 pass pricing.
             </h2>
             <span className="edit-index">03 — Tickets</span>
           </div>
           <p className="lede mt-4 max-w-2xl">
-            Stock below is live. When a tier runs out it stops selling on its own — we do not
-            oversell the room and there is no list at the gate.
+            Choose a solo pass, come as a couple, or reserve a VIP table for five. Every pass
+            includes a clearly marked redeemable value at the venue.
           </p>
         </Reveal>
 

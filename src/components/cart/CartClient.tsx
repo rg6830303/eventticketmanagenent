@@ -66,7 +66,15 @@ export function CartClient({ eventName, eventSlug, tiers, eventDate, doorsAt }: 
     .filter((row): row is NonNullable<typeof row> => Boolean(row));
 
   const subtotal = cartRows.reduce((sum, row) => sum + row.lineTotal, 0);
-  const totalTickets = cartRows.reduce((sum, row) => sum + row.quantity, 0);
+  const totalPasses = cartRows.reduce((sum, row) => sum + row.quantity, 0);
+  const totalGuests = cartRows.reduce(
+    (sum, row) => sum + row.quantity * (row.tier.pax ?? 1),
+    0,
+  );
+  const totalRedeemable = cartRows.reduce(
+    (sum, row) => sum + row.quantity * (row.tier.redeemablePaise ?? 0),
+    0,
+  );
   const discount = referralStatus === 'valid' ? Math.min(referralDiscount, subtotal) : 0;
   const total = Math.max(0, subtotal - discount);
 
@@ -157,7 +165,8 @@ export function CartClient({ eventName, eventSlug, tiers, eventDate, doorsAt }: 
             <div className="panel p-8">
               <p className="h-card">Your cart is empty</p>
               <p className="mt-2 text-[0.9375rem] text-slate">
-                Add VVIP, VIP or GA tickets from the ticket section to start building your order.
+                Add a Normal Pass, Couple Pass or VIP Table from the ticket section to start your
+                order.
               </p>
               <div className="mt-6 flex flex-wrap gap-3">
                 <Link href={`/events/${eventSlug}`} className="btn-primary">
@@ -183,6 +192,10 @@ export function CartClient({ eventName, eventSlug, tiers, eventDate, doorsAt }: 
                       </p>
                     </div>
                     <p className="mt-1 text-[0.8125rem] text-slate">{tier.description}</p>
+                    <p className="mt-2 font-mono text-[0.6875rem] uppercase tracking-[0.12em] text-leaf-600">
+                      {tier.pax ?? 1} {(tier.pax ?? 1) === 1 ? 'guest' : 'guests'} ·{' '}
+                      {formatInr(tier.redeemablePaise ?? 0)} redeemable
+                    </p>
                   </div>
 
                   <div className="space-y-4 p-5">
@@ -210,7 +223,7 @@ export function CartClient({ eventName, eventSlug, tiers, eventDate, doorsAt }: 
                       </div>
 
                       <div className="text-right text-[0.8125rem] text-slate">
-                        <div>Unit price: {formatInr(tier.pricePaise)}</div>
+                        <div>Pass price: {formatInr(tier.pricePaise)}</div>
                         <div>Total: {formatInr(lineTotal)}</div>
                       </div>
                     </div>
@@ -257,8 +270,10 @@ export function CartClient({ eventName, eventSlug, tiers, eventDate, doorsAt }: 
           </div>
 
           <div className="space-y-3.5 px-6 py-5 text-[0.875rem]">
-            <Row label="Items" value={`${cartRows.length}`} />
-            <Row label="Tickets" value={`${totalTickets}`} />
+            <Row label="Pass types" value={`${cartRows.length}`} />
+            <Row label="Passes" value={`${totalPasses}`} />
+            <Row label="Guests covered" value={`${totalGuests}`} />
+            <Row label="Redeemable value" value={formatInr(totalRedeemable)} />
             <Row label="Bill amount" value={formatInr(subtotal)} />
 
             <div className="rule-receipt my-4" />

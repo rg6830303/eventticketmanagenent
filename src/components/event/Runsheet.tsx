@@ -5,7 +5,7 @@ import { useRef } from 'react';
 import { EVENT } from '@/content/site';
 
 /**
- * The five hours, in order.
+ * The four hours, in order.
  *
  * The rail down the left fills as the section scrolls, so the reader's position
  * in the page and their position in the afternoon are the same thing. The fill

@@ -14,7 +14,7 @@ export const BRAND = {
   shortName: 'HOV',
   tagline: 'Hyderabad day parties',
   description:
-    'OFF Campus is a Freshers day party by Houz of Vybe at Kingdome Klub & Kitchen, Financial District. Saturday 12 September 2026, 12 PM to 5 PM. Book online, get a QR pass by email, walk straight in.',
+    'OFF Campus is a Freshers day party by Houz of Vybe at Kingdome Klub & Kitchen, Financial District. Saturday 12 September 2026, 12 PM to 4 PM. Book online, get a QR pass by email, walk straight in.',
   city: 'Hyderabad',
   // TODO(operator): swap in the live inboxes and number before you announce.
   email: 'hello@houzofvybe.com',
@@ -80,16 +80,16 @@ export const EVENT = {
   // Kept as strings for copy; the authoritative timestamps are in Postgres.
   dateLabel: 'Saturday 12 September 2026',
   dateShort: '12.09.2026',
-  timeLabel: '12 PM — 5 PM',
+  timeLabel: '12 PM — 4 PM',
   ageLabel: '18+',
   headline: 'The first party of your first year.',
   subhead:
-    'Five hours, one rooftop bar, and the entire fresher batch in one place. Doors at noon, music until five.',
+    'Four hours, one rooftop bar, and the entire fresher batch in one place. Doors at noon, music until four.',
   standfirst:
     'OFF Campus is the Freshers welcome for the class of 2026. It runs in daylight at Kingdome Klub & Kitchen in the Financial District, with a non-stop DJ, a photo booth, temporary tattoos and a few things we are not printing on the poster.',
   body: [
     'You get one first week of college. This is the part of it people actually remember, and it happens on a Saturday afternoon instead of at 2 AM on a weeknight.',
-    'The room is Kingdome Klub & Kitchen in the Financial District. Music runs without a break from noon to five, the booths open when the doors do, and the kitchen is open through the whole thing.',
+    'The room is Kingdome Klub & Kitchen in the Financial District. Music runs without a break from noon to four, the booths open when the doors do, and the kitchen is open through the whole thing.',
     'Entry is by QR pass. You book here, the pass lands in your inbox, and the door team scans it once. No printed list, no calling someone at the gate to get your name on it.',
   ],
 
@@ -146,8 +146,8 @@ export const EVENT = {
     { time: '12:00', title: 'Doors', copy: 'Scan in, grab a drink, booths open.' },
     { time: '1:00', title: 'Warm-up set', copy: 'Room fills. Photo booth is at its emptiest.' },
     { time: '2:30', title: 'Peak', copy: 'Main set. This is the hour people film.' },
-    { time: '4:00', title: 'Last hour', copy: 'Closing set, last call, group photos.' },
-    { time: '5:00', title: 'Wrap', copy: 'Music stops. The afterparty is your problem.' },
+    { time: '3:00', title: 'Last hour', copy: 'Closing set, last call, group photos.' },
+    { time: '4:00', title: 'Wrap', copy: 'Music stops. The afterparty is your problem.' },
   ],
 
   entryRules: [
@@ -282,7 +282,7 @@ export const ABOUT_STORY = {
   values: [
     {
       title: 'Daylight, deliberately',
-      copy: 'Noon to five means you get the party and still have your evening.',
+      copy: 'Noon to four means you get the party and still have your evening.',
     },
     {
       title: 'A door that moves',

@@ -15,7 +15,7 @@ const pool = new pg.Pool({
  * Seed for OFF Campus — Freshers '26.
  *
  * Venue: Kingdome Klub & Kitchen in Hyderabad's Financial District,
- * Saturday 12 September 2026, doors at noon, music until five.
+ * Saturday 12 September 2026, doors at noon, music until four.
  *
  * Prices and stock are the operator's call — edit TIERS below and re-run, the
  * insert is an upsert and will not lower a tier's quantity under what has
@@ -34,13 +34,13 @@ const EVENT = {
   name: 'OFF Campus',
   tagline: "Freshers '26",
   description:
-    'The Freshers welcome for the class of 2026, thrown by Houz of Vybe at Kingdome Klub & Kitchen in the Financial District. Non-stop DJ, photo booth, temporary tattoos and more, from noon to five.',
+    'The Freshers welcome for the class of 2026, thrown by Houz of Vybe at Kingdome Klub & Kitchen in the Financial District. Non-stop DJ, photo booth, temporary tattoos and more, from noon to four.',
   venueName: 'Kingdome Klub & Kitchen',
   venueAddress:
     '251/8, E/1, Kingdome Klub Rd, Financial District, Hyderabad, Telangana 500075',
   city: 'Hyderabad',
   starts: ist(2026, 9, 12, 12, 0),
-  ends: ist(2026, 9, 12, 17, 0),
+  ends: ist(2026, 9, 12, 16, 0),
   doors: ist(2026, 9, 12, 12, 0),
   capacity: 400,
   ageLimit: 18,
@@ -48,33 +48,33 @@ const EVENT = {
 
 const TIERS = [
   {
-    code: 'VVIP',
-    name: 'VVIP',
+    code: 'NORMAL',
+    name: 'Normal Pass',
     description:
-      'Our premium front-line pick for guests who want the sharpest entry experience and the most polished first impression.',
-    price_paise: 200000,
-    quantity: 80,
-    perks: ['Premium entry feel', 'All activities included', 'Best for groups'],
+      'Solo entry to the complete non-alcoholic party, with part of the pass value redeemable at the venue.',
+    price_paise: 111100,
+    quantity: 200,
+    perks: ['Admits 1 guest', '₹500 redeemable', 'Full party access'],
     sort_order: 1,
   },
   {
-    code: 'VIP',
-    name: 'VIP',
+    code: 'COUPLE',
+    name: 'Couple Pass',
     description:
-      'The balanced premium choice with a stronger-than-basic experience for people who want to arrive in style.',
-    price_paise: 150000,
-    quantity: 140,
-    perks: ['Priority-style entry', 'All activities included', 'Popular middle tier'],
+      'A two-person pass designed for pairs, with a shared redeemable value at the venue.',
+    price_paise: 200000,
+    quantity: 75,
+    perks: ['Admits 2 guests', '₹1,000 redeemable', 'Best for pairs'],
     sort_order: 2,
   },
   {
-    code: 'GA',
-    name: 'GA',
+    code: 'VIPTABLE',
+    name: 'VIP Table - 5 Pass',
     description:
-      'The straightforward all-access ticket: simple, affordable and perfect if you just want the full party.',
-    price_paise: 111100,
-    quantity: 220,
-    perks: ['Full event access', 'All activities included', 'Best value entry'],
+      'A reserved VIP table package for five guests, with a generous redeemable value at the venue.',
+    price_paise: 1000000,
+    quantity: 10,
+    perks: ['Admits 5 guests', '₹5,000 redeemable', 'Reserved VIP table'],
     sort_order: 3,
   },
 ];
@@ -146,6 +146,12 @@ async function main() {
 
     const event = rows[0];
     console.log(`  ✓ Event: ${event.name} ${EVENT.tagline}`);
+
+    // Retire earlier pricing phases without deleting their booking history.
+    await client.query(
+      'UPDATE ticket_tiers SET active = false WHERE event_id = $1 AND NOT (code = ANY($2::text[]))',
+      [event.id, TIERS.map((tier) => tier.code)],
+    );
 
     for (const tier of TIERS) {
       await client.query(
