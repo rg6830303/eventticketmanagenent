@@ -15,6 +15,9 @@ export interface TierOption {
   pricePaise: number;
   remaining: number;
   perks: string[];
+  redeemablePaise?: number;
+  pax?: number;
+  priceUnit?: string;
 }
 
 export interface ReferralState {

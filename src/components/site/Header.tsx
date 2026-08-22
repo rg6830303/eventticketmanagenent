@@ -91,7 +91,7 @@ export function Header() {
                     href={link.href}
                     aria-current={active ? 'page' : undefined}
                     className={cn(
-                      'relative rounded-lg px-3.5 py-2 text-[0.875rem] font-medium transition-colors',
+                      'relative rounded-lg px-3.5 py-2 text-[0.875rem] font-normal transition-colors',
                       active ? 'text-ink' : 'text-slate hover:text-ink',
                     )}
                   >
@@ -193,7 +193,7 @@ export function Header() {
                         href={link.href}
                         aria-current={active ? 'page' : undefined}
                         className={cn(
-                          'flex items-baseline justify-between border-b border-edge py-4 font-display text-[1.75rem] font-semibold tracking-[-0.03em] transition-colors',
+                          'flex items-baseline justify-between border-b border-edge py-4 font-display text-[1.75rem] font-medium tracking-[-0.03em] transition-colors',
                           active ? 'text-vybe-600' : 'text-ink',
                         )}
                       >

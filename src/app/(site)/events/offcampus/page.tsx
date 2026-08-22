@@ -13,7 +13,7 @@ import { TicketRail, type RailTier } from '@/components/event/TicketRail';
 import { StickyBuyBar } from '@/components/event/StickyBuyBar';
 import { Accordion } from '@/components/events/Accordion';
 import { getSiteUrl } from '@/lib/site-url';
-import { FALLBACK_TICKET_TIERS } from '@/content/ticketing';
+import { FALLBACK_TICKET_TIERS, getTicketTierMeta } from '@/content/ticketing';
 
 export const dynamic = 'force-dynamic';
 
@@ -26,17 +26,24 @@ export const metadata: Metadata = {
 export default async function OffCampusPage() {
   const event = await getEventBySlug(EVENT.slug).catch(() => null);
   const tierRows = event ? await listTiers(event.id).catch(() => []) : [];
+  const phaseOneRows = tierRows.filter((tier) => getTicketTierMeta(tier.code));
 
-  const tiers: RailTier[] = tierRows.length
-    ? tierRows.map((tier) => ({
-        code: tier.code,
-        name: tier.name,
-        description: tier.description,
-        pricePaise: tier.price_paise,
-        remaining: Math.max(0, tier.quantity - tier.sold),
-        total: tier.quantity,
-        perks: Array.isArray(tier.perks) ? tier.perks : [],
-      }))
+  const tiers: RailTier[] = phaseOneRows.length === FALLBACK_TICKET_TIERS.length
+    ? phaseOneRows.map((tier) => {
+        const meta = getTicketTierMeta(tier.code);
+        return {
+          code: tier.code,
+          name: tier.name,
+          description: tier.description,
+          pricePaise: tier.price_paise,
+          remaining: Math.max(0, tier.quantity - tier.sold),
+          total: tier.quantity,
+          perks: Array.isArray(tier.perks) ? tier.perks : [],
+          redeemablePaise: meta?.redeemablePaise ?? 0,
+          pax: meta?.pax ?? 1,
+          priceUnit: meta?.priceUnit ?? '/ pass',
+        };
+      })
     : FALLBACK_TICKET_TIERS.map((tier) => ({ ...tier, perks: [...tier.perks] }));
 
   const onSale = tiers.filter((tier) => tier.remaining > 0);
@@ -131,7 +138,7 @@ export default async function OffCampusPage() {
                     label="Doors"
                     value={event ? formatEventTime(event.doors_at ?? event.starts_at) : '12:00 PM'}
                   />
-                  <Fact label="Until" value={event?.ends_at ? formatEventTime(event.ends_at) : '5:00 PM'} />
+                  <Fact label="Until" value="4:00 PM" />
                   <Fact label="Age" value={`${event?.age_limit ?? 18}+`} />
                 </dl>
               </Reveal>
@@ -235,14 +242,14 @@ export default async function OffCampusPage() {
         <div className="shell">
           <div className="edit-head">
             <h2 id="event-tickets" className="h-section">
-              {soldOut ? 'Sold out.' : 'Live stock, live prices.'}
+              {soldOut ? 'Sold out.' : 'Phase 1 pass pricing.'}
             </h2>
             <span className="edit-index">03 — Tickets</span>
           </div>
           <p className="lede mt-4 max-w-2xl">
             {soldOut
               ? 'Every tier has gone. Returns are posted on Instagram before anywhere else.'
-              : `Prices go up as tiers sell out, and a referral code is a flat ₹${REFERRAL.discountRupees} off whatever you end up paying.`}
+              : `Choose the pass that fits your group. Each includes venue redemption, and a referral code takes a flat ₹${REFERRAL.discountRupees} off your cart.`}
           </p>
 
           <div className="mt-12">

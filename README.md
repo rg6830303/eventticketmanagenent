@@ -2,7 +2,7 @@
 
 Event website and QR ticketing system for **Houz of Vybe**, Hyderabad. The site is built around
 one flagship event — **OFF Campus, Freshers '26**, at Kingdome Klub & Kitchen in the Financial District on Saturday
-12 September 2026, 12 PM to 5 PM. Customers pick a ticket, optionally apply a referral code, pay
+12 September 2026, 12 PM to 4 PM. Customers pick a ticket, optionally apply a referral code, pay
 through Razorpay, and receive a cryptographically signed QR pass by email within seconds. Door
 staff scan it with a phone camera.
 

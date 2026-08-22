@@ -15,6 +15,9 @@ export interface RailTier {
   remaining: number;
   total: number;
   perks: string[];
+  redeemablePaise: number;
+  pax: number;
+  priceUnit: string;
 }
 
 const EASE = [0.16, 1, 0.3, 1] as const;
@@ -114,9 +117,14 @@ export function TicketRail({
                     {tier.pricePaise === 0 ? 'Free' : formatInr(tier.pricePaise)}
                   </span>
                   <span className="font-mono text-[0.6875rem] uppercase tracking-[0.12em] text-muted">
-                    / person
+                    {tier.priceUnit}
                   </span>
                 </p>
+                <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-leaf-500/40 bg-leaf-100 px-3 py-1.5 text-[0.8125rem] font-semibold text-leaf-600">
+                  <span>{formatInr(tier.redeemablePaise)} redeemable</span>
+                  <span aria-hidden>·</span>
+                  <span>{tier.pax} {tier.pax === 1 ? 'guest' : 'guests'}</span>
+                </div>
               </div>
 
               {/* Tear line, notches punched through to the ground. */}

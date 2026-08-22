@@ -32,7 +32,8 @@
   }
 
   body {
-    @apply bg-canvas font-sans text-slate antialiased;
+    @apply bg-canvas font-sans font-normal text-slate antialiased;
+    font-synthesis: none;
     font-feature-settings: 'ss01', 'cv05';
     text-rendering: optimizeLegibility;
     position: relative;
@@ -43,7 +44,7 @@
   h2,
   h3,
   h4 {
-    @apply font-display font-semibold text-ink;
+    @apply font-display font-medium text-ink;
     text-wrap: balance;
   }
 
@@ -184,21 +185,21 @@
 
   /* ---------- Type scale ---------- */
   .h-hero {
-    @apply font-display font-bold text-ink;
+    @apply font-display font-semibold text-ink;
     font-size: clamp(2.75rem, 8.5vw, 6.5rem);
     line-height: 0.94;
     letter-spacing: -0.04em;
   }
 
   .h-section {
-    @apply font-display font-semibold text-ink;
+    @apply font-display font-medium text-ink;
     font-size: clamp(2rem, 4.4vw, 3.35rem);
     line-height: 1.04;
     letter-spacing: -0.032em;
   }
 
   .h-card {
-    @apply font-display text-[1.35rem] font-semibold leading-tight text-ink;
+    @apply font-display text-[1.35rem] font-medium leading-tight text-ink;
     letter-spacing: -0.02em;
   }
 
