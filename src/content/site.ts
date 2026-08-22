@@ -40,6 +40,7 @@ export const NAV_LINKS = [
   { href: '/events/offcampus', label: 'The party' },
   { href: '/#lineup', label: "What's on" },
   { href: '/#tickets', label: 'Tickets' },
+  { href: '/cart', label: 'Cart' },
   { href: '/gallery', label: 'Gallery' },
   { href: '/faq', label: 'FAQ' },
   { href: '/contact', label: 'Contact' },
@@ -49,6 +50,7 @@ export const FOOTER_LINKS = {
   'The party': [
     { href: '/events/offcampus', label: 'OFF Campus 2026' },
     { href: '/book', label: 'Buy tickets' },
+    { href: '/cart', label: 'Cart' },
     { href: '/gallery', label: 'Gallery' },
     { href: '/events', label: 'Upcoming dates' },
   ],
@@ -215,7 +217,7 @@ export const HOW_IT_WORKS = [
   {
     step: '02',
     title: 'Pay online',
-    copy: 'UPI, card, net banking or a wallet, through Razorpay. Add a referral code first if you have one.',
+    copy: 'Add your tickets to cart, drop in a referral code if you have one, and finish payment online through Razorpay.',
   },
   {
     step: '03',

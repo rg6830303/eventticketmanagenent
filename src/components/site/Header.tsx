@@ -115,6 +115,9 @@ export function Header() {
             <Link href="/book" className="btn-primary hidden py-3 text-[0.875rem] sm:inline-flex">
               Buy tickets
             </Link>
+            <Link href="/cart" className="btn-outline hidden py-3 text-[0.875rem] sm:inline-flex">
+              Cart
+            </Link>
 
             <button
               type="button"
@@ -223,3 +226,4 @@ export function Header() {
     </>
   );
 }
+
