@@ -331,10 +331,23 @@ export function CartClient({ eventName, eventSlug, tiers, eventDate, doorsAt }: 
           <Link href={`/events/${eventSlug}`} className="btn-outline">
             Back to tickets
           </Link>
+          <a
+            href="https://ig.me/m/houzofvybe"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn-primary"
+          >
+            Confirm via Instagram DM
+          </a>
           <button type="button" onClick={clearAll} className="btn-outline">
             Clear cart
           </button>
         </div>
+
+        <p className="mt-4 text-center text-[0.8125rem] leading-relaxed text-slate">
+          Once your cart is ready, tap Confirm via Instagram DM and send the order details to
+          <span className="font-medium text-ink"> @houzofvybe</span>.
+        </p>
       </aside>
     </div>
   );
