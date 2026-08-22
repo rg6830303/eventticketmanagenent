@@ -50,7 +50,7 @@ export function StickyBuyBar({
                     : 'Tickets on sale'}
               </p>
             </div>
-            <Link href="/book" className="btn-primary btn-sm shrink-0 py-3">
+            <Link href="/events/offcampus#tickets" className="btn-primary btn-sm shrink-0 py-3">
               {soldOut ? 'Join waitlist' : 'Buy tickets'}
             </Link>
           </div>

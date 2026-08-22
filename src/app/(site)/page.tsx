@@ -15,6 +15,7 @@ import { StickyBuyBar } from '@/components/event/StickyBuyBar';
 import { PosterIntro } from '@/components/site/PosterIntro';
 import { HowItWorks } from '@/components/home/HowItWorks';
 import { Accordion } from '@/components/events/Accordion';
+import { FALLBACK_TICKET_TIERS } from '@/content/ticketing';
 
 export const dynamic = 'force-dynamic';
 
@@ -38,15 +39,17 @@ export default async function HomePage() {
   const event = await getEventBySlug(FEATURED_EVENT_SLUG).catch(() => null);
   const tierRows = event ? await listTiers(event.id).catch(() => []) : [];
 
-  const tiers: RailTier[] = tierRows.map((tier) => ({
-    code: tier.code,
-    name: tier.name,
-    description: tier.description,
-    pricePaise: tier.price_paise,
-    remaining: Math.max(0, tier.quantity - tier.sold),
-    total: tier.quantity,
-    perks: Array.isArray(tier.perks) ? tier.perks : [],
-  }));
+  const tiers: RailTier[] = tierRows.length
+    ? tierRows.map((tier) => ({
+        code: tier.code,
+        name: tier.name,
+        description: tier.description,
+        pricePaise: tier.price_paise,
+        remaining: Math.max(0, tier.quantity - tier.sold),
+        total: tier.quantity,
+        perks: Array.isArray(tier.perks) ? tier.perks : [],
+      }))
+    : FALLBACK_TICKET_TIERS.map((tier) => ({ ...tier, perks: [...tier.perks] }));
 
   const onSale = tiers.filter((tier) => tier.remaining > 0);
   // Math.min() with no arguments is Infinity, so an all-sold-out event has to
