@@ -117,6 +117,23 @@ export const env = {
   get paymentsEnabled(): boolean {
     return bool('PAYMENTS_ENABLED', false);
   },
+
+  /**
+   * Direct UPI collection.
+   *
+   * This is a manual-reconciliation channel: the customer pays a VPA from
+   * their own app and types the reference back in. Nothing about that can be
+   * verified in software, so `upi.enabled` only controls whether the option is
+   * *offered* — releasing the tickets is always an operator decision.
+   */
+  get upi() {
+    const vpa = opt('UPI_VPA');
+    return {
+      vpa,
+      payeeName: opt('UPI_PAYEE_NAME', 'Houz of Vybe'),
+      enabled: bool('UPI_ENABLED', false) && vpa.includes('@'),
+    };
+  },
   get razorpay() {
     return {
       keyId: opt('RAZORPAY_KEY_ID'),

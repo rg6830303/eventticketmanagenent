@@ -6,7 +6,11 @@ import { env } from '@/lib/env';
 import { BRAND, EVENT } from '@/content/site';
 import { formatEventDate, formatEventTime, formatInr } from '@/lib/utils';
 import { RazorpayCheckout } from '@/components/payment/RazorpayCheckout';
+import { UpiCheckout } from '@/components/payment/UpiCheckout';
 import { Reveal } from '@/components/ui/Reveal';
+import { buildUpiUri, formatUtr } from '@/lib/upi';
+import { getClaimForBooking } from '@/lib/upi-claims';
+import { qrDataUrl } from '@/lib/qr';
 
 export const dynamic = 'force-dynamic';
 
@@ -45,6 +49,26 @@ export default async function PayPage({
   }
 
   if (booking.amount_paise <= 0) redirect(`/booking/${booking.reference}`);
+
+  /**
+   * The UPI rail is assembled server-side: the deep link is built from
+   * `booking.amount_paise` and rendered to a QR here, so the code the customer
+   * scans always carries the amount the database says is owed. Generating it
+   * in the browser would let a tampered client show a QR for any figure it
+   * liked and then file a claim against the real order.
+   */
+  const upiEnabled = env.upi.enabled;
+  const upiUri = upiEnabled
+    ? buildUpiUri({
+        payeeAddress: env.upi.vpa,
+        payeeName: env.upi.payeeName,
+        amountPaise: booking.amount_paise,
+        reference: booking.reference,
+        note: `${EVENT.name} ${booking.reference}`,
+      })
+    : null;
+  const upiQr = upiUri ? await qrDataUrl(upiUri, 464).catch(() => null) : null;
+  const existingClaim = upiEnabled ? await getClaimForBooking(booking.id).catch(() => null) : null;
 
   return (
     <div className="relative">
@@ -118,9 +142,9 @@ export default async function PayPage({
 
           {/* ---------------- Payment ---------------- */}
           <Reveal delay={0.12}>
-            <div className="panel-raised sticky top-24 p-6">
-              {env.paymentsEnabled ? (
-                <>
+            <div className="sticky top-24 space-y-6">
+              {env.paymentsEnabled && (
+                <div className="card-print p-6">
                   <RazorpayCheckout
                     reference={booking.reference}
                     amountPaise={booking.amount_paise}
@@ -134,43 +158,82 @@ export default async function PayPage({
                     }}
                   />
 
-                  <div className="mt-6 border-t border-edge pt-5">
-                    <p className="kicker mb-3">Pay with</p>
-                    <ul className="flex flex-wrap gap-2">
+                  <div className="mt-6 border-t-2 border-ink pt-5">
+                    <p className="font-mono text-[0.6875rem] uppercase tracking-[0.18em] text-vybe-700">
+                      Pay with
+                    </p>
+                    <ul className="mt-3 flex flex-wrap gap-2">
                       {['UPI', 'Cards', 'Net banking', 'Wallets'].map((method) => (
                         <li
                           key={method}
-                          className="rounded-lg border border-edge bg-frost px-2.5 py-1.5 text-[0.75rem] font-medium text-slate"
+                          className="rounded-[8px] border border-ink/25 bg-frost px-2.5 py-1.5 font-mono text-[0.6875rem] uppercase tracking-[0.08em] text-slate"
                         >
                           {method}
                         </li>
                       ))}
                     </ul>
                   </div>
-                </>
-              ) : (
-                <div className="rounded-xl border border-flare-300 bg-flare-200/25 p-4 text-[0.8125rem] leading-relaxed text-flare-600">
+                </div>
+              )}
+
+              {/* Both rails on at once needs a divider, or the page reads as two
+                  competing checkouts rather than one with a fallback. */}
+              {env.paymentsEnabled && upiEnabled && upiUri && upiQr && (
+                <div className="flex items-center gap-4">
+                  <span className="h-px flex-1 bg-ink/20" />
+                  <span className="font-mono text-[0.6875rem] uppercase tracking-[0.2em] text-muted">
+                    or pay direct
+                  </span>
+                  <span className="h-px flex-1 bg-ink/20" />
+                </div>
+              )}
+
+              {upiEnabled && upiUri && upiQr && (
+                <UpiCheckout
+                  reference={booking.reference}
+                  amountPaise={booking.amount_paise}
+                  payeeName={env.upi.payeeName}
+                  vpa={env.upi.vpa}
+                  upiUri={upiUri}
+                  qrDataUrl={upiQr}
+                  existingUtr={existingClaim ? formatUtr(existingClaim.utr) : null}
+                />
+              )}
+
+              {!env.paymentsEnabled && !upiEnabled && (
+                <div className="card-print border-flare-500 p-4 text-[0.8125rem] leading-relaxed text-flare-600">
                   <p className="font-semibold">Online payment is switched off</p>
                   <p className="mt-1.5">
-                    This booking is held but cannot be paid for yet. Set PAYMENTS_ENABLED and the
-                    Razorpay keys in the deployment, then reload this page.
+                    This booking is held but cannot be paid for yet. Set PAYMENTS_ENABLED with the
+                    Razorpay keys, or UPI_ENABLED with UPI_VPA, then reload this page.
                   </p>
                 </div>
               )}
 
-              <ul className="mt-6 space-y-3 text-[0.8125rem] text-slate">
+              <div className="card-print p-6">
+              <ul className="space-y-3 text-[0.8125rem] text-slate">
                 <Assurance>Your seats are reserved while this page is open.</Assurance>
-                <Assurance>QR passes emailed within a minute of payment.</Assurance>
+                {/* "Within a minute" is true of the gateway, which confirms
+                    itself. The UPI rail waits on a person, and promising a
+                    minute there would be a promise we cannot keep. */}
+                {env.paymentsEnabled ? (
+                  <Assurance>QR passes emailed within a minute of card or UPI payment.</Assurance>
+                ) : (
+                  <Assurance>
+                    QR passes emailed once we have matched your payment — always before doors.
+                  </Assurance>
+                )}
                 <Assurance>Full refund if we cancel or move the date.</Assurance>
               </ul>
 
-              <p className="mt-6 border-t border-edge pt-5 text-[0.75rem] leading-relaxed text-muted">
+              <p className="mt-6 border-t-2 border-ink pt-5 text-[0.75rem] leading-relaxed text-muted">
                 Stuck on this step? Email{' '}
                 <a href={`mailto:${BRAND.supportEmail}`} className="link-swipe font-medium">
                   {BRAND.supportEmail}
                 </a>{' '}
                 and quote {booking.reference}.
               </p>
+              </div>
             </div>
           </Reveal>
         </div>

@@ -10,6 +10,7 @@ const ITEMS = [
   { href: '/admin/scan', label: 'Scan', icon: ScanIcon },
   { href: '/admin/bookings', label: 'Bookings', icon: ListIcon },
   { href: '/admin/checkins', label: 'Door log', icon: PulseIcon },
+  { href: '/admin/payments', label: 'UPI', icon: RupeeIcon },
 ];
 
 export function AdminNav({ variant = 'bar' }: { variant?: 'bar' | 'tabs' }) {
@@ -25,7 +26,7 @@ export function AdminNav({ variant = 'bar' }: { variant?: 'bar' | 'tabs' }) {
 
   if (variant === 'tabs') {
     return (
-      <nav aria-label="Console" className="grid grid-cols-4">
+      <nav aria-label="Console" className="grid grid-cols-5">
         {ITEMS.map((item) => {
           const active = isActive(item.href, item.exact);
           return (
@@ -138,6 +139,14 @@ function PulseIcon({ className }: IconProps) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" className={className} aria-hidden>
       <path d="M2 12h4l3-8 6 16 3-8h4" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function RupeeIcon({ className }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" className={className} aria-hidden>
+      <path d="M7 4h10M7 9h10M7 4c5 0 7 1.6 7 4s-2 4-7 4h1l7 7" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
