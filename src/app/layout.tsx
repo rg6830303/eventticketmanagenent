@@ -62,7 +62,7 @@ export const metadata: Metadata = {
   keywords: [
     'OFF Campus Hyderabad',
     'freshers party Hyderabad',
-    'Babylon Nanakramguda',
+    'Kingdome Klub Financial District',
     'college party Hyderabad',
     'day party Hyderabad',
     'Houz of Vybe',

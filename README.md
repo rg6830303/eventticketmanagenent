@@ -1,7 +1,7 @@
 # Houz of Vybe — event ticketing platform
 
 Event website and QR ticketing system for **Houz of Vybe**, Hyderabad. The site is built around
-one flagship event — **OFF Campus, Freshers '26**, at Babylon 2.0 in Nanakramguda on Saturday
+one flagship event — **OFF Campus, Freshers '26**, at Kingdome Klub & Kitchen in the Financial District on Saturday
 12 September 2026, 12 PM to 5 PM. Customers pick a ticket, optionally apply a referral code, pay
 through Razorpay, and receive a cryptographically signed QR pass by email within seconds. Door
 staff scan it with a phone camera.
@@ -391,7 +391,7 @@ Being honest about what this does not do yet:
 
 ## Legal and IP
 
-- **OFF Campus** is an independently produced event by Houz of Vybe with Babylon Bar & Kitchen.
+- **OFF Campus** is an independently produced event by Houz of Vybe with Kingdome Klub & Kitchen.
   It is not affiliated with or endorsed by any college or university.
 - The pages under `/legal` (terms, privacy, refunds) are **templates**. They are specific and
   written for an Indian events business in Telangana, but they have not been reviewed by a

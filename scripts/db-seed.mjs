@@ -14,7 +14,7 @@ const pool = new pg.Pool({
 /**
  * Seed for OFF Campus — Freshers '26.
  *
- * Everything here matches the event artwork: Babylon 2.0 in Nanakramguda,
+ * Venue: Kingdome Klub & Kitchen in Hyderabad's Financial District,
  * Saturday 12 September 2026, doors at noon, music until five.
  *
  * Prices and stock are the operator's call — edit TIERS below and re-run, the
@@ -34,9 +34,10 @@ const EVENT = {
   name: 'OFF Campus',
   tagline: "Freshers '26",
   description:
-    'The Freshers welcome for the class of 2026, thrown by Houz of Vybe at Babylon 2.0 in Nanakramguda. Non-stop DJ, photo booth, temporary tattoos and more, from noon to five.',
-  venueName: 'Babylon 2.0',
-  venueAddress: 'Babylon 2.0, Nanakramguda, Hyderabad, Telangana 500032',
+    'The Freshers welcome for the class of 2026, thrown by Houz of Vybe at Kingdome Klub & Kitchen in the Financial District. Non-stop DJ, photo booth, temporary tattoos and more, from noon to five.',
+  venueName: 'Kingdome Klub & Kitchen',
+  venueAddress:
+    '251/8, E/1, Kingdome Klub Rd, Financial District, Hyderabad, Telangana 500075',
   city: 'Hyderabad',
   starts: ist(2026, 9, 12, 12, 0),
   ends: ist(2026, 9, 12, 17, 0),
