@@ -28,10 +28,10 @@ export const metadata: Metadata = {
 const TICKER = [
   'OFF CAMPUS',
   "FRESHERS '26",
-  'BABYLON 2.0',
+  'KINGDOME KLUB',
   '12.09.2026',
   'NON-STOP DJ',
-  'NANAKRAMGUDA',
+  'FINANCIAL DISTRICT',
   '12PM — 5PM',
 ];
 
@@ -100,7 +100,7 @@ export default async function HomePage() {
                 <dl className="mt-9 grid max-w-xl grid-cols-2 border-y-2 border-ink sm:grid-cols-4">
                   <HeroFact label="Date" value={EVENT.dateShort} sub="Saturday" />
                   <HeroFact label="Time" value="12—5" sub="PM, sharp" />
-                  <HeroFact label="Venue" value="Babylon" sub={EVENT.venue.area} />
+                  <HeroFact label="Venue" value="Kingdome" sub={EVENT.venue.area} />
                   <div className="border-l border-ink/25 px-4 py-4 first:border-l-0 first:pl-0 max-sm:[&:nth-child(3)]:border-l-0 max-sm:[&:nth-child(3)]:pl-0 max-sm:[&:nth-child(n+3)]:border-t max-sm:[&:nth-child(n+3)]:border-t-ink/25">
                     <p className="tnum mt-2 font-display text-[1.375rem] font-semibold leading-none tracking-[-0.03em] text-ink">
                       Non-alcoholic party
@@ -357,7 +357,7 @@ export default async function HomePage() {
               </p>
               <div className="mt-8 flex flex-wrap gap-3">
                 <a
-                  href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(EVENT.venue.mapsQuery)}`}
+                  href={EVENT.venue.mapsUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="btn-outline btn-sm"

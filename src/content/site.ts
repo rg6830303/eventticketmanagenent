@@ -14,7 +14,7 @@ export const BRAND = {
   shortName: 'HOV',
   tagline: 'Hyderabad day parties',
   description:
-    'OFF Campus is a Freshers day party by Houz of Vybe at Babylon 2.0, Nanakramguda. Saturday 12 September 2026, 12 PM to 5 PM. Book online, get a QR pass by email, walk straight in.',
+    'OFF Campus is a Freshers day party by Houz of Vybe at Kingdome Klub & Kitchen, Financial District. Saturday 12 September 2026, 12 PM to 5 PM. Book online, get a QR pass by email, walk straight in.',
   city: 'Hyderabad',
   // TODO(operator): swap in the live inboxes and number before you announce.
   email: 'hello@houzofvybe.com',
@@ -30,7 +30,7 @@ export const BRAND = {
 
 /** The venue partner named on the artwork. */
 export const PARTNER = {
-  name: 'Babylon Bar & Kitchen',
+  name: 'Kingdome Klub & Kitchen',
   role: 'Venue partner',
 } as const;
 
@@ -76,7 +76,7 @@ export const EVENT = {
   name: 'OFF Campus',
   edition: "Freshers '26",
   editionShort: "'26",
-  presentedBy: 'Houz of Vybe × Babylon Bar & Kitchen',
+  presentedBy: 'Houz of Vybe × Kingdome Klub & Kitchen',
   // Kept as strings for copy; the authoritative timestamps are in Postgres.
   dateLabel: 'Saturday 12 September 2026',
   dateShort: '12.09.2026',
@@ -86,20 +86,22 @@ export const EVENT = {
   subhead:
     'Five hours, one rooftop bar, and the entire fresher batch in one place. Doors at noon, music until five.',
   standfirst:
-    'OFF Campus is the Freshers welcome for the class of 2026. It runs in daylight at Babylon 2.0 in Nanakramguda, with a non-stop DJ, a photo booth, temporary tattoos and a few things we are not printing on the poster.',
+    'OFF Campus is the Freshers welcome for the class of 2026. It runs in daylight at Kingdome Klub & Kitchen in the Financial District, with a non-stop DJ, a photo booth, temporary tattoos and a few things we are not printing on the poster.',
   body: [
     'You get one first week of college. This is the part of it people actually remember, and it happens on a Saturday afternoon instead of at 2 AM on a weeknight.',
-    'The room is Babylon 2.0 in Nanakramguda. Music runs without a break from noon to five, the booths open when the doors do, and the bar and kitchen are open through the whole thing.',
+    'The room is Kingdome Klub & Kitchen in the Financial District. Music runs without a break from noon to five, the booths open when the doors do, and the kitchen is open through the whole thing.',
     'Entry is by QR pass. You book here, the pass lands in your inbox, and the door team scans it once. No printed list, no calling someone at the gate to get your name on it.',
   ],
 
   venue: {
-    name: 'Babylon 2.0',
-    area: 'Nanakramguda',
-    // TODO(operator): confirm the exact door address and pin before launch.
-    addressLines: ['Babylon 2.0, Nanakramguda', 'Hyderabad, Telangana 500032'],
-    mapsQuery: 'Babylon 2.0 Nanakramguda Hyderabad',
-    landmark: 'Nanakramguda, near the Financial District',
+    name: 'Kingdome Klub & Kitchen',
+    area: 'Financial District',
+    addressLines: [
+      '251/8, E/1, Kingdome Klub Rd, Financial District',
+      'Hyderabad, Telangana 500075',
+    ],
+    mapsUrl: 'https://share.google/LiUERsDBUai9sXKAS',
+    landmark: 'Kingdome Klub Road, Financial District',
   },
 
   /**
@@ -129,7 +131,7 @@ export const EVENT = {
     },
     {
       title: 'Bar & kitchen',
-      note: 'Babylon runs its full menu straight through the party.',
+      note: 'Kingdome runs its full menu straight through the party.',
       icon: 'glass',
     },
     {
@@ -190,7 +192,7 @@ export const EVENT = {
     },
     {
       q: 'How do I get there?',
-      a: 'Babylon 2.0 is in Nanakramguda, near the Financial District. Cabs drop at the entrance. Parking on site is limited on the day.',
+      a: 'Kingdome Klub & Kitchen is on Kingdome Klub Road in the Financial District. Cabs drop at the entrance. Parking on site is limited on the day.',
     },
   ],
 } as const;
@@ -265,7 +267,7 @@ export const GALLERY = [
   { id: 4, caption: 'Tattoo table', event: 'OFF Campus', hue: 190, span: 'normal' },
   { id: 5, caption: 'Terrace, 2 PM', event: 'OFF Campus', hue: 208, span: 'wide' },
   { id: 6, caption: 'Peak hour', event: 'OFF Campus', hue: 216, span: 'tall' },
-  { id: 7, caption: 'Bar service', event: 'Babylon 2.0', hue: 200, span: 'normal' },
+  { id: 7, caption: 'Bar service', event: 'Kingdome', hue: 200, span: 'normal' },
   { id: 8, caption: 'Closing set', event: 'OFF Campus', hue: 194, span: 'normal' },
   { id: 9, caption: 'Sound check', event: 'Production', hue: 210, span: 'wide' },
 ] as const;
@@ -273,7 +275,7 @@ export const GALLERY = [
 export const ABOUT_STORY = {
   heading: 'We throw parties in daylight, and we run our own door.',
   paragraphs: [
-    'Houz of Vybe is a small Hyderabad crew that puts on day parties for college crowds. OFF Campus is our Freshers edition, made with Babylon Bar & Kitchen.',
+    'Houz of Vybe is a small Hyderabad crew that puts on day parties for college crowds. OFF Campus is our Freshers edition, made with Kingdome Klub & Kitchen.',
     'We handle it end to end: the booking, the sound, the booths, the door and the ticketing platform you are on right now. That is why a pass reaches your inbox in under a minute instead of after a WhatsApp conversation.',
     'Capacity is a number in a database here, not a guess at the gate. When it is reached, the site stops selling. A packed room is good, an oversold one is not.',
   ],

@@ -148,7 +148,7 @@ export default async function OffCampusPage() {
                     </Link>
                   </Magnetic>
                   <a
-                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(EVENT.venue.mapsQuery)}`}
+                    href={EVENT.venue.mapsUrl}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="btn-outline text-base"
@@ -272,7 +272,7 @@ export default async function OffCampusPage() {
               {EVENT.venue.landmark}. The bar and kitchen run their full menu through the party.
             </p>
             <a
-              href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(EVENT.venue.mapsQuery)}`}
+              href={EVENT.venue.mapsUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="btn-outline btn-sm mt-8"

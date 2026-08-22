@@ -11,7 +11,7 @@ export const metadata: Metadata = {
   alternates: { canonical: '/contact' },
 };
 
-const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(VENUE.mapsQuery)}`;
+const mapsUrl = VENUE.mapsUrl;
 
 export default function ContactPage() {
   return (
