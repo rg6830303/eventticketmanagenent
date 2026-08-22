@@ -98,7 +98,11 @@ export default async function HomePage() {
                   <HeroFact label="Date" value={EVENT.dateShort} sub="Saturday" />
                   <HeroFact label="Time" value="12—5" sub="PM, sharp" />
                   <HeroFact label="Venue" value="Babylon" sub={EVENT.venue.area} />
-                  <HeroFact label="Entry" value={EVENT.ageLabel} sub="Photo ID" />
+                  <div className="border-l border-ink/25 px-4 py-4 first:border-l-0 first:pl-0 max-sm:[&:nth-child(3)]:border-l-0 max-sm:[&:nth-child(3)]:pl-0 max-sm:[&:nth-child(n+3)]:border-t max-sm:[&:nth-child(n+3)]:border-t-ink/25">
+                    <p className="tnum mt-2 font-display text-[1.375rem] font-semibold leading-none tracking-[-0.03em] text-ink">
+                      Non-alcoholic party
+                    </p>
+                  </div>
                 </dl>
               </Reveal>
 
@@ -500,3 +504,4 @@ function HeroFact({ label, value, sub }: { label: string; value: string; sub: st
     </div>
   );
 }
+
