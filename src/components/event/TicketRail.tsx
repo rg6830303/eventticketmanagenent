@@ -2,8 +2,10 @@
 
 import Link from 'next/link';
 import { motion, useReducedMotion } from 'framer-motion';
+import { useState } from 'react';
 import { cn, formatInr } from '@/lib/utils';
 import { REFERRAL } from '@/content/site';
+import { addToCart } from '@/lib/cart';
 
 export interface RailTier {
   code: string;
@@ -36,6 +38,7 @@ export function TicketRail({
   showReferralNote?: boolean;
 }) {
   const reduce = useReducedMotion();
+  const [recentlyAdded, setRecentlyAdded] = useState<Record<string, boolean>>({});
   const feature = tiers.length === 3 ? 1 : 0;
 
   if (tiers.length === 0) {
@@ -139,9 +142,13 @@ export function TicketRail({
                   ))}
                 </ul>
 
-                <Link
-                  href={soldOut ? '/book' : `/book?tier=${tier.code}`}
-                  aria-disabled={soldOut}
+                <button
+                  type="button"
+                  disabled={soldOut}
+                  onClick={() => {
+                    addToCart(tier.code, 1);
+                    setRecentlyAdded((current) => ({ ...current, [tier.code]: true }));
+                  }}
                   className={cn(
                     'mt-6 w-full',
                     soldOut
@@ -151,7 +158,15 @@ export function TicketRail({
                         : 'btn-outline',
                   )}
                 >
-                  {soldOut ? 'Sold out' : `Get ${tier.name}`}
+                  {soldOut
+                    ? 'Sold out'
+                    : recentlyAdded[tier.code]
+                      ? 'Added to cart'
+                      : 'Add to cart'}
+                </button>
+
+                <Link href="/cart" className="btn-outline btn-sm mt-3 w-full">
+                  Open cart
                 </Link>
               </div>
 
@@ -169,7 +184,7 @@ export function TicketRail({
 
       {showReferralNote && (
         <p className="mt-6 text-center text-[0.875rem] text-slate">
-          Got a referral code? Enter it at checkout for a flat ₹{REFERRAL.discountRupees} off your
+          Got a referral code? Add it in the cart for a flat ₹{REFERRAL.discountRupees} off your
           order.
         </p>
       )}

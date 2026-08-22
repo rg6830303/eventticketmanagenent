@@ -47,30 +47,33 @@ const EVENT = {
 
 const TIERS = [
   {
-    code: 'EARLY',
-    name: 'Early Bird',
-    description: 'First release, same access as general entry. Gone when they are gone.',
-    price_paise: 39900,
-    quantity: 120,
-    perks: ['Entry from 12 PM', 'All activities included'],
+    code: 'VVIP',
+    name: 'VVIP',
+    description:
+      'Our premium front-line pick for guests who want the sharpest entry experience and the most polished first impression.',
+    price_paise: 200000,
+    quantity: 80,
+    perks: ['Premium entry feel', 'All activities included', 'Best for groups'],
     sort_order: 1,
   },
   {
-    code: 'GA',
-    name: 'General Entry',
-    description: 'Standard admission for the full five hours.',
-    price_paise: 59900,
-    quantity: 220,
-    perks: ['Entry from 12 PM', 'All activities included'],
+    code: 'VIP',
+    name: 'VIP',
+    description:
+      'The balanced premium choice with a stronger-than-basic experience for people who want to arrive in style.',
+    price_paise: 150000,
+    quantity: 140,
+    perks: ['Priority-style entry', 'All activities included', 'Popular middle tier'],
     sort_order: 2,
   },
   {
-    code: 'FAST',
-    name: 'Fast Track',
-    description: 'Separate entry lane so you walk past the queue at the gate.',
-    price_paise: 89900,
-    quantity: 60,
-    perks: ['Priority entry lane', 'All activities included', 'Cloakroom'],
+    code: 'GA',
+    name: 'GA',
+    description:
+      'The straightforward all-access ticket: simple, affordable and perfect if you just want the full party.',
+    price_paise: 111100,
+    quantity: 220,
+    perks: ['Full event access', 'All activities included', 'Best value entry'],
     sort_order: 3,
   },
 ];
@@ -80,7 +83,21 @@ const TIERS = [
  * add `max_uses` to any code that should stop working after a while.
  */
 const REFERRAL_CODES = [
+  { code: 'KRISH100', label: 'Krish', discount_paise: 10000, max_uses: null },
+  { code: 'SID100', label: 'Sid', discount_paise: 10000, max_uses: null },
+  { code: 'RAHUL100', label: 'Rahul', discount_paise: 10000, max_uses: null },
+  { code: 'SAMARTH100', label: 'Samarth', discount_paise: 10000, max_uses: null },
+  { code: 'NEEL100', label: 'Neel', discount_paise: 10000, max_uses: null },
+  { code: 'KRISHA100', label: 'Krisha', discount_paise: 10000, max_uses: null },
+  { code: 'ARPITA100', label: 'Arpita', discount_paise: 10000, max_uses: null },
+  { code: 'RISHITA100', label: 'Rishita', discount_paise: 10000, max_uses: null },
+  { code: 'RITIK100', label: 'Ritik', discount_paise: 10000, max_uses: null },
+  { code: 'VIHAAN100', label: 'Vihaan', discount_paise: 10000, max_uses: null },
+  { code: 'RAJ100', label: 'Raj', discount_paise: 10000, max_uses: null },
+  { code: 'RAUNAK100', label: 'Raunak', discount_paise: 10000, max_uses: null },
+  { code: 'YASHASWINI100', label: 'Yashaswini', discount_paise: 10000, max_uses: null },
   { code: 'KAVYANSH100', label: 'Kavyansh', discount_paise: 10000, max_uses: null },
+  { code: 'ANTRA100', label: 'Antra', discount_paise: 10000, max_uses: null },
 ];
 
 async function main() {

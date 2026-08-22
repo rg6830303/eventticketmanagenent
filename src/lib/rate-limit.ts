@@ -82,4 +82,7 @@ export const LIMITS = {
   // enumerating live codes from one address.
   referral: { limit: 25, window: 300 },
   payment: { limit: 20, window: 600 },
+  // A UTR claim is cheap to write and impossible to verify, so the ceiling is
+  // low: this is the endpoint a script would use to hunt for live references.
+  upiClaim: { limit: 8, window: 900 },
 } as const;
