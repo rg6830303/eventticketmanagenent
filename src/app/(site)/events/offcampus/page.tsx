@@ -13,6 +13,7 @@ import { TicketRail, type RailTier } from '@/components/event/TicketRail';
 import { StickyBuyBar } from '@/components/event/StickyBuyBar';
 import { Accordion } from '@/components/events/Accordion';
 import { getSiteUrl } from '@/lib/site-url';
+import { FALLBACK_TICKET_TIERS } from '@/content/ticketing';
 
 export const dynamic = 'force-dynamic';
 
@@ -26,15 +27,17 @@ export default async function OffCampusPage() {
   const event = await getEventBySlug(EVENT.slug).catch(() => null);
   const tierRows = event ? await listTiers(event.id).catch(() => []) : [];
 
-  const tiers: RailTier[] = tierRows.map((tier) => ({
-    code: tier.code,
-    name: tier.name,
-    description: tier.description,
-    pricePaise: tier.price_paise,
-    remaining: Math.max(0, tier.quantity - tier.sold),
-    total: tier.quantity,
-    perks: Array.isArray(tier.perks) ? tier.perks : [],
-  }));
+  const tiers: RailTier[] = tierRows.length
+    ? tierRows.map((tier) => ({
+        code: tier.code,
+        name: tier.name,
+        description: tier.description,
+        pricePaise: tier.price_paise,
+        remaining: Math.max(0, tier.quantity - tier.sold),
+        total: tier.quantity,
+        perks: Array.isArray(tier.perks) ? tier.perks : [],
+      }))
+    : FALLBACK_TICKET_TIERS.map((tier) => ({ ...tier, perks: [...tier.perks] }));
 
   const onSale = tiers.filter((tier) => tier.remaining > 0);
   const fromPaise = onSale.length ? Math.min(...onSale.map((tier) => tier.pricePaise)) : null;

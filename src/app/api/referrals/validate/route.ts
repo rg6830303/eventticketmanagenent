@@ -4,6 +4,7 @@ import { verifyOrigin } from '@/lib/auth';
 import { LIMITS, rateLimit } from '@/lib/rate-limit';
 import { clientIp } from '@/lib/validation.server';
 import { previewReferral, normaliseReferralCode } from '@/lib/referrals';
+import { REFERRAL_CODES, REFERRAL_DISCOUNT_PAISE } from '@/content/ticketing';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -24,6 +25,24 @@ export async function POST(request: NextRequest) {
     if (!verifyOrigin(request.headers)) return fail('Request blocked', 'bad_origin', 403);
 
     const ip = clientIp(request.headers);
+    const body = (await readJson(request)) as { code?: string; amountPaise?: number };
+    const code = normaliseReferralCode(String(body.code ?? ''));
+    if (!code) return fail('Enter a code first', 'missing_code', 400);
+
+    // These campaign codes ship with the site, so localhost remains useful even
+    // before Postgres is configured. Database-managed codes still use the
+    // rate-limited lookup below.
+    const builtInCode = REFERRAL_CODES.find((entry) => entry.code === code);
+    const amountPaise = Math.max(0, Math.min(Number(body.amountPaise) || 0, 100_000_00));
+    if (builtInCode) {
+      return ok({
+        valid: true,
+        code: builtInCode.code,
+        discountPaise: Math.min(REFERRAL_DISCOUNT_PAISE, amountPaise),
+        label: builtInCode.label,
+      });
+    }
+
     const limited = await rateLimit(
       `referral:${ip ?? 'unknown'}`,
       LIMITS.referral.limit,
@@ -33,16 +52,18 @@ export async function POST(request: NextRequest) {
       return fail('Too many code checks. Wait a minute and try again.', 'rate_limited', 429);
     }
 
-    const body = (await readJson(request)) as { code?: string; amountPaise?: number };
-    const code = normaliseReferralCode(String(body.code ?? ''));
-    if (!code) return fail('Enter a code first', 'missing_code', 400);
-
     // Clamp: the amount comes from the browser and is only used to cap the
     // discount for display. A hostile value can make the preview wrong, never
     // the price.
-    const amountPaise = Math.max(0, Math.min(Number(body.amountPaise) || 0, 100_000_00));
-
-    const result = await previewReferral(code, amountPaise);
+    const result = await previewReferral(code, amountPaise).catch(() => {
+      return {
+        valid: false,
+        code,
+        discountPaise: 0,
+        label: null,
+        reason: 'That code does not exist. Check the spelling and try again.',
+      };
+    });
     return ok(result);
   } catch (error) {
     return handleError(error, 'referrals.validate');
