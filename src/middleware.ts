@@ -72,6 +72,13 @@ export async function middleware(request: NextRequest) {
     return NextResponse.rewrite(new URL('/_not-found', request.url), { status: 404 });
   }
 
+  // Marketing shorthand, scoped to the marketing host. On the console host
+  // /tickets is the issue-a-pass page, and a redirect defined in next.config
+  // would have taken precedence over both.
+  if (!isAdminHost && pathname === '/tickets') {
+    return NextResponse.redirect(new URL('/book', request.url), { status: 307 });
+  }
+
   const shouldRewrite = isAdminHost && !isApi && !pathname.startsWith('/admin');
   const targetPath = shouldRewrite
     ? pathname === '/'

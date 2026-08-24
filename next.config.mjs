@@ -67,7 +67,10 @@ const nextConfig = {
   },
   async redirects() {
     return [
-      { source: '/tickets', destination: '/book', permanent: false },
+      // '/tickets' is deliberately NOT here. next.config redirects run before
+      // middleware, so a marketing redirect on that path fires on every host —
+      // including the console's, where /tickets is a real page. It lives in
+      // middleware now, where the host is already known.
       { source: '/offcampus', destination: '/events/offcampus', permanent: true },
     ];
   },
