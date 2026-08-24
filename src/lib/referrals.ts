@@ -1,5 +1,5 @@
 import 'server-only';
-import { queryOne } from './db';
+import { query, queryOne } from './db';
 
 /**
  * Referral codes.
@@ -162,4 +162,224 @@ export async function releaseReferral(client: TxClient, code: string | null): Pr
     'UPDATE referral_codes SET uses = GREATEST(uses - 1, 0) WHERE code = $1',
     [normaliseReferralCode(code)],
   );
+}
+
+// ---------------------------------------------------------------------------
+// Admin console
+// ---------------------------------------------------------------------------
+
+export interface ReferralCodeStats extends ReferralCodeRow {
+  /**
+   * Bookings that were actually paid for with this code.
+   *
+   * Deliberately not `uses`. That counter increments the moment a code is
+   * claimed at checkout, including by people who then never pay — which is the
+   * right behaviour for enforcing `max_uses`, and the wrong number to show a
+   * promoter who wants to know how many tickets they sold.
+   */
+  sales: number;
+  /** Bookings holding this code that have not been paid for. */
+  pending: number;
+  /** Revenue actually collected on bookings that used this code. */
+  revenue_paise: number;
+  /** Total discount given away through this code, on paid bookings only. */
+  discount_given_paise: number;
+  /** Passes sold through this code. */
+  passes: number;
+}
+
+/** Every code, newest first, with the numbers that matter to an operator. */
+export async function listReferralCodesWithStats(): Promise<ReferralCodeStats[]> {
+  return query<ReferralCodeStats>(
+    `SELECT r.*,
+            COALESCE(s.sales, 0)::int                  AS sales,
+            COALESCE(s.passes, 0)::int                 AS passes,
+            COALESCE(s.revenue_paise, 0)::bigint       AS revenue_paise,
+            COALESCE(s.discount_given_paise, 0)::bigint AS discount_given_paise,
+            COALESCE(p.pending, 0)::int                AS pending
+       FROM referral_codes r
+       LEFT JOIN LATERAL (
+         SELECT count(*)                     AS sales,
+                COALESCE(sum(b.quantity), 0) AS passes,
+                COALESCE(sum(b.amount_paise), 0)   AS revenue_paise,
+                COALESCE(sum(b.discount_paise), 0) AS discount_given_paise
+           FROM bookings b
+          WHERE upper(b.referral_code) = r.code AND b.status = 'confirmed'
+       ) s ON true
+       LEFT JOIN LATERAL (
+         SELECT count(*) AS pending
+           FROM bookings b
+          WHERE upper(b.referral_code) = r.code AND b.status = 'pending'
+       ) p ON true
+      ORDER BY COALESCE(s.sales, 0) DESC, r.created_at DESC`,
+  );
+}
+
+export interface ReferralCustomer {
+  reference: string;
+  customer_name: string;
+  customer_email: string;
+  customer_phone: string;
+  quantity: number;
+  amount_paise: number;
+  discount_paise: number;
+  status: string;
+  paid_at: string | null;
+  created_at: string;
+}
+
+/**
+ * Who actually bought with this code.
+ *
+ * Confirmed bookings only by default. A promoter asking "who used my code"
+ * means "who bought", not "who typed it into a checkout and wandered off".
+ */
+export async function customersForReferralCode(
+  rawCode: string,
+  includeUnpaid = false,
+): Promise<ReferralCustomer[]> {
+  const code = normaliseReferralCode(rawCode);
+  return query<ReferralCustomer>(
+    `SELECT b.reference, b.customer_name, b.customer_email, b.customer_phone,
+            b.quantity, b.amount_paise, b.discount_paise, b.status,
+            b.paid_at, b.created_at
+       FROM bookings b
+      WHERE upper(b.referral_code) = $1
+        AND ($2::boolean OR b.status = 'confirmed')
+      ORDER BY b.paid_at DESC NULLS LAST, b.created_at DESC
+      LIMIT 500`,
+    [code, includeUnpaid],
+  );
+}
+
+export interface CreateReferralArgs {
+  code: string;
+  label?: string | null;
+  discountPaise: number;
+  maxUses?: number | null;
+  expiresAt?: string | null;
+}
+
+export class ReferralError extends Error {
+  constructor(
+    message: string,
+    public code: string,
+    public status = 400,
+  ) {
+    super(message);
+    this.name = 'ReferralError';
+  }
+}
+
+/**
+ * Mint a code.
+ *
+ * The discount is a flat amount off the whole order, matching how these are
+ * advertised. It is capped below the cheapest pass on sale: a code worth more
+ * than a ticket turns every order into a zero-value one, which skips the
+ * payment step entirely and hands out free passes.
+ */
+export async function createReferralCode(args: CreateReferralArgs): Promise<ReferralCodeRow> {
+  const code = normaliseReferralCode(args.code);
+
+  if (!looksLikeReferralCode(code)) {
+    throw new ReferralError(
+      'A code must be 3–32 characters, letters and numbers only (hyphens and underscores allowed).',
+      'invalid_code',
+      422,
+    );
+  }
+
+  const discountPaise = Math.round(args.discountPaise);
+  if (!Number.isFinite(discountPaise) || discountPaise <= 0) {
+    throw new ReferralError('The discount must be more than ₹0.', 'invalid_discount', 422);
+  }
+
+  const cheapest = await queryOne<{ price_paise: number }>(
+    `SELECT min(price_paise) AS price_paise FROM ticket_tiers WHERE active = true`,
+  );
+  const ceiling = cheapest?.price_paise ?? 0;
+  if (ceiling > 0 && discountPaise >= ceiling) {
+    throw new ReferralError(
+      `That discount is at or above the cheapest pass (₹${ceiling / 100}). ` +
+        `A code worth a whole ticket would make orders free and skip payment entirely.`,
+      'discount_too_large',
+      422,
+    );
+  }
+
+  const existing = await queryOne<{ code: string }>(
+    'SELECT code FROM referral_codes WHERE code = $1',
+    [code],
+  );
+  if (existing) throw new ReferralError(`${code} already exists.`, 'duplicate_code', 409);
+
+  const rows = await query<ReferralCodeRow>(
+    `INSERT INTO referral_codes (code, label, discount_paise, max_uses, expires_at, active)
+     VALUES ($1, $2, $3, $4, $5, true)
+     RETURNING *`,
+    [
+      code,
+      args.label?.trim() || null,
+      discountPaise,
+      args.maxUses && args.maxUses > 0 ? Math.round(args.maxUses) : null,
+      args.expiresAt || null,
+    ],
+  );
+  return rows[0];
+}
+
+export interface UpdateReferralArgs {
+  active?: boolean;
+  discountPaise?: number;
+  label?: string | null;
+  maxUses?: number | null;
+}
+
+/** Change a code. Turning one off takes effect on the next checkout. */
+export async function updateReferralCode(
+  rawCode: string,
+  args: UpdateReferralArgs,
+): Promise<ReferralCodeRow> {
+  const code = normaliseReferralCode(rawCode);
+
+  if (args.discountPaise !== undefined) {
+    const cheapest = await queryOne<{ price_paise: number }>(
+      `SELECT min(price_paise) AS price_paise FROM ticket_tiers WHERE active = true`,
+    );
+    const ceiling = cheapest?.price_paise ?? 0;
+    if (args.discountPaise <= 0) {
+      throw new ReferralError('The discount must be more than ₹0.', 'invalid_discount', 422);
+    }
+    if (ceiling > 0 && args.discountPaise >= ceiling) {
+      throw new ReferralError(
+        `That discount is at or above the cheapest pass (₹${ceiling / 100}).`,
+        'discount_too_large',
+        422,
+      );
+    }
+  }
+
+  const rows = await query<ReferralCodeRow>(
+    `UPDATE referral_codes SET
+       active         = COALESCE($2, active),
+       discount_paise = COALESCE($3, discount_paise),
+       label          = COALESCE($4, label),
+       max_uses       = CASE WHEN $5::text = 'clear' THEN NULL
+                             WHEN $6::int IS NOT NULL THEN $6::int
+                             ELSE max_uses END
+     WHERE code = $1
+     RETURNING *`,
+    [
+      code,
+      args.active ?? null,
+      args.discountPaise ?? null,
+      args.label ?? null,
+      args.maxUses === null ? 'clear' : null,
+      args.maxUses ?? null,
+    ],
+  );
+
+  if (!rows[0]) throw new ReferralError(`${code} does not exist.`, 'not_found', 404);
+  return rows[0];
 }

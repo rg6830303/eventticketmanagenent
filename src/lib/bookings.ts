@@ -1,7 +1,7 @@
 import 'server-only';
 import { query, queryOne, transaction } from './db';
 import { generateBookingReference, generateTicketCode } from './tickets';
-import { applyReferralInTransaction, type ReferralCheck } from './referrals';
+import { applyReferralInTransaction, releaseReferral, type ReferralCheck } from './referrals';
 import { upsertCustomerInTransaction } from './customers';
 import { env } from './env';
 import type {
@@ -562,6 +562,13 @@ export async function releasePendingBooking(bookingId: string, reason: string): 
     );
     const booking = rows[0];
     if (!booking) return;
+
+    // Hand the referral use back. `uses` is incremented when a code is claimed
+    // at checkout so that max_uses actually caps concurrent claims — which
+    // means an abandoned checkout would otherwise consume one of a limited
+    // code's slots permanently, and a promoter's 50-use code quietly becomes a
+    // 30-use one.
+    await releaseReferral(client, booking.referral_code);
 
     const { rows: items } = await client.query<BookingItemRow>(
       'SELECT * FROM booking_items WHERE booking_id = $1',

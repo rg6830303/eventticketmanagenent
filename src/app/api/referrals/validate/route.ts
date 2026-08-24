@@ -4,7 +4,6 @@ import { verifyOrigin } from '@/lib/auth';
 import { LIMITS, rateLimit } from '@/lib/rate-limit';
 import { clientIp } from '@/lib/validation.server';
 import { previewReferral, normaliseReferralCode } from '@/lib/referrals';
-import { REFERRAL_CODES, REFERRAL_DISCOUNT_PAISE } from '@/content/ticketing';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -29,19 +28,19 @@ export async function POST(request: NextRequest) {
     const code = normaliseReferralCode(String(body.code ?? ''));
     if (!code) return fail('Enter a code first', 'missing_code', 400);
 
-    // These campaign codes ship with the site, so localhost remains useful even
-    // before Postgres is configured. Database-managed codes still use the
-    // rate-limited lookup below.
-    const builtInCode = REFERRAL_CODES.find((entry) => entry.code === code);
+    // No hardcoded shortcut here, deliberately.
+    //
+    // This endpoint previously answered from a list of codes baked into the
+    // frontend before consulting Postgres, always for a flat ₹100. The charge
+    // itself has only ever come from the referral_codes table, so the two could
+    // disagree: deactivate a code in the console, or change its value, and the
+    // cart would keep promising the old discount while checkout applied the new
+    // one. The customer sees one price and is charged another, which is the
+    // worst possible way to find out about a stale constant.
+    //
+    // One table decides what a code is worth, and both the preview and the
+    // charge read it.
     const amountPaise = Math.max(0, Math.min(Number(body.amountPaise) || 0, 100_000_00));
-    if (builtInCode) {
-      return ok({
-        valid: true,
-        code: builtInCode.code,
-        discountPaise: Math.min(REFERRAL_DISCOUNT_PAISE, amountPaise),
-        label: builtInCode.label,
-      });
-    }
 
     const limited = await rateLimit(
       `referral:${ip ?? 'unknown'}`,

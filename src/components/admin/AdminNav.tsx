@@ -12,6 +12,7 @@ const ITEMS = [
   // Manager and above only. The page itself re-checks, but a link that always
   // 403s for gate staff is a link that teaches them the console is broken.
   { href: '/admin/customers', label: 'Customers', icon: PeopleIcon, minRole: 'manager' as const },
+  { href: '/admin/referrals', label: 'Codes', icon: TagIcon, minRole: 'manager' as const },
   { href: '/admin/checkins', label: 'Door log', icon: PulseIcon },
   { href: '/admin/payments', label: 'UPI', icon: RupeeIcon },
 ];
@@ -43,7 +44,12 @@ export function AdminNav({
     return (
       <nav
         aria-label="Console"
-        className={cn('grid', items.length >= 6 ? 'grid-cols-6' : 'grid-cols-5')}
+        // Past six, a fixed grid squeezes labels to unreadable. Scroll instead.
+        className={cn(
+          items.length > 6
+            ? 'flex snap-x snap-mandatory overflow-x-auto [&>a]:min-w-[76px] [&>a]:flex-1 [&>a]:snap-start'
+            : cn('grid', items.length === 6 ? 'grid-cols-6' : 'grid-cols-5'),
+        )}
       >
         {items.map((item) => {
           const active = isActive(item.href, item.exact);
@@ -157,6 +163,15 @@ function PulseIcon({ className }: IconProps) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" className={className} aria-hidden>
       <path d="M2 12h4l3-8 6 16 3-8h4" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function TagIcon({ className }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" className={className} aria-hidden>
+      <path d="M3.5 11.2V4.8a1.3 1.3 0 0 1 1.3-1.3h6.4a1.3 1.3 0 0 1 .92.38l8 8a1.3 1.3 0 0 1 0 1.84l-6.4 6.4a1.3 1.3 0 0 1-1.84 0l-8-8a1.3 1.3 0 0 1-.38-.92Z" />
+      <circle cx="7.8" cy="7.8" r="1.4" />
     </svg>
   );
 }
