@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { pingDatabase } from '@/lib/db';
 import { env } from '@/lib/env';
+import { signingKeyReport } from '@/lib/signing-key';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -28,6 +29,10 @@ export async function GET() {
         ...(db.error ? { error: db.error } : {}),
       },
       smtp: { configured: env.smtpConfigured },
+      // Which variable each signing key came from, and whether it was derived.
+      // Never the key itself. "derived: true" against SUPABASE_JWT_SECRET means
+      // rotating that secret will invalidate every QR pass already issued.
+      signing: signingKeyReport(),
       // Reports the provider actually selected rather than a hard-coded name,
       // so "payments are on" and "which gateway" cannot disagree in a probe.
       payments: {

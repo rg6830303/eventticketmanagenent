@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { jwtVerify } from 'jose';
+import { ADMIN_SESSION_INFO, signingKey } from '@/lib/signing-key';
 
 /**
  * Host routing + the gate for the admin console.
@@ -90,14 +91,11 @@ export async function middleware(request: NextRequest) {
     const token = request.cookies.get('hov_admin')?.value;
     if (!token) return NextResponse.redirect(loginUrl);
 
-    const secret = process.env.ADMIN_SESSION_SECRET;
-    if (!secret) {
-      console.error('[middleware] ADMIN_SESSION_SECRET is not set');
-      return NextResponse.redirect(loginUrl);
-    }
-
     try {
-      await jwtVerify(token, new TextEncoder().encode(secret), {
+      // signing-key.ts is deliberately free of node: imports so it resolves on
+      // the Edge runtime, and derives byte-identically to the API route that
+      // issued this cookie.
+      await jwtVerify(token, await signingKey('ADMIN_SESSION_SECRET', ADMIN_SESSION_INFO), {
         issuer: 'houz-of-vybe',
         audience: 'hov-admin',
       });

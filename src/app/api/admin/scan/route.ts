@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
     if (!limit.allowed) return tooManyRequests(limit.retryAfterSeconds);
 
     const ip = clientIp(request.headers);
-    const verified = parseQrPayload(payload);
+    const verified = await parseQrPayload(payload);
 
     if (!verified.valid) {
       const copy = REJECTION_COPY[verified.reason];

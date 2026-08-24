@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import { SignJWT, jwtVerify } from 'jose';
 import { cookies } from 'next/headers';
 import { env } from './env';
+import { ADMIN_SESSION_INFO, signingKey } from './signing-key';
 import { query, queryOne } from './db';
 import type { AdminRole, AdminSession, AdminUserRow } from './types';
 
@@ -20,8 +21,21 @@ const BCRYPT_ROUNDS = 12;
 const MAX_FAILED_LOGINS = 8;
 const LOCKOUT_MINUTES = 15;
 
-function secretKey(): Uint8Array {
-  return new TextEncoder().encode(env.adminSecret);
+let cachedKey: Promise<Uint8Array> | null = null;
+
+/**
+ * The key that signs the session cookie.
+ *
+ * Falls back to a key derived from the Supabase integration's own secret when
+ * ADMIN_SESSION_SECRET is not set — see signing-key.ts. The middleware derives
+ * the identical key from the same material, so the two agree without sharing
+ * anything but the environment.
+ *
+ * Cached as the promise so concurrent sign-ins share one derivation.
+ */
+function secretKey(): Promise<Uint8Array> {
+  cachedKey ??= signingKey('ADMIN_SESSION_SECRET', ADMIN_SESSION_INFO);
+  return cachedKey;
 }
 
 export async function hashPassword(plain: string): Promise<string> {
@@ -40,12 +54,12 @@ export async function createSessionToken(session: AdminSession): Promise<string>
     .setIssuer('houz-of-vybe')
     .setAudience('hov-admin')
     .setExpirationTime(`${env.adminSessionHours}h`)
-    .sign(secretKey());
+    .sign(await secretKey());
 }
 
 export async function readSessionToken(token: string): Promise<AdminSession | null> {
   try {
-    const { payload } = await jwtVerify(token, secretKey(), {
+    const { payload } = await jwtVerify(token, await secretKey(), {
       issuer: 'houz-of-vybe',
       audience: 'hov-admin',
     });

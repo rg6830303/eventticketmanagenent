@@ -1,5 +1,6 @@
 import 'server-only';
 import { getSiteUrl } from './site-url';
+import { resolveKeyMaterial } from './signing-key';
 
 /**
  * Central environment access.
@@ -89,9 +90,10 @@ function resolveDatabaseUrl(): { name: string; value: string } | null {
 export function missingCoreConfig(): string[] {
   const missing: string[] = [];
   if (!resolveDatabaseUrl()) missing.push('DATABASE_URL');
-  for (const name of ['ADMIN_SESSION_SECRET', 'TICKET_SIGNING_SECRET']) {
-    if (!process.env[name]?.trim()) missing.push(name);
-  }
+  // Not "is the variable set" but "can a key be produced at all" — an unset
+  // secret that can be derived from the Supabase integration is not missing.
+  if (!resolveKeyMaterial('ADMIN_SESSION_SECRET')) missing.push('ADMIN_SESSION_SECRET');
+  if (!resolveKeyMaterial('TICKET_SIGNING_SECRET')) missing.push('TICKET_SIGNING_SECRET');
   return missing;
 }
 

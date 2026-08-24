@@ -40,7 +40,7 @@ interface PassRow {
 export default async function TicketPage({ params }: { params: Promise<{ payload: string }> }) {
   const { payload } = await params;
   const decoded = decodeURIComponent(payload);
-  const parsed = parseQrPayload(decoded);
+  const parsed = await parseQrPayload(decoded);
 
   if (!parsed.valid) {
     const reason =
@@ -70,7 +70,7 @@ export default async function TicketPage({ params }: { params: Promise<{ payload
     return <PassError reason="We could not find a ticket with this code." />;
   }
 
-  const qr = await qrDataUrl(buildQrPayload(pass.code), 620);
+  const qr = await qrDataUrl(await buildQrPayload(pass.code), 620);
 
   const dead =
     pass.status === 'void' ||

@@ -58,7 +58,7 @@ const STATUS: Record<TicketStatus, StatusStyle> = {
 };
 
 export async function TicketCard({ ticket, event, tier, index, total }: TicketCardProps) {
-  const qr = await qrDataUrl(buildQrPayload(ticket.code), 512);
+  const qr = await qrDataUrl(await buildQrPayload(ticket.code), 512);
   const style = STATUS[ticket.status];
   const spent = ticket.status !== 'valid';
 

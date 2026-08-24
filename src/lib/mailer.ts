@@ -156,7 +156,7 @@ export async function sendTicketEmail(detail: BookingDetail): Promise<SendResult
   const attachments = await Promise.all(
     tickets.map(async (ticket, index) => ({
       filename: `${ticket.code}.png`,
-      content: await qrPngBuffer(buildQrPayload(ticket.code), 560),
+      content: await qrPngBuffer(await buildQrPayload(ticket.code), 560),
       cid: `ticket-qr-${index}`,
       contentType: 'image/png',
     })),
@@ -175,17 +175,19 @@ export async function sendTicketEmail(detail: BookingDetail): Promise<SendResult
     tierName: tier?.name ?? 'General Entry',
     quantity: booking.quantity,
     amountPaise: booking.amount_paise,
-    tickets: tickets.map((ticket, index) => {
-      const item = ticket.booking_item_id ? itemById.get(ticket.booking_item_id) : undefined;
-      return {
-        code: ticket.code,
-        holderName: ticket.holder_name,
-        cid: `ticket-qr-${index}`,
-        url: ticketUrl(ticket.code),
-        admits: ticket.admits ?? item?.admits_each ?? 1,
-        tierName: item?.tier_name ?? tier?.name ?? 'General Entry',
-      };
-    }),
+    tickets: await Promise.all(
+      tickets.map(async (ticket, index) => {
+        const item = ticket.booking_item_id ? itemById.get(ticket.booking_item_id) : undefined;
+        return {
+          code: ticket.code,
+          holderName: ticket.holder_name,
+          cid: `ticket-qr-${index}`,
+          url: await ticketUrl(ticket.code),
+          admits: ticket.admits ?? item?.admits_each ?? 1,
+          tierName: item?.tier_name ?? tier?.name ?? 'General Entry',
+        };
+      }),
+    ),
     manageUrl: `${env.siteUrl}/booking/${booking.reference}`,
     supportEmail: env.smtp.replyTo || env.smtp.fromAddress,
     siteUrl: env.siteUrl,

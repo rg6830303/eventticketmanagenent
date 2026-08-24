@@ -1,6 +1,7 @@
 import 'server-only';
 import crypto from 'node:crypto';
 import { env } from './env';
+import { TICKET_SIGNING_INFO, signingKey } from './signing-key';
 
 /**
  * Ticket code generation and QR payload signing.
@@ -13,6 +14,11 @@ import { env } from './env';
  * Payload format:  HOV1.<CODE>.<SIG>
  *   CODE = HOV-<EVENT>-<10 chars of Crockford base32>
  *   SIG  = first 24 chars of base64url( HMAC-SHA256(secret, "HOV1." + CODE) )
+ *
+ * Signing is async because the key may be derived through Web Crypto HKDF when
+ * TICKET_SIGNING_SECRET is not set (see signing-key.ts). The key is resolved
+ * once per process and cached — a door scanning a queue must not pay for a
+ * derivation per pass.
  */
 
 const PAYLOAD_VERSION = 'HOV1';
@@ -43,17 +49,27 @@ export function generateBookingReference(): string {
   return `HOV-${randomCode(6)}`;
 }
 
-function sign(code: string): string {
+let cachedKey: Promise<Uint8Array> | null = null;
+
+function ticketKey(): Promise<Uint8Array> {
+  // Cached as the promise, not the result, so concurrent first calls share one
+  // derivation instead of racing several.
+  cachedKey ??= signingKey('TICKET_SIGNING_SECRET', TICKET_SIGNING_INFO);
+  return cachedKey;
+}
+
+async function sign(code: string): Promise<string> {
+  const key = await ticketKey();
   return crypto
-    .createHmac('sha256', env.ticketSecret)
+    .createHmac('sha256', key)
     .update(`${PAYLOAD_VERSION}.${code}`)
     .digest('base64url')
     .slice(0, SIGNATURE_LENGTH);
 }
 
 /** The exact string encoded into the QR image. */
-export function buildQrPayload(code: string): string {
-  return `${PAYLOAD_VERSION}.${code}.${sign(code)}`;
+export async function buildQrPayload(code: string): Promise<string> {
+  return `${PAYLOAD_VERSION}.${code}.${await sign(code)}`;
 }
 
 export type ParsedPayload =
@@ -66,7 +82,7 @@ export type ParsedPayload =
  * Accepts a bare payload or a full ticket URL (some phone cameras hand the
  * scanner the whole https://…/t/<payload> link).
  */
-export function parseQrPayload(raw: string): ParsedPayload {
+export async function parseQrPayload(raw: string): Promise<ParsedPayload> {
   let input = raw.trim();
   if (!input) return { valid: false, reason: 'malformed', code: null };
 
@@ -90,7 +106,7 @@ export function parseQrPayload(raw: string): ParsedPayload {
     return { valid: false, reason: 'malformed', code: null };
   }
 
-  const expected = sign(code);
+  const expected = await sign(code);
   // Length-guard first: timingSafeEqual throws on unequal buffer lengths.
   if (signature.length !== expected.length) {
     return { valid: false, reason: 'signature', code };
@@ -102,6 +118,6 @@ export function parseQrPayload(raw: string): ParsedPayload {
 }
 
 /** Public, unguessable ticket URL that renders the QR for the attendee. */
-export function ticketUrl(code: string): string {
-  return `${env.siteUrl}/t/${encodeURIComponent(buildQrPayload(code))}`;
+export async function ticketUrl(code: string): Promise<string> {
+  return `${env.siteUrl}/t/${encodeURIComponent(await buildQrPayload(code))}`;
 }
