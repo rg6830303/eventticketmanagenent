@@ -308,7 +308,6 @@ export function CartClient({
                     'border-leaf-500 focus:border-leaf-500 focus:shadow-[2px_2px_0_0_theme(colors.leaf.500)]',
                   referralStatus === 'invalid' && 'field-error',
                 )}
-                placeholder={REFERRAL.sampleCode}
               />
               <p className="help">{REFERRAL.copy}</p>
               <AnimatePresence initial={false}>
