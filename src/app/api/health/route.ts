@@ -21,7 +21,20 @@ export async function GET() {
     checks: {
       database: { ok: db.ok, latencyMs: db.latencyMs, ...(db.error ? { error: db.error } : {}) },
       smtp: { configured: env.smtpConfigured },
-      payments: { enabled: env.paymentsEnabled, provider: env.paymentsEnabled ? 'razorpay' : 'none' },
+      // Reports the provider actually selected rather than a hard-coded name,
+      // so "payments are on" and "which gateway" cannot disagree in a probe.
+      payments: {
+        enabled: env.paymentsEnabled,
+        provider: env.paymentsEnabled ? env.paymentProvider : 'none',
+        mode:
+          env.paymentProvider === 'cashfree'
+            ? env.cashfree.sandbox
+              ? 'sandbox'
+              : 'production'
+            : null,
+        configured: env.paymentProvider === 'cashfree' ? env.cashfree.configured : undefined,
+      },
+      upi: { enabled: env.upi.enabled },
     },
   };
 

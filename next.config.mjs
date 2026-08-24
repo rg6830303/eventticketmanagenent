@@ -1,21 +1,26 @@
 /** @type {import('next').NextConfig} */
 
 // Content-Security-Policy is intentionally strict but permits the pieces this
-// app genuinely needs: Razorpay checkout (once payments are switched on),
-// blob: workers for the QR scanner, and data:/blob: images for generated QRs.
+// app genuinely needs: the Cashfree checkout SDK, Razorpay (kept for the
+// legacy rail), blob: workers for the QR scanner, and data:/blob: images for
+// generated QRs.
+//
+// form-action has to list Cashfree: their SDK leaves the page by POSTing a
+// form to the hosted checkout, and 'self' alone silently blocks it — the
+// button appears to do nothing and the console message is easy to miss.
 const csp = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://checkout.razorpay.com https://*.razorpay.com",
+  "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://sdk.cashfree.com https://*.cashfree.com https://checkout.razorpay.com https://*.razorpay.com",
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "font-src 'self' https://fonts.gstatic.com data:",
   "img-src 'self' data: blob: https:",
   "media-src 'self' blob: data:",
-  "connect-src 'self' https://*.razorpay.com https://lumberjack.razorpay.com",
-  "frame-src 'self' https://*.razorpay.com https://www.google.com",
+  "connect-src 'self' https://*.cashfree.com https://sdk.cashfree.com https://*.razorpay.com https://lumberjack.razorpay.com",
+  "frame-src 'self' https://*.cashfree.com https://*.razorpay.com https://www.google.com",
   "worker-src 'self' blob:",
   "object-src 'none'",
   "base-uri 'self'",
-  "form-action 'self'",
+  "form-action 'self' https://*.cashfree.com",
   "frame-ancestors 'none'",
   'upgrade-insecure-requests',
 ].join('; ');
