@@ -195,6 +195,18 @@ export const env = {
   },
 
   /**
+   * Permit a priced booking to confirm without payment.
+   *
+   * Off unless explicitly switched on, and it exists only so local development
+   * can exercise the ticketing path without a gateway. On a live site this
+   * being on — or being inferred from a missing gateway, as it once was — means
+   * giving tickets away.
+   */
+  get allowFreeBookings(): boolean {
+    return bool('ALLOW_FREE_BOOKINGS', false);
+  },
+
+  /**
    * Master switch. Defaults to "on when a gateway is configured" so supplying
    * keys is enough to go live — an operator who has pasted a live secret into
    * Vercel has already decided to take money. Set PAYMENTS_ENABLED=false to

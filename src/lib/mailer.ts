@@ -166,6 +166,42 @@ async function logEmail(
 export async function sendTicketEmail(detail: BookingDetail): Promise<SendResult> {
   const { booking, event, tier, tickets, items } = detail;
 
+  // The last line of defence, and the only one that is unconditional.
+  //
+  // Callers are supposed to check that a booking is paid before asking for its
+  // ticket email, and today they all do. But "every caller remembers" is not a
+  // guarantee — it is a habit, and there are five call sites across two payment
+  // rails, a resend endpoint and an operator release. Refusing here makes it
+  // structurally impossible to email a QR pass for a booking that has not been
+  // confirmed, however the request arrived.
+  //
+  // The ticket count is checked as well as the status: a confirmed booking with
+  // no minted passes would otherwise produce a cheerful "your tickets are
+  // confirmed" email containing no tickets at all.
+  if (booking.status !== 'confirmed') {
+    const error = `Refused to send a ticket email for a ${booking.status} booking`;
+    console.error(`[mailer] ${error}`, { reference: booking.reference });
+    await logEmail(
+      { to: booking.customer_email, subject: '(refused)', html: '', text: '', bookingId: booking.id, template: 'ticket-confirmation' },
+      'failed',
+      null,
+      error,
+    );
+    return { ok: false, error };
+  }
+
+  if (tickets.length === 0) {
+    const error = 'Refused to send a ticket email for a booking with no passes minted';
+    console.error(`[mailer] ${error}`, { reference: booking.reference });
+    await logEmail(
+      { to: booking.customer_email, subject: '(refused)', html: '', text: '', bookingId: booking.id, template: 'ticket-confirmation' },
+      'failed',
+      null,
+      error,
+    );
+    return { ok: false, error };
+  }
+
   // A cart can mix pass types, so each QR has to name its own tier rather than
   // inherit the booking's headline one — otherwise a couple pass in a mixed
   // order is emailed labelled as a normal pass.

@@ -255,9 +255,30 @@ export async function createBooking(args: CreateBookingArgs): Promise<CreateBook
     const discountPaise = referral.valid ? referral.discountPaise : 0;
     const amountPaise = Math.max(0, subtotalPaise - discountPaise);
 
-    // A zero-value order has nothing to collect, so it skips the payment step
-    // entirely and is confirmed on the spot — same path as a comp.
-    const paid = !env.paymentsEnabled || amountPaise === 0;
+    // Whether this booking may be confirmed without a payment.
+    //
+    // Only two things earn that: an order that costs nothing, or an explicit
+    // ALLOW_FREE_BOOKINGS opt-in for local development. This used to read
+    // `!env.paymentsEnabled || amountPaise === 0`, which meant a live site that
+    // lost its gateway credentials — deleted, renamed, expired — would silently
+    // start confirming every booking for free and emailing real tickets. A
+    // misconfigured gateway must stop sales, never give the inventory away.
+    const chargeable = amountPaise > 0;
+
+    if (chargeable && !env.paymentsEnabled) {
+      if (!env.allowFreeBookings) {
+        console.error('[bookings] refused a priced booking: no payment gateway is configured');
+        throw new BookingError(
+          'Ticket sales are paused for a moment while we sort out our payment provider. ' +
+            'Nothing has been charged — please try again shortly.',
+          'payments_unavailable',
+          503,
+        );
+      }
+      console.warn('[bookings] ALLOW_FREE_BOOKINGS is on — confirming a priced booking unpaid');
+    }
+
+    const paid = !chargeable || env.allowFreeBookings;
     const bookingReference = generateBookingReference();
 
     // The catalogue entry is written before the booking so the foreign key is
