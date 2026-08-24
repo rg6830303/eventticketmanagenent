@@ -54,6 +54,8 @@ const TIERS = [
       'Solo entry to the complete non-alcoholic party, with part of the pass value redeemable at the venue.',
     price_paise: 111100,
     quantity: 200,
+    admits: 1,
+    redeemable_paise: 50000,
     perks: ['Admits 1 guest', '₹500 redeemable', 'Full party access'],
     sort_order: 1,
   },
@@ -64,6 +66,8 @@ const TIERS = [
       'A two-person pass designed for pairs, with a shared redeemable value at the venue.',
     price_paise: 200000,
     quantity: 75,
+    admits: 2,
+    redeemable_paise: 100000,
     perks: ['Admits 2 guests', '₹1,000 redeemable', 'Best for pairs'],
     sort_order: 2,
   },
@@ -74,6 +78,8 @@ const TIERS = [
       'A reserved VIP table package for five guests, with a generous redeemable value at the venue.',
     price_paise: 1000000,
     quantity: 10,
+    admits: 5,
+    redeemable_paise: 500000,
     perks: ['Admits 5 guests', '₹5,000 redeemable', 'Reserved VIP table'],
     sort_order: 3,
   },
@@ -155,8 +161,11 @@ async function main() {
 
     for (const tier of TIERS) {
       await client.query(
-        `INSERT INTO ticket_tiers (event_id, code, name, description, price_paise, quantity, perks, sort_order, active)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,true)
+        `INSERT INTO ticket_tiers (
+           event_id, code, name, description, price_paise, quantity,
+           perks, sort_order, admits, redeemable_paise, active
+         )
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,true)
          ON CONFLICT (event_id, code) DO UPDATE SET
            name = EXCLUDED.name,
            description = EXCLUDED.description,
@@ -166,6 +175,8 @@ async function main() {
            quantity = GREATEST(EXCLUDED.quantity, ticket_tiers.sold),
            perks = EXCLUDED.perks,
            sort_order = EXCLUDED.sort_order,
+           admits = EXCLUDED.admits,
+           redeemable_paise = EXCLUDED.redeemable_paise,
            active = true`,
         [
           event.id,
@@ -176,8 +187,24 @@ async function main() {
           tier.quantity,
           JSON.stringify(tier.perks),
           tier.sort_order,
+          tier.admits,
+          tier.redeemable_paise,
         ],
       );
+    }
+
+    // Tiers from an earlier line-up are deactivated rather than deleted: a
+    // tier that has ever sold a ticket is referenced by those tickets, and the
+    // admin console still has to be able to name what somebody bought.
+    // `active = false` takes it off sale and out of every listing.
+    const { rowCount: retired } = await client.query(
+      `UPDATE ticket_tiers
+          SET active = false
+        WHERE event_id = $1 AND active = true AND code <> ALL($2::text[])`,
+      [event.id, TIERS.map((tier) => tier.code)],
+    );
+    if (retired > 0) {
+      console.log(`  ✓ Retired ${retired} tier${retired === 1 ? '' : 's'} from an earlier line-up`);
     }
 
     for (const referral of REFERRAL_CODES) {

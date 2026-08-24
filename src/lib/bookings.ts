@@ -2,10 +2,14 @@ import 'server-only';
 import { query, queryOne, transaction } from './db';
 import { generateBookingReference, generateTicketCode } from './tickets';
 import { applyReferralInTransaction, type ReferralCheck } from './referrals';
+import { upsertCustomerInTransaction } from './customers';
 import { env } from './env';
 import type {
   BookingDetail,
+  BookingItemRow,
   BookingRow,
+  CartLineInput,
+  CustomerRow,
   EventRow,
   TicketRow,
   TicketTierRow,
@@ -55,7 +59,7 @@ export async function getBookingByReference(reference: string): Promise<BookingD
   ]);
   if (!booking) return null;
 
-  const [event, tier, tickets] = await Promise.all([
+  const [event, tier, tickets, items, customer] = await Promise.all([
     queryOne<EventRow>('SELECT * FROM events WHERE id = $1', [booking.event_id]),
     booking.tier_id
       ? queryOne<TicketTierRow>('SELECT * FROM ticket_tiers WHERE id = $1', [booking.tier_id])
@@ -63,10 +67,17 @@ export async function getBookingByReference(reference: string): Promise<BookingD
     query<TicketRow>('SELECT * FROM tickets WHERE booking_id = $1 ORDER BY created_at ASC', [
       booking.id,
     ]),
+    query<BookingItemRow>(
+      'SELECT * FROM booking_items WHERE booking_id = $1 ORDER BY line_total_paise DESC, tier_code ASC',
+      [booking.id],
+    ),
+    booking.customer_id
+      ? queryOne<CustomerRow>('SELECT * FROM customers WHERE id = $1', [booking.customer_id])
+      : Promise.resolve(null),
   ]);
 
   if (!event) return null;
-  return { booking, event, tier, tickets };
+  return { booking, event, tier, tickets, items, customer };
 }
 
 export async function getBookingById(id: string): Promise<BookingDetail | null> {
@@ -82,17 +93,21 @@ export async function getBookingById(id: string): Promise<BookingDetail | null> 
 
 export interface CreateBookingArgs {
   eventSlug: string;
-  tierCode: string;
+  /**
+   * The cart. One entry per pass type; a single-tier booking is just a cart of
+   * length one, so there is only one code path to get wrong.
+   */
+  items: CartLineInput[];
   name: string;
   email: string;
   phone: string;
-  quantity: number;
   /** Raw text from the referral field. Validated and priced under the tier lock. */
   referralCode?: string | null;
   idempotencyKey?: string | null;
   ipAddress?: string | null;
   userAgent?: string | null;
   source?: string;
+  marketingOptIn?: boolean;
 }
 
 export interface CreateBookingResult {
@@ -106,23 +121,32 @@ export interface CreateBookingResult {
 }
 
 /**
- * Create a booking and mint its tickets.
+ * Create a booking and, when nothing is owed, mint its tickets.
  *
- * Everything happens in one transaction with a row lock on the tier, because
+ * Everything happens in one transaction with a row lock on each tier, because
  * inventory is the one place where a race actually oversells the room: two
  * requests reading `sold` at the same time would both see capacity and both
  * commit. `SELECT … FOR UPDATE` serialises them.
  *
- * With PAYMENTS_ENABLED=false the booking is confirmed immediately and tickets
- * are issued on the spot. With payments on, it lands as `pending` and the
- * Razorpay verify route promotes it — the ticket-minting code path is shared,
- * so switching the flag does not change what a ticket looks like.
+ * The tiers are locked in a fixed order (sorted by code). Two carts holding the
+ * same two tiers in opposite orders would otherwise deadlock against each
+ * other, and Postgres would resolve it by killing one of the bookings.
+ *
+ * With payments off — or on a zero-value order — the booking is confirmed and
+ * ticketed on the spot. Otherwise it lands as `pending` and the gateway's
+ * confirmation promotes it. The ticket-minting path is shared, so a Cashfree
+ * ticket is byte-identical to a comped one.
  */
 export async function createBooking(args: CreateBookingArgs): Promise<CreateBookingResult> {
-  const quantity = args.quantity;
-  if (quantity > env.maxTicketsPerBooking) {
+  const lines = normaliseLines(args.items);
+  if (lines.length === 0) {
+    throw new BookingError('Your cart is empty', 'empty_cart');
+  }
+
+  const totalPasses = lines.reduce((sum, line) => sum + line.quantity, 0);
+  if (totalPasses > env.maxTicketsPerBooking) {
     throw new BookingError(
-      `Maximum ${env.maxTicketsPerBooking} tickets per booking. Contact us for group bookings.`,
+      `Maximum ${env.maxTicketsPerBooking} passes per booking. Contact us for group bookings.`,
       'quantity_exceeded',
     );
   }
@@ -170,36 +194,60 @@ export async function createBooking(args: CreateBookingArgs): Promise<CreateBook
       throw new BookingError('This event has already happened', 'event_past', 409);
     }
 
-    const tierResult = await client.query<TicketTierRow>(
-      'SELECT * FROM ticket_tiers WHERE event_id = $1 AND code = $2 AND active = true FOR UPDATE',
-      [event.id, args.tierCode],
-    );
-    const tier = tierResult.rows[0];
-    if (!tier) throw new BookingError('That ticket type is not available', 'tier_not_found', 404);
+    // --- Price and reserve every line ------------------------------------
+    const priced: Array<{ tier: TicketTierRow; quantity: number; lineTotal: number }> = [];
 
-    const remaining = tier.quantity - tier.sold;
-    if (remaining <= 0) {
-      throw new BookingError(`${tier.name} is sold out`, 'tier_sold_out', 409);
-    }
-    if (remaining < quantity) {
-      throw new BookingError(
-        `Only ${remaining} ${tier.name} ticket${remaining === 1 ? '' : 's'} left`,
-        'insufficient_inventory',
-        409,
+    for (const line of lines) {
+      const tierResult = await client.query<TicketTierRow>(
+        'SELECT * FROM ticket_tiers WHERE event_id = $1 AND code = $2 AND active = true FOR UPDATE',
+        [event.id, line.tierCode],
       );
+      const tier = tierResult.rows[0];
+      if (!tier) {
+        throw new BookingError(
+          `"${line.tierCode}" is not a ticket type for this event`,
+          'tier_not_found',
+          404,
+        );
+      }
+
+      const remaining = tier.quantity - tier.sold;
+      if (remaining <= 0) {
+        throw new BookingError(`${tier.name} is sold out`, 'tier_sold_out', 409);
+      }
+      if (remaining < line.quantity) {
+        throw new BookingError(
+          `Only ${remaining} ${tier.name} ${remaining === 1 ? 'pass' : 'passes'} left`,
+          'insufficient_inventory',
+          409,
+        );
+      }
+
+      priced.push({ tier, quantity: line.quantity, lineTotal: tier.price_paise * line.quantity });
     }
 
-    // Room capacity is a second, independent ceiling above per-tier stock.
-    const issued = await client.query<{ count: string }>(
-      `SELECT COALESCE(SUM(quantity), 0)::text AS count FROM bookings
-       WHERE event_id = $1 AND status IN ('pending', 'confirmed')`,
+    // Room capacity is a second, independent ceiling above per-tier stock, and
+    // it counts heads rather than passes: one VIP table pass is five people
+    // through the door. Bookings written before booking_items existed fall back
+    // to their pass count, which is what they meant at the time.
+    const heads = priced.reduce((sum, row) => sum + row.quantity * row.tier.admits, 0);
+    const issued = await client.query<{ heads: string }>(
+      `SELECT COALESCE(SUM(
+                COALESCE(
+                  (SELECT SUM(bi.quantity * bi.admits_each)
+                     FROM booking_items bi WHERE bi.booking_id = b.id),
+                  b.quantity
+                )
+              ), 0)::text AS heads
+         FROM bookings b
+        WHERE b.event_id = $1 AND b.status IN ('pending', 'confirmed')`,
       [event.id],
     );
-    if (Number(issued.rows[0]?.count ?? 0) + quantity > event.capacity) {
+    if (Number(issued.rows[0]?.heads ?? 0) + heads > event.capacity) {
       throw new BookingError('This event is at capacity', 'event_at_capacity', 409);
     }
 
-    const subtotalPaise = tier.price_paise * quantity;
+    const subtotalPaise = priced.reduce((sum, row) => sum + row.lineTotal, 0);
 
     // Claimed under the same transaction as the inventory, so a limited code
     // and the last ticket cannot both be handed to two people at once.
@@ -212,28 +260,48 @@ export async function createBooking(args: CreateBookingArgs): Promise<CreateBook
     const paid = !env.paymentsEnabled || amountPaise === 0;
     const bookingReference = generateBookingReference();
 
+    // The catalogue entry is written before the booking so the foreign key is
+    // available, and inside the same transaction so a failed booking never
+    // leaves a customer row behind claiming a purchase that did not happen.
+    const customer = await upsertCustomerInTransaction(client, {
+      email: args.email,
+      name: args.name,
+      phone: args.phone,
+      source: args.source ?? 'web',
+      ipAddress: args.ipAddress ?? null,
+      userAgent: args.userAgent ?? null,
+      marketingOptIn: args.marketingOptIn ?? false,
+    });
+
+    // `tier_id` on the booking points at the biggest line. It predates carts
+    // and is what the admin list, the ticket email and the confirmation page
+    // still read for a headline "what did they buy".
+    const headline = [...priced].sort((a, b) => b.lineTotal - a.lineTotal)[0];
+
     const bookingResult = await client.query<BookingRow>(
       `INSERT INTO bookings (
-         reference, event_id, tier_id, customer_name, customer_email, customer_phone,
+         reference, event_id, tier_id, customer_id,
+         customer_name, customer_email, customer_phone,
          quantity, subtotal_paise, discount_paise, referral_code, amount_paise,
          status, payment_provider, idempotency_key,
          source, ip_address, user_agent, paid_at
-       ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)
+       ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19)
        RETURNING *`,
       [
         bookingReference,
         event.id,
-        tier.id,
+        headline.tier.id,
+        customer.id,
         args.name,
         args.email.toLowerCase(),
         args.phone,
-        quantity,
+        totalPasses,
         subtotalPaise,
         discountPaise,
         referral.valid ? referral.code : null,
         amountPaise,
         paid ? 'confirmed' : 'pending',
-        paid ? (amountPaise === 0 ? 'comp' : 'none') : 'razorpay',
+        paid ? (amountPaise === 0 ? 'comp' : 'none') : env.paymentProvider,
         args.idempotencyKey ?? null,
         args.source ?? 'web',
         args.ipAddress ?? null,
@@ -243,15 +311,36 @@ export async function createBooking(args: CreateBookingArgs): Promise<CreateBook
     );
     const booking = bookingResult.rows[0];
 
-    // Reserve inventory for pending bookings too; the cleanup job releases
-    // anything that never gets paid.
-    await client.query('UPDATE ticket_tiers SET sold = sold + $2 WHERE id = $1', [
-      tier.id,
-      quantity,
-    ]);
+    for (const row of priced) {
+      await client.query(
+        `INSERT INTO booking_items (
+           booking_id, tier_id, tier_code, tier_name, unit_price_paise,
+           quantity, admits_each, redeemable_paise, line_total_paise
+         ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+        [
+          booking.id,
+          row.tier.id,
+          row.tier.code,
+          row.tier.name,
+          row.tier.price_paise,
+          row.quantity,
+          row.tier.admits,
+          row.tier.redeemable_paise,
+          row.lineTotal,
+        ],
+      );
+
+      // Reserve inventory for pending bookings too; an unpaid order holds its
+      // stock until it is cancelled, which is what "your spot is held while you
+      // pay" on the checkout page promises.
+      await client.query('UPDATE ticket_tiers SET sold = sold + $2 WHERE id = $1', [
+        row.tier.id,
+        row.quantity,
+      ]);
+    }
 
     if (paid) {
-      await mintTickets(client, booking, event, tier);
+      await mintTickets(client, booking.id);
     }
 
     return bookingReference;
@@ -263,57 +352,153 @@ export async function createBooking(args: CreateBookingArgs): Promise<CreateBook
 }
 
 /**
- * Insert `booking.quantity` ticket rows.
+ * Collapse a raw cart into priced-able lines.
+ *
+ * Duplicated codes are summed rather than rejected — a cart that somehow holds
+ * two NORMAL entries means three passes, not an error — and the result is
+ * sorted so the tier locks in `createBooking` are always taken in the same
+ * order.
+ */
+function normaliseLines(items: readonly CartLineInput[]): CartLineInput[] {
+  const merged = new Map<string, number>();
+
+  for (const item of items ?? []) {
+    const code = String(item?.tierCode ?? '').trim().toUpperCase();
+    const quantity = Math.floor(Number(item?.quantity));
+    if (!code || !Number.isFinite(quantity) || quantity <= 0) continue;
+    merged.set(code, (merged.get(code) ?? 0) + quantity);
+  }
+
+  return [...merged.entries()]
+    .map(([tierCode, quantity]) => ({ tierCode, quantity }))
+    .sort((a, b) => a.tierCode.localeCompare(b.tierCode));
+}
+
+interface MintClient {
+  query: <T = unknown>(text: string, params?: unknown[]) => Promise<{ rows: T[] }>;
+}
+
+/**
+ * Insert one ticket row per pass, reading the lines straight back out of the
+ * database rather than taking them as an argument.
+ *
+ * That indirection is deliberate: minting happens from four call sites (the
+ * free path, the Cashfree return, the Cashfree webhook and a UPI release) and
+ * three of them only have a booking id. Sourcing the lines from
+ * `booking_items` means none of them can mint a ticket that disagrees with what
+ * was actually bought.
  *
  * Codes come from a CSPRNG so a collision is already astronomically unlikely,
  * but the UNIQUE constraint is the real guarantee: on a duplicate we retry
  * rather than hand two people the same pass.
  */
-async function mintTickets(
-  client: { query: (text: string, params?: unknown[]) => Promise<{ rows: TicketRow[] }> },
-  booking: BookingRow,
-  event: EventRow,
-  tier: TicketTierRow | null,
-): Promise<void> {
-  for (let i = 0; i < booking.quantity; i += 1) {
-    let inserted = false;
-    for (let attempt = 0; attempt < 5 && !inserted; attempt += 1) {
-      try {
-        await client.query(
-          `INSERT INTO tickets (booking_id, event_id, tier_id, code, holder_name, seat_label)
-           VALUES ($1,$2,$3,$4,$5,$6)`,
-          [
-            booking.id,
-            event.id,
-            tier?.id ?? null,
-            generateTicketCode(event.slug),
-            booking.quantity === 1 ? booking.customer_name : `${booking.customer_name} +${i}`,
-            `${tier?.code ?? 'GA'}-${String(i + 1).padStart(2, '0')}`,
-          ],
-        );
-        inserted = true;
-      } catch (error) {
-        const isDuplicate =
-          typeof error === 'object' && error !== null && 'code' in error && error.code === '23505';
-        if (!isDuplicate || attempt === 4) throw error;
+async function mintTickets(client: MintClient, bookingId: string): Promise<void> {
+  const { rows: bookings } = await client.query<BookingRow & { event_slug: string }>(
+    `SELECT b.*, e.slug AS event_slug
+       FROM bookings b JOIN events e ON e.id = b.event_id
+      WHERE b.id = $1`,
+    [bookingId],
+  );
+  const booking = bookings[0];
+  if (!booking) throw new BookingError('Booking vanished mid-mint', 'internal_error', 500);
+
+  // Already ticketed — a webhook racing the browser must not double-issue.
+  const { rows: existing } = await client.query<{ count: string }>(
+    'SELECT count(*)::text AS count FROM tickets WHERE booking_id = $1',
+    [bookingId],
+  );
+  if (Number(existing[0]?.count ?? 0) > 0) return;
+
+  const { rows: items } = await client.query<BookingItemRow>(
+    'SELECT * FROM booking_items WHERE booking_id = $1 ORDER BY tier_code ASC',
+    [bookingId],
+  );
+
+  // Bookings written before booking_items existed still have to be mintable.
+  const lines: Array<Pick<BookingItemRow, 'id' | 'tier_id' | 'tier_code' | 'quantity' | 'admits_each'>> =
+    items.length > 0
+      ? items
+      : [
+          {
+            id: null as unknown as string,
+            tier_id: booking.tier_id,
+            tier_code: 'GA',
+            quantity: booking.quantity,
+            admits_each: 1,
+          },
+        ];
+
+  let seat = 0;
+
+  for (const line of lines) {
+    for (let i = 0; i < line.quantity; i += 1) {
+      seat += 1;
+
+      // The holder name is the buyer for a single pass and a numbered variant
+      // beyond that. Nobody collects per-guest names at this scale, and a door
+      // that reads "Rahul Ghosh +2" is more useful than three identical rows.
+      const holder = booking.quantity === 1 ? booking.customer_name : `${booking.customer_name} +${seat - 1}`;
+      const seatLabel = `${line.tier_code}-${String(i + 1).padStart(2, '0')}`;
+
+      let inserted = false;
+      for (let attempt = 0; attempt < 5 && !inserted; attempt += 1) {
+        try {
+          await client.query(
+            `INSERT INTO tickets (
+               booking_id, event_id, tier_id, booking_item_id, code,
+               holder_name, seat_label, admits
+             ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
+            [
+              booking.id,
+              booking.event_id,
+              line.tier_id,
+              line.id ?? null,
+              generateTicketCode(booking.event_slug),
+              holder,
+              seatLabel,
+              line.admits_each,
+            ],
+          );
+          inserted = true;
+        } catch (error) {
+          const isDuplicate =
+            typeof error === 'object' && error !== null && 'code' in error && error.code === '23505';
+          if (!isDuplicate || attempt === 4) throw error;
+        }
       }
     }
   }
 }
 
-/** Promote a pending (Razorpay) booking to confirmed and mint its tickets. */
+export interface ConfirmPaymentArgs {
+  paymentId: string;
+  orderId: string;
+  signature: string;
+  /** Defaults to whatever the booking was created against. */
+  provider?: 'razorpay' | 'cashfree' | 'upi' | 'cash' | 'comp';
+}
+
+/**
+ * Promote a pending booking to confirmed and mint its passes.
+ *
+ * The UPDATE is guarded on `status = 'pending'`, so a webhook and a browser
+ * redirect arriving at the same instant cannot both confirm: exactly one
+ * matches a row. The loser reads the booking back and returns it unchanged,
+ * which is why both callers can treat a duplicate as success.
+ */
 export async function confirmPendingBooking(
   bookingId: string,
-  payment: { paymentId: string; orderId: string; signature: string },
+  payment: ConfirmPaymentArgs,
 ): Promise<BookingDetail> {
   const reference = await transaction(async (client) => {
     const result = await client.query<BookingRow>(
       `UPDATE bookings
          SET status = 'confirmed', payment_id = $2, payment_order_id = $3,
-             payment_signature = $4, paid_at = now()
+             payment_signature = $4, paid_at = now(),
+             payment_provider = COALESCE($5, payment_provider)
        WHERE id = $1 AND status = 'pending'
        RETURNING *`,
-      [bookingId, payment.paymentId, payment.orderId, payment.signature],
+      [bookingId, payment.paymentId, payment.orderId, payment.signature, payment.provider ?? null],
     );
     const booking = result.rows[0];
     if (!booking) {
@@ -325,16 +510,7 @@ export async function confirmPendingBooking(
       throw new BookingError('Booking not found or not payable', 'booking_not_pending', 409);
     }
 
-    const eventResult = await client.query<EventRow>('SELECT * FROM events WHERE id = $1', [
-      booking.event_id,
-    ]);
-    const tierResult = booking.tier_id
-      ? await client.query<TicketTierRow>('SELECT * FROM ticket_tiers WHERE id = $1', [
-          booking.tier_id,
-        ])
-      : { rows: [] as TicketTierRow[] };
-
-    await mintTickets(client, booking, eventResult.rows[0], tierResult.rows[0] ?? null);
+    await mintTickets(client, booking.id);
     return booking.reference;
   });
 
@@ -345,6 +521,46 @@ export async function confirmPendingBooking(
 
 export async function markEmailSent(bookingId: string): Promise<void> {
   await query('UPDATE bookings SET email_sent_at = now() WHERE id = $1', [bookingId]);
+}
+
+/**
+ * Mark a pending booking as failed and hand its inventory back.
+ *
+ * Called when the gateway reports the order dead rather than merely unpaid.
+ * Releasing the stock matters more than the status does: a sold-out tier held
+ * by abandoned checkouts is lost revenue that looks like demand.
+ */
+export async function releasePendingBooking(bookingId: string, reason: string): Promise<void> {
+  await transaction(async (client) => {
+    const { rows } = await client.query<BookingRow>(
+      `UPDATE bookings SET status = 'failed', notes = COALESCE(notes || E'\\n', '') || $2
+        WHERE id = $1 AND status = 'pending'
+        RETURNING *`,
+      [bookingId, reason.slice(0, 200)],
+    );
+    const booking = rows[0];
+    if (!booking) return;
+
+    const { rows: items } = await client.query<BookingItemRow>(
+      'SELECT * FROM booking_items WHERE booking_id = $1',
+      [bookingId],
+    );
+
+    for (const item of items) {
+      if (!item.tier_id) continue;
+      await client.query(
+        'UPDATE ticket_tiers SET sold = GREATEST(sold - $2, 0) WHERE id = $1',
+        [item.tier_id, item.quantity],
+      );
+    }
+
+    if (items.length === 0 && booking.tier_id) {
+      await client.query('UPDATE ticket_tiers SET sold = GREATEST(sold - $2, 0) WHERE id = $1', [
+        booking.tier_id,
+        booking.quantity,
+      ]);
+    }
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -380,13 +596,14 @@ export async function checkInTicket(args: CheckInArgs): Promise<ScanOutcome> {
     }
   >(
     `SELECT t.*, e.name AS event_name, e.slug AS event_slug,
-            tt.name AS tier_name,
+            COALESCE(bi.tier_name, tt.name) AS tier_name,
             b.reference AS booking_reference, b.status AS booking_status,
             b.quantity AS booking_quantity
      FROM tickets t
      JOIN events e   ON e.id = t.event_id
      JOIN bookings b ON b.id = t.booking_id
-     LEFT JOIN ticket_tiers tt ON tt.id = t.tier_id
+     LEFT JOIN ticket_tiers tt  ON tt.id = t.tier_id
+     LEFT JOIN booking_items bi ON bi.id = t.booking_item_id
      WHERE t.code = $1`,
     [args.code],
   );
@@ -410,6 +627,7 @@ export async function checkInTicket(args: CheckInArgs): Promise<ScanOutcome> {
       bookingReference: ticket.booking_reference,
       quantity: ticket.booking_quantity,
       checkedInAt: ticket.checked_in_at,
+      admits: ticket.admits ?? 1,
     },
     event: { name: ticket.event_name, slug: ticket.event_slug },
   };
@@ -496,13 +714,18 @@ export async function checkInTicket(args: CheckInArgs): Promise<ScanOutcome> {
   }
 
   await logScan(ticket.id, ticket.event_id, args, 'admitted', 'Checked in');
+
+  const admits = ticket.admits ?? 1;
   return {
     ...base,
     ticket: { ...base.ticket, checkedInAt: updated.checked_in_at },
     result: 'admitted',
     ok: true,
-    title: 'Admitted',
-    message: `${ticket.holder_name} is in. Enjoy the night.`,
+    title: admits > 1 ? `Admit ${admits}` : 'Admitted',
+    message:
+      admits > 1
+        ? `${ticket.holder_name} — this pass admits ${admits} people. Let them all through.`
+        : `${ticket.holder_name} is in. Enjoy the night.`,
   };
 }
 

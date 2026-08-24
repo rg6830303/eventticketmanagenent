@@ -39,12 +39,14 @@ export async function POST(request: NextRequest) {
       return created({
         reference: generateBookingReference(),
         status: 'confirmed',
-        quantity: input.quantity,
+        quantity: input.items.reduce((sum, item) => sum + item.quantity, 0),
         subtotalPaise: 0,
         discountPaise: 0,
         amountPaise: 0,
         referralCode: null,
         requiresPayment: false,
+        payUrl: null,
+        items: [],
         referralRejected: false,
         referralMessage: null,
         emailSent: true,
@@ -75,16 +77,18 @@ export async function POST(request: NextRequest) {
 
     const { detail, referral } = await createBooking({
       eventSlug: input.eventSlug,
-      tierCode: input.tierCode,
+      // Always an array by the time the schema is done with it — the cart and
+      // the single-tier form converge here.
+      items: input.items,
       name: input.name,
       email: input.email,
       phone: input.phone,
-      quantity: input.quantity,
       referralCode: input.referralCode || null,
+      marketingOptIn: input.marketingOptIn ?? false,
       idempotencyKey: request.headers.get('Idempotency-Key'),
       ipAddress: ip,
       userAgent: request.headers.get('user-agent'),
-      source: 'web',
+      source: input.items.length > 1 ? 'cart' : 'web',
     });
 
     // The booking is already committed. A send failure must not roll it back or
@@ -115,6 +119,9 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    const requiresPayment =
+      detail.booking.status === 'pending' && detail.booking.amount_paise > 0;
+
     return created({
       reference: detail.booking.reference,
       status: detail.booking.status,
@@ -123,9 +130,18 @@ export async function POST(request: NextRequest) {
       discountPaise: detail.booking.discount_paise,
       amountPaise: detail.booking.amount_paise,
       referralCode: detail.booking.referral_code,
-      // The client uses this to decide between the payment page and the
+      items: detail.items.map((item) => ({
+        tierCode: item.tier_code,
+        tierName: item.tier_name,
+        quantity: item.quantity,
+        admitsEach: item.admits_each,
+        unitPricePaise: item.unit_price_paise,
+        lineTotalPaise: item.line_total_paise,
+      })),
+      // The client uses these to decide between the payment page and the
       // confirmation page, rather than re-deriving the rule from the amount.
-      requiresPayment: detail.booking.status === 'pending' && detail.booking.amount_paise > 0,
+      requiresPayment,
+      payUrl: requiresPayment ? `/pay/${detail.booking.reference}` : null,
       referralRejected: Boolean(input.referralCode) && !(referral?.valid ?? false),
       referralMessage: referral && !referral.valid ? (referral.reason ?? null) : null,
       eventSlug: detail.event.slug,

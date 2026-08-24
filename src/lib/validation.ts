@@ -103,26 +103,78 @@ export const nameSchema = z
   .max(80, 'Name is too long')
   .regex(/^[\p{L}\p{M}][\p{L}\p{M}\s.'-]*$/u, 'Name can only contain letters, spaces, . - and \'');
 
-export const createBookingSchema = z.object({
-  eventSlug: z.string().trim().min(1, 'Event is required').max(80),
-  tierCode: z.string().trim().min(1, 'Select a ticket type').max(40),
-  name: nameSchema,
-  email: emailSchema,
-  phone: phoneSchema,
+/** One line of a cart: a pass type and how many of it. */
+export const cartItemSchema = z.object({
+  tierCode: z
+    .string({ required_error: 'Select a ticket type' })
+    .trim()
+    .min(1, 'Select a ticket type')
+    .max(40)
+    .transform((value) => value.toUpperCase()),
   quantity: z.coerce
-    .number({ invalid_type_error: 'Choose how many tickets you need' })
+    .number({ invalid_type_error: 'Choose how many passes you need' })
     .int('Quantity must be a whole number')
-    .min(1, 'At least 1 ticket')
-    .max(20, 'Too many tickets in one booking'),
-  // Optional. A wrong code costs the discount, never the booking, so it is
-  // deliberately not validated to death here.
-  referralCode: z.string().trim().max(32).optional().or(z.literal('')),
-  // Honeypot: real users never fill a hidden field.
-  company: z.string().max(0, 'Rejected').optional().or(z.literal('')),
-  consent: z.coerce
-    .boolean()
-    .refine((v) => v === true, 'You must accept the entry terms to continue'),
+    .min(1, 'At least 1 pass')
+    .max(20, 'Too many passes in one line'),
 });
+
+export type CartItemInput = z.infer<typeof cartItemSchema>;
+
+/**
+ * A checkout submission.
+ *
+ * Two shapes reach this endpoint: the cart, which posts `items`, and the older
+ * single-tier booking form, which posts `tierCode` and `quantity`. Rather than
+ * branching in the route, the schema accepts either and always hands the caller
+ * an `items` array — so there is exactly one shape downstream and no chance of
+ * the two paths drifting apart.
+ */
+export const createBookingSchema = z
+  .object({
+    eventSlug: z.string().trim().min(1, 'Event is required').max(80),
+    name: nameSchema,
+    email: emailSchema,
+    phone: phoneSchema,
+
+    // Cart form.
+    items: z.array(cartItemSchema).min(1).max(10, 'Too many pass types in one order').optional(),
+
+    // Single-tier form, kept working.
+    tierCode: z.string().trim().min(1).max(40).optional(),
+    quantity: z.coerce
+      .number({ invalid_type_error: 'Choose how many tickets you need' })
+      .int('Quantity must be a whole number')
+      .min(1, 'At least 1 ticket')
+      .max(20, 'Too many tickets in one booking')
+      .optional(),
+
+    // Optional. A wrong code costs the discount, never the booking, so it is
+    // deliberately not validated to death here.
+    referralCode: z.string().trim().max(32).optional().or(z.literal('')),
+    // Opt-in only, and only ever moves consent from off to on.
+    marketingOptIn: z.coerce.boolean().optional(),
+    // Honeypot: real users never fill a hidden field.
+    company: z.string().max(0, 'Rejected').optional().or(z.literal('')),
+    consent: z.coerce
+      .boolean()
+      .refine((v) => v === true, 'You must accept the entry terms to continue'),
+  })
+  .superRefine((value, ctx) => {
+    if (value.items && value.items.length > 0) return;
+    if (value.tierCode && value.quantity) return;
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['items'],
+      message: 'Your cart is empty — add at least one pass',
+    });
+  })
+  .transform((value) => ({
+    ...value,
+    items:
+      value.items && value.items.length > 0
+        ? value.items
+        : [{ tierCode: (value.tierCode ?? '').toUpperCase(), quantity: value.quantity ?? 1 }],
+  }));
 
 export type CreateBookingInput = z.infer<typeof createBookingSchema>;
 
