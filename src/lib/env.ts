@@ -50,6 +50,35 @@ function secret(name: string): string {
 }
 
 /**
+ * The Postgres connection string, under whichever name the host supplies it.
+ *
+ * Vercel's Supabase integration injects POSTGRES_URL, POSTGRES_PRISMA_URL and
+ * POSTGRES_URL_NON_POOLING — it never creates DATABASE_URL. A deployment can
+ * therefore be fully wired to a database and still fail every query on a
+ * missing variable, which is a confusing way to lose an evening.
+ *
+ * Order matters. An explicit DATABASE_URL wins, because someone who set it
+ * meant it. After that the pooled endpoints come first: every serverless
+ * invocation opens its own pool, and pointing them all at the direct
+ * connection is how a Postgres connection limit gets exhausted under exactly
+ * the load you wanted to handle. The non-pooling URL is the last resort.
+ */
+const DATABASE_URL_KEYS = [
+  'DATABASE_URL',
+  'POSTGRES_URL',
+  'POSTGRES_PRISMA_URL',
+  'POSTGRES_URL_NON_POOLING',
+] as const;
+
+function resolveDatabaseUrl(): { name: string; value: string } | null {
+  for (const name of DATABASE_URL_KEYS) {
+    const value = process.env[name]?.trim();
+    if (value) return { name, value };
+  }
+  return null;
+}
+
+/**
  * Which required variables are absent, without throwing to find out.
  *
  * `env.databaseUrl` and friends throw on access, which is the right behaviour
@@ -58,8 +87,12 @@ function secret(name: string): string {
  * process.env directly here keeps the check side-effect free.
  */
 export function missingCoreConfig(): string[] {
-  const required = ['DATABASE_URL', 'ADMIN_SESSION_SECRET', 'TICKET_SIGNING_SECRET'];
-  return required.filter((name) => !process.env[name]?.trim());
+  const missing: string[] = [];
+  if (!resolveDatabaseUrl()) missing.push('DATABASE_URL');
+  for (const name of ['ADMIN_SESSION_SECRET', 'TICKET_SIGNING_SECRET']) {
+    if (!process.env[name]?.trim()) missing.push(name);
+  }
+  return missing;
 }
 
 export const env = {
@@ -78,7 +111,20 @@ export const env = {
 
   // --- Database ---
   get databaseUrl(): string {
-    return req('DATABASE_URL');
+    const resolved = resolveDatabaseUrl();
+    if (!resolved) {
+      throw new Error(
+        `Missing database connection string. Set DATABASE_URL, or connect the Supabase ` +
+          `integration which supplies ${DATABASE_URL_KEYS.slice(1).join(' / ')}. ` +
+          `See .env.example for the full list.`,
+      );
+    }
+    return resolved.value;
+  },
+
+  /** Which variable the connection string came from. Reported by /api/health. */
+  get databaseUrlSource(): string | null {
+    return resolveDatabaseUrl()?.name ?? null;
   },
   get databaseSsl(): boolean {
     return bool('DATABASE_SSL', true);

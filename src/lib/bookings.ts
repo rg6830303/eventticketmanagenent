@@ -434,10 +434,11 @@ async function mintTickets(client: MintClient, bookingId: string): Promise<void>
     for (let i = 0; i < line.quantity; i += 1) {
       seat += 1;
 
-      // The holder name is the buyer for a single pass and a numbered variant
-      // beyond that. Nobody collects per-guest names at this scale, and a door
+      // The holder name is the buyer for the first pass and a numbered variant
+      // after that. Nobody collects per-guest names at this scale, and a door
       // that reads "Rahul Ghosh +2" is more useful than three identical rows.
-      const holder = booking.quantity === 1 ? booking.customer_name : `${booking.customer_name} +${seat - 1}`;
+      // The first pass is never suffixed: "+0" is not a person.
+      const holder = seat === 1 ? booking.customer_name : `${booking.customer_name} +${seat - 1}`;
       const seatLabel = `${line.tier_code}-${String(i + 1).padStart(2, '0')}`;
 
       let inserted = false;

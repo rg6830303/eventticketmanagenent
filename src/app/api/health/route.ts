@@ -19,7 +19,14 @@ export async function GET() {
     timestamp: new Date().toISOString(),
     environment: env.appEnv,
     checks: {
-      database: { ok: db.ok, latencyMs: db.latencyMs, ...(db.error ? { error: db.error } : {}) },
+      database: {
+        ok: db.ok,
+        latencyMs: db.latencyMs,
+        // Naming the variable turns "the database is down" into "the deployment
+        // is reading the wrong one", which are very different problems.
+        source: env.databaseUrlSource,
+        ...(db.error ? { error: db.error } : {}),
+      },
       smtp: { configured: env.smtpConfigured },
       // Reports the provider actually selected rather than a hard-coded name,
       // so "payments are on" and "which gateway" cannot disagree in a probe.
