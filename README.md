@@ -3,7 +3,7 @@
 Event website and QR ticketing system for **Houz of Vybe**, Hyderabad. The site is built around
 one flagship event — **OFF Campus, Freshers '26**, at Kingdome Klub & Kitchen in the Financial District on Saturday
 12 September 2026, 12 PM to 4 PM. Customers pick a ticket, optionally apply a referral code, pay
-through Razorpay, and receive a cryptographically signed QR pass by email within seconds. Door
+through Cashfree, and receive a cryptographically signed QR pass by email within seconds. Door
 staff scan it with a phone camera.
 
 Built as a single Next.js application: marketing site, booking flow, checkout, ticket delivery
@@ -34,37 +34,65 @@ It is on the landing page only. An intro in front of a checkout is sabotage.
 
 ## Payments
 
-Payments run through **Razorpay** and are gated on `PAYMENTS_ENABLED`.
+Payments run through **Cashfree Payment Gateway**. Which rail is live is decided by which keys are
+present (`env.paymentProvider`), so a flag can never disagree with the credentials that are
+actually configured. Razorpay remains wired as a legacy rail and is selected only if Cashfree keys
+are absent.
 
-**With the flag on** (the intended production setting):
+### The one rule
 
-1. `POST /api/bookings` creates the booking as `pending`, reserving tier inventory and claiming
-   any referral code inside the same transaction.
-2. The browser is sent to **`/pay/<reference>`**, which shows the order and opens Razorpay
-   Checkout.
-3. `POST /api/payments/razorpay/order` creates the Razorpay order server-side from
-   `bookings.amount_paise` — the price is never taken from the client.
-4. On success the browser calls `POST /api/payments/razorpay/verify`, which recomputes the HMAC
-   over `order_id|payment_id`. Only a matching signature promotes the booking to `confirmed`,
-   mints the tickets and sends the email.
-5. `POST /api/payments/razorpay/webhook` is the safety net for a customer who pays and then
-   closes the tab. It hashes the **raw** request body and is idempotent, so a replayed
-   `payment.captured` never issues a second set of passes.
+**A booking is confirmed by Cashfree's API and by nothing else.** The return URL is a plain
+redirect anyone can type by hand, and a webhook body is just a message. Both are treated only as a
+signal that it is now worth *asking*; `settleCashfreeOrder()` in `src/lib/payments.ts` is the one
+function that asks, and it re-reads the order from Cashfree before a single ticket is minted.
 
-**With the flag off**, `createBooking()` confirms and ticket-mints immediately and nothing is
-charged. Both paths mint through the same function, so a pass issued in either mode is identical.
+That is why a validly signed `PAYMENT_SUCCESS_WEBHOOK` for an unpaid order returns
+`outcome: "pending"` and issues nothing.
+
+### The flow
+
+1. `POST /api/bookings` creates the booking as `pending`, writes one `booking_items` row per pass
+   type, reserves tier inventory and claims any referral code — all in one transaction.
+2. `POST /api/payments/cashfree/order` creates the Cashfree order server-side from
+   `bookings.amount_paise`. The price is never taken from the client. Only the single-order
+   `payment_session_id` is returned to the browser; the secret key never leaves the server.
+   An existing `ACTIVE` order for the same amount is reused rather than duplicated.
+3. The browser is handed to Cashfree's hosted checkout with `redirectTarget: '_self'` — a full
+   page redirect, not a modal, because a UPI intent inside an iframe fails on Android.
+4. `GET /api/payments/cashfree/return` settles the order and redirects to
+   `/booking/<reference>?paid=1`. It always ends in a redirect: someone who has just paid must land
+   on a page, never on a JSON body.
+5. `POST /api/payments/cashfree/webhook` is the safety net for a customer who pays and closes the
+   tab. The signature is `base64(HMAC-SHA256(secretKey, timestamp + rawBody))` over the **raw**
+   body, with a 5-minute replay window.
+
+Both settlement paths are idempotent — `confirmPendingBooking()` only promotes a `pending` row,
+minting is skipped when tickets already exist, and the email is guarded on `email_sent_at` — so a
+webhook racing the browser cannot double-issue or double-email.
+
+A payment short of the order total (beyond a ₹1 rounding tolerance) is left `pending` and logged
+rather than confirmed. Handing over passes for less than the price is the one mistake here that
+cannot be undone at the door.
+
+### The ledger
+
+Every observation — order created, return-URL result, webhook result — is appended to `payments`,
+never updated. `raw` holds a redacted copy of the provider payload, so "what did Cashfree tell us,
+and when" is answerable during a chargeback without another API call. Contact details are stripped
+before storage; a JSONB column is the wrong place for a second copy of a customer's phone number.
 
 ### Going live on Vercel
 
-1. Set `PAYMENTS_ENABLED=true`.
-2. Set `RAZORPAY_KEY_ID` and `RAZORPAY_KEY_SECRET` (Dashboard → Settings → API Keys).
-3. Add a webhook at `https://<your-domain>/api/payments/razorpay/webhook` for `payment.captured`
-   and set `RAZORPAY_WEBHOOK_SECRET` to the secret you chose there.
-4. Redeploy. Nothing else changes — the CSP in `next.config.mjs` already allows
-   `checkout.razorpay.com`.
+1. Set `CASHFREE_APP_ID` and `CASHFREE_SECRET_KEY` (Dashboard → Developers → API Keys). That is
+   enough — `PAYMENTS_ENABLED` defaults to on whenever a gateway is configured.
+2. Add a webhook at `https://<your-domain>/api/payments/cashfree/webhook` for
+   `PAYMENT_SUCCESS_WEBHOOK` and `PAYMENT_FAILED_WEBHOOK`. There is no separate webhook secret —
+   Cashfree signs with the same secret key.
+3. Redeploy. The CSP in `next.config.mjs` already allows `sdk.cashfree.com`, including the
+   `form-action` entry the SDK needs to leave the page.
 
-No key is exposed to the browser beyond the publishable `key_id`, which the order endpoint
-returns per request rather than baking into the bundle.
+`CASHFREE_ENV` is optional: a `cfsk_ma_prod_` key implies production and `cfsk_ma_test_` implies
+sandbox, so a live key can never be pointed at the sandbox host by accident.
 
 ---
 
@@ -148,7 +176,7 @@ VALUES ('SOMECODE', 'Who it belongs to', 10000, 200);
 | Backdrop | CSS only (`components/site/Environment.tsx`) | Fixed aurora, dot lattice and grain behind every page |
 | Motion | Framer Motion 11 | Scroll reveals, shared-layout nav, pointer-tracked 3D tilt |
 | 3D | React Three Fiber + drei | Decorative hero only; skipped without WebGL |
-| Payments | Razorpay Checkout | Server-created orders, HMAC-verified callbacks and webhook |
+| Payments | Cashfree PG | Server-created orders, API-verified settlement, signed webhook |
 | Database | Postgres via `pg` | Works with Supabase, Neon, RDS — no vendor lock |
 | Email | Nodemailer over Gmail SMTP | Ticket QR delivered as an inline CID attachment |
 | QR generation | `qrcode` | Server-side PNG / data-URL / SVG |
@@ -306,8 +334,11 @@ configuration and the payments flag.
 | `MAIL_FROM_NAME` / `MAIL_FROM_ADDRESS` | no | Display name and From address |
 | `MAIL_REPLY_TO` | no | Where customer replies land |
 | `MAIL_BCC` | no | Blind-copies every ticket email to ops |
-| `PAYMENTS_ENABLED` | no | `true` routes checkout through Razorpay. `false` issues passes free |
-| `RAZORPAY_KEY_ID` / `RAZORPAY_KEY_SECRET` | only if paid | Razorpay API credentials |
+| `CASHFREE_APP_ID` / `CASHFREE_SECRET_KEY` | for paid | Cashfree API credentials. Setting them switches payments on |
+| `CASHFREE_ENV` | no | `production` / `sandbox`. Inferred from the key prefix when blank |
+| `PAYMENT_PROVIDER` | no | Override: `cashfree` / `razorpay` / `none`. Inferred from keys when blank |
+| `PAYMENTS_ENABLED` | no | Defaults to on when a gateway is configured. `false` holds checkout closed |
+| `RAZORPAY_KEY_ID` / `RAZORPAY_KEY_SECRET` | no | Legacy rail, used only when Cashfree keys are absent |
 | `RAZORPAY_WEBHOOK_SECRET` | only if paid | Verifies incoming webhooks |
 | `MAX_TICKETS_PER_BOOKING` | no | Default 6 |
 | `VERIFY_EMAIL_MX` | no | `true` — reject domains with no mail server |
@@ -317,7 +348,26 @@ configuration and the payments flag.
 
 ## Admin console
 
-Live at **`/admin`**. Sign in at `/admin/login` with a user created by `npm run admin:create`.
+**The console lives on its own hostname**, not on the marketing domain:
+
+| Host | What it serves |
+| --- | --- |
+| `hovadmin.vercel.app` | The console *is* the site. Every path is rewritten into `/admin`, so staff see `/login`, `/scan`, `/bookings` — the marketing pages are unreachable here |
+| `houzofvybe.com` | The public site. `/admin` and `/api/admin` return **404** — not a redirect, not a login wall |
+
+The 404 is deliberate. A login page on the public domain is a permanent,
+crawlable invitation to guess at credentials, and a redirect would confirm to
+anyone typing `/admin` that a console exists and where it lives. Returning
+nothing gives no signal that the two hostnames share a deployment at all.
+
+Both hostnames are aliases of the same Vercel project, so there is one
+deployment, one set of environment variables and one build. The split is done
+in `src/middleware.ts` and is keyed on `ADMIN_HOSTNAMES` (comma-separated,
+defaults to `hovadmin.vercel.app`). `localhost` is exempt — `npm run dev`
+serves both faces from one host, so `/admin` stays reachable in development.
+
+Sign in at `https://hovadmin.vercel.app/login` with a user created by
+`npm run admin:create`.
 
 | Page | What it does |
 | --- | --- |

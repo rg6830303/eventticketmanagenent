@@ -12,6 +12,15 @@
     "src/app/api/contact/route.ts": {
       "maxDuration": 20
     },
+    "src/app/api/payments/cashfree/order/route.ts": {
+      "maxDuration": 30
+    },
+    "src/app/api/payments/cashfree/return/route.ts": {
+      "maxDuration": 45
+    },
+    "src/app/api/payments/cashfree/webhook/route.ts": {
+      "maxDuration": 45
+    },
     "src/app/api/payments/razorpay/verify/route.ts": {
       "maxDuration": 30
     },

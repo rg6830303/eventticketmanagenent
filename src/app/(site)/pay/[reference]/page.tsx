@@ -5,6 +5,7 @@ import { getBookingByReference } from '@/lib/bookings';
 import { env } from '@/lib/env';
 import { BRAND, EVENT } from '@/content/site';
 import { formatEventDate, formatEventTime, formatInr } from '@/lib/utils';
+import { CashfreeCheckout } from '@/components/payment/CashfreeCheckout';
 import { RazorpayCheckout } from '@/components/payment/RazorpayCheckout';
 import { UpiCheckout } from '@/components/payment/UpiCheckout';
 import { Reveal } from '@/components/ui/Reveal';
@@ -31,10 +32,13 @@ export const metadata: Metadata = {
  */
 export default async function PayPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ reference: string }>;
+  searchParams: Promise<{ status?: string }>;
 }) {
   const { reference } = await params;
+  const { status } = await searchParams;
   const detail = await getBookingByReference(reference).catch(() => null);
 
   if (!detail) notFound();
@@ -77,6 +81,18 @@ export default async function PayPage({
         <Reveal>
           <p className="kicker">Step 2 of 2</p>
           <h1 className="h-section mt-3">Pay and get your passes</h1>
+          {/* The customer arrives back here from a dropped or failed checkout.
+              Saying nothing makes the page look like it simply forgot. */}
+          {status === 'failed' && (
+            <div
+              role="alert"
+              className="mt-6 rounded-xl border border-flare-300 bg-flare-200/30 px-4 py-3 text-[0.875rem] leading-relaxed text-flare-600"
+            >
+              <span className="font-semibold">That payment did not go through.</span> Nothing has
+              been charged and your passes are still held — try again below, or use a different
+              method.
+            </div>
+          )}
           <p className="lede mt-3 max-w-xl">
             Your spot is held while you pay. The QR passes are emailed the moment the payment
             clears.
@@ -145,18 +161,27 @@ export default async function PayPage({
             <div className="sticky top-24 space-y-6">
               {env.paymentsEnabled && (
                 <div className="card-print p-6">
-                  <RazorpayCheckout
-                    reference={booking.reference}
-                    amountPaise={booking.amount_paise}
-                    eventName={`${EVENT.name} ${EVENT.edition}`}
-                    tierName={tier?.name ?? 'Entry'}
-                    quantity={booking.quantity}
-                    customer={{
-                      name: booking.customer_name,
-                      email: booking.customer_email,
-                      phone: booking.customer_phone,
-                    }}
-                  />
+                  {/* Which rail is live is decided by which keys are set, not
+                      by a flag that can disagree with them — see env.paymentProvider. */}
+                  {env.paymentProvider === 'cashfree' ? (
+                    <CashfreeCheckout
+                      reference={booking.reference}
+                      amountPaise={booking.amount_paise}
+                    />
+                  ) : (
+                    <RazorpayCheckout
+                      reference={booking.reference}
+                      amountPaise={booking.amount_paise}
+                      eventName={`${EVENT.name} ${EVENT.edition}`}
+                      tierName={tier?.name ?? 'Entry'}
+                      quantity={booking.quantity}
+                      customer={{
+                        name: booking.customer_name,
+                        email: booking.customer_email,
+                        phone: booking.customer_phone,
+                      }}
+                    />
+                  )}
 
                   <div className="mt-6 border-t-2 border-ink pt-5">
                     <p className="font-mono text-[0.6875rem] uppercase tracking-[0.18em] text-vybe-700">
@@ -204,8 +229,9 @@ export default async function PayPage({
                 <div className="card-print border-flare-500 p-4 text-[0.8125rem] leading-relaxed text-flare-600">
                   <p className="font-semibold">Online payment is switched off</p>
                   <p className="mt-1.5">
-                    This booking is held but cannot be paid for yet. Set PAYMENTS_ENABLED with the
-                    Razorpay keys, or UPI_ENABLED with UPI_VPA, then reload this page.
+                    This booking is held but cannot be paid for yet. Set CASHFREE_APP_ID and
+                    CASHFREE_SECRET_KEY in the deployment (or UPI_ENABLED with UPI_VPA), then
+                    reload this page.
                   </p>
                 </div>
               )}

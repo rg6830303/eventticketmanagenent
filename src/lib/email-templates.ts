@@ -22,7 +22,15 @@ export interface TicketEmailData {
   tierName: string;
   quantity: number;
   amountPaise: number;
-  tickets: Array<{ code: string; holderName: string; cid: string; url: string }>;
+  tickets: Array<{
+    code: string;
+    holderName: string;
+    cid: string;
+    url: string;
+    /** Heads this one QR lets through. A couple pass is 2, a VIP table is 5. */
+    admits: number;
+    tierName: string;
+  }>;
   manageUrl: string;
   supportEmail: string;
   siteUrl: string;
@@ -70,8 +78,11 @@ export function ticketEmailHtml(data: TicketEmailData): string {
                 <p style="margin:0 0 4px 0;font:600 11px/1.4 Arial,Helvetica,sans-serif;letter-spacing:2px;text-transform:uppercase;color:${BLUE};">
                   Entry pass ${index + 1} of ${data.tickets.length}
                 </p>
-                <p style="margin:0 0 18px 0;font:700 18px/1.3 Arial,Helvetica,sans-serif;color:${TEXT};">
+                <p style="margin:0 0 4px 0;font:700 18px/1.3 Arial,Helvetica,sans-serif;color:${TEXT};">
                   ${esc(ticket.holderName)}
+                </p>
+                <p style="margin:0 0 18px 0;font:600 13px/1.4 Arial,Helvetica,sans-serif;color:${BLUE};">
+                  ${esc(ticket.tierName)}${ticket.admits > 1 ? ` &middot; admits ${ticket.admits}` : ''}
                 </p>
                 <img src="cid:${ticket.cid}" width="220" height="220" alt="QR code for ticket ${esc(ticket.code)}"
                      style="display:block;margin:0 auto;border-radius:12px;background:#ffffff;padding:12px;" />
@@ -79,7 +90,11 @@ export function ticketEmailHtml(data: TicketEmailData): string {
                   ${esc(ticket.code)}
                 </p>
                 <p style="margin:6px 0 0 0;font:400 12px/1.5 Arial,Helvetica,sans-serif;color:${MUTED};">
-                  One scan only. Screenshot it — the venue has patchy signal.
+                  ${
+                    ticket.admits > 1
+                      ? `One scan only, and it admits all ${ticket.admits} of you together.`
+                      : 'One scan only.'
+                  } Screenshot it — the venue has patchy signal.
                 </p>
                 <p style="margin:12px 0 0 0;">
                   <a href="${esc(ticket.url)}" style="font:600 12px/1 Arial,Helvetica,sans-serif;color:${BLUE};text-decoration:none;">
@@ -224,12 +239,15 @@ export function ticketEmailText(data: TicketEmailData): string {
     '',
     'YOUR PASSES',
     ...data.tickets.flatMap((t, i) => [
-      `  ${i + 1}. ${t.holderName} — ${t.code}`,
+      `  ${i + 1}. ${t.holderName} — ${t.code}` +
+        `${t.admits > 1 ? ` (${t.tierName}, admits ${t.admits})` : ` (${t.tierName})`}`,
       `     ${t.url}`,
     ]),
     '',
     'The QR codes are attached as images to this email. Show one at the door.',
-    'Each QR admits one person and works exactly once.',
+    data.tickets.some((t) => t.admits > 1)
+      ? 'Each QR works exactly once and admits the number of people shown beside it.'
+      : 'Each QR admits one person and works exactly once.',
     '',
     `All tickets: ${data.manageUrl}`,
     `Support:     ${data.supportEmail}`,

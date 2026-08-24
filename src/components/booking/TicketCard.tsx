@@ -139,6 +139,13 @@ export async function TicketCard({ ticket, event, tier, index, total }: TicketCa
               <span className="text-[15px] font-semibold text-ink print:text-black">
                 {tier?.name ?? 'General entry'}
               </span>
+              {/* A couple or table pass admits several people on one scan. The
+                  door has to be told, or it turns four people away. */}
+              {(ticket.admits ?? 1) > 1 && (
+                <span className="mt-0.5 block text-[12px] font-semibold uppercase tracking-[0.08em] text-vybe-600 print:text-black">
+                  Admits {ticket.admits}
+                </span>
+              )}
             </Field>
             <Field label="Doors">
               <span className="text-[13px] text-slate print:text-black">

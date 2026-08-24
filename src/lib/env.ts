@@ -49,6 +49,52 @@ function secret(name: string): string {
   return value;
 }
 
+/**
+ * The Postgres connection string, under whichever name the host supplies it.
+ *
+ * Vercel's Supabase integration injects POSTGRES_URL, POSTGRES_PRISMA_URL and
+ * POSTGRES_URL_NON_POOLING — it never creates DATABASE_URL. A deployment can
+ * therefore be fully wired to a database and still fail every query on a
+ * missing variable, which is a confusing way to lose an evening.
+ *
+ * Order matters. An explicit DATABASE_URL wins, because someone who set it
+ * meant it. After that the pooled endpoints come first: every serverless
+ * invocation opens its own pool, and pointing them all at the direct
+ * connection is how a Postgres connection limit gets exhausted under exactly
+ * the load you wanted to handle. The non-pooling URL is the last resort.
+ */
+const DATABASE_URL_KEYS = [
+  'DATABASE_URL',
+  'POSTGRES_URL',
+  'POSTGRES_PRISMA_URL',
+  'POSTGRES_URL_NON_POOLING',
+] as const;
+
+function resolveDatabaseUrl(): { name: string; value: string } | null {
+  for (const name of DATABASE_URL_KEYS) {
+    const value = process.env[name]?.trim();
+    if (value) return { name, value };
+  }
+  return null;
+}
+
+/**
+ * Which required variables are absent, without throwing to find out.
+ *
+ * `env.databaseUrl` and friends throw on access, which is the right behaviour
+ * at a call site that cannot continue without them — but it makes "is this
+ * deployment configured?" a question you can only answer by breaking. Reading
+ * process.env directly here keeps the check side-effect free.
+ */
+export function missingCoreConfig(): string[] {
+  const missing: string[] = [];
+  if (!resolveDatabaseUrl()) missing.push('DATABASE_URL');
+  for (const name of ['ADMIN_SESSION_SECRET', 'TICKET_SIGNING_SECRET']) {
+    if (!process.env[name]?.trim()) missing.push(name);
+  }
+  return missing;
+}
+
 export const env = {
   // Single source of truth — see site-url.ts for why this needs to be defensive.
   get siteUrl(): string {
@@ -65,7 +111,20 @@ export const env = {
 
   // --- Database ---
   get databaseUrl(): string {
-    return req('DATABASE_URL');
+    const resolved = resolveDatabaseUrl();
+    if (!resolved) {
+      throw new Error(
+        `Missing database connection string. Set DATABASE_URL, or connect the Supabase ` +
+          `integration which supplies ${DATABASE_URL_KEYS.slice(1).join(' / ')}. ` +
+          `See .env.example for the full list.`,
+      );
+    }
+    return resolved.value;
+  },
+
+  /** Which variable the connection string came from. Reported by /api/health. */
+  get databaseUrlSource(): string | null {
+    return resolveDatabaseUrl()?.name ?? null;
   },
   get databaseSsl(): boolean {
     return bool('DATABASE_SSL', true);
@@ -114,8 +173,56 @@ export const env = {
   },
 
   // --- Payments ---
+
+  /**
+   * Which gateway the checkout drives.
+   *
+   * Derived from the keys that are actually present rather than requiring a
+   * separate switch to be flipped in step with them: a deployment that has
+   * Cashfree credentials and a `PAYMENT_PROVIDER` still saying `razorpay` is a
+   * broken checkout, and that mismatch is invisible until a customer hits it.
+   * `PAYMENT_PROVIDER` is still honoured when set, for running two gateways
+   * side by side during a migration.
+   */
+  get paymentProvider(): 'cashfree' | 'razorpay' | 'none' {
+    const declared = opt('PAYMENT_PROVIDER').toLowerCase();
+    if (declared === 'cashfree' || declared === 'razorpay' || declared === 'none') return declared;
+    if (opt('CASHFREE_APP_ID') && opt('CASHFREE_SECRET_KEY')) return 'cashfree';
+    if (opt('RAZORPAY_KEY_ID') && opt('RAZORPAY_KEY_SECRET')) return 'razorpay';
+    return 'none';
+  },
+
+  /**
+   * Master switch. Defaults to "on when a gateway is configured" so supplying
+   * keys is enough to go live — an operator who has pasted a live secret into
+   * Vercel has already decided to take money. Set PAYMENTS_ENABLED=false to
+   * hold the checkout closed with the keys still in place.
+   */
   get paymentsEnabled(): boolean {
-    return bool('PAYMENTS_ENABLED', false);
+    return bool('PAYMENTS_ENABLED', this.paymentProvider !== 'none');
+  },
+
+  /**
+   * Cashfree Payment Gateway.
+   *
+   * `sandbox` is inferred from the key prefix when CASHFREE_ENV is unset:
+   * `cfsk_ma_prod_…` is a live key and `cfsk_ma_test_…` is a sandbox one.
+   * Pointing a live key at the sandbox host (or the reverse) fails every call
+   * with an opaque auth error, and inferring it removes the chance to get that
+   * pairing wrong.
+   *
+   * The secret key doubles as the webhook signing key — Cashfree does not issue
+   * a separate one.
+   */
+  get cashfree() {
+    const appId = opt('CASHFREE_APP_ID');
+    const secretKey = opt('CASHFREE_SECRET_KEY');
+    const declared = opt('CASHFREE_ENV').toLowerCase();
+    const sandbox = declared
+      ? declared === 'sandbox' || declared === 'test'
+      : secretKey.includes('_test_');
+
+    return { appId, secretKey, sandbox, configured: Boolean(appId && secretKey) };
   },
 
   /**

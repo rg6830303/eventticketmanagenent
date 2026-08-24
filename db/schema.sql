@@ -307,3 +307,216 @@ CREATE TRIGGER events_touch   BEFORE UPDATE ON events   FOR EACH ROW EXECUTE FUN
 
 DROP TRIGGER IF EXISTS bookings_touch ON bookings;
 CREATE TRIGGER bookings_touch BEFORE UPDATE ON bookings FOR EACH ROW EXECUTE FUNCTION touch_updated_at();
+
+-- ===========================================================================
+-- Customer catalogue, multi-item carts and the gateway ledger.
+--
+-- Appended rather than woven into the sections above so this file stays a
+-- single idempotent script: everything here depends on tables defined earlier,
+-- and `npm run db:push` replays the whole file top to bottom.
+-- ===========================================================================
+
+-- --------------------------------------------------------------------------
+-- customers — one row per human, deduplicated on email
+--
+-- Bookings already carry a name/email/phone, but they carry a *copy* per
+-- checkout, so "who has ever bought from us" was previously a GROUP BY over a
+-- table whose rows get voided and refunded. This is the durable record: it
+-- survives a cancelled booking, accumulates across events, and is what the
+-- admin console reads.
+--
+-- Email is the key because it is the address tickets are delivered to. Phone is
+-- stored and indexed but not unique — shared family numbers are common.
+-- --------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS customers (
+  id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  email             TEXT NOT NULL UNIQUE,
+  phone             TEXT,
+  name              TEXT NOT NULL,
+  first_seen_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
+  last_seen_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
+  -- Rollups maintained by the trigger below, never written by application code,
+  -- so they cannot drift when a booking changes state from a webhook.
+  bookings_count    INTEGER NOT NULL DEFAULT 0,
+  tickets_count     INTEGER NOT NULL DEFAULT 0,
+  lifetime_paise    BIGINT  NOT NULL DEFAULT 0,
+  marketing_opt_in  BOOLEAN NOT NULL DEFAULT false,
+  first_source      TEXT,
+  last_ip           INET,
+  last_user_agent   TEXT,
+  notes             TEXT,
+  created_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at        TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS customers_phone_idx     ON customers (phone);
+CREATE INDEX IF NOT EXISTS customers_last_seen_idx ON customers (last_seen_at DESC);
+CREATE INDEX IF NOT EXISTS customers_name_idx      ON customers (lower(name));
+
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS customer_id UUID
+  REFERENCES customers(id) ON DELETE SET NULL;
+
+CREATE INDEX IF NOT EXISTS bookings_customer_idx ON bookings (customer_id, created_at DESC);
+
+-- --------------------------------------------------------------------------
+-- booking_items — one row per pass type in a cart
+--
+-- `bookings.tier_id` holds a single tier, which was true when the only way in
+-- was the one-tier booking form. The cart lets somebody buy 2 Normal + 1 Couple
+-- in one payment, so the line detail lives here and `bookings.tier_id` keeps
+-- pointing at the largest line, which is what the existing admin views and the
+-- email template already read.
+--
+-- Prices are snapshotted per line: a tier repriced after the sale must not
+-- retroactively change what an old order says it cost.
+-- --------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS booking_items (
+  id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  booking_id        UUID NOT NULL REFERENCES bookings(id) ON DELETE CASCADE,
+  tier_id           UUID REFERENCES ticket_tiers(id) ON DELETE SET NULL,
+  tier_code         TEXT NOT NULL,
+  tier_name         TEXT NOT NULL,
+  unit_price_paise  INTEGER NOT NULL CHECK (unit_price_paise >= 0),
+  quantity          INTEGER NOT NULL CHECK (quantity BETWEEN 1 AND 50),
+  -- How many heads one pass of this type admits. A Couple Pass is 2, a VIP
+  -- table is 5. The ticket row carries it forward so the door knows without a
+  -- lookup.
+  admits_each       INTEGER NOT NULL DEFAULT 1 CHECK (admits_each >= 1),
+  redeemable_paise  INTEGER NOT NULL DEFAULT 0 CHECK (redeemable_paise >= 0),
+  line_total_paise  INTEGER NOT NULL CHECK (line_total_paise >= 0),
+  created_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE (booking_id, tier_code)
+);
+
+CREATE INDEX IF NOT EXISTS booking_items_booking_idx ON booking_items (booking_id);
+
+-- Each ticket knows which line it came from and how many people it admits.
+ALTER TABLE tickets ADD COLUMN IF NOT EXISTS admits INTEGER NOT NULL DEFAULT 1;
+ALTER TABLE tickets ADD COLUMN IF NOT EXISTS booking_item_id UUID
+  REFERENCES booking_items(id) ON DELETE SET NULL;
+
+CREATE INDEX IF NOT EXISTS tickets_item_idx ON tickets (booking_item_id);
+
+-- --------------------------------------------------------------------------
+-- Cashfree joins the provider list. Drop-and-add so the file stays re-runnable.
+-- --------------------------------------------------------------------------
+ALTER TABLE bookings DROP CONSTRAINT IF EXISTS bookings_payment_provider_check;
+ALTER TABLE bookings ADD CONSTRAINT bookings_payment_provider_check
+  CHECK (payment_provider IN ('none', 'razorpay', 'cashfree', 'upi', 'comp', 'cash'));
+
+-- --------------------------------------------------------------------------
+-- payments — gateway transaction ledger
+--
+-- Every observation of a payment is appended here: the order we created, what
+-- the return URL reported, and what the webhook said. Nothing is updated in
+-- place, because the point of the table is answering "what did Cashfree
+-- actually tell us, and when" during a chargeback or a support call.
+--
+-- `raw` keeps the provider payload verbatim, so reconciliation questions nobody
+-- anticipated are answerable without another API call.
+-- --------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS payments (
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  booking_id      UUID REFERENCES bookings(id) ON DELETE CASCADE,
+  provider        TEXT NOT NULL DEFAULT 'cashfree',
+  order_id        TEXT NOT NULL,
+  payment_id      TEXT,
+  status          TEXT NOT NULL,
+  amount_paise    INTEGER NOT NULL DEFAULT 0,
+  currency        TEXT NOT NULL DEFAULT 'INR',
+  method          TEXT,
+  bank_reference  TEXT,
+  message         TEXT,
+  -- 'order' | 'return' | 'webhook' | 'poll' — which code path observed this.
+  source          TEXT NOT NULL DEFAULT 'return',
+  raw             JSONB NOT NULL DEFAULT '{}'::jsonb,
+  created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS payments_booking_idx ON payments (booking_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS payments_order_idx   ON payments (order_id);
+CREATE INDEX IF NOT EXISTS payments_status_idx  ON payments (status, created_at DESC);
+
+-- --------------------------------------------------------------------------
+-- customer rollups
+--
+-- A trigger rather than application code because a booking reaches 'confirmed'
+-- from four different places: the free path, the Cashfree return, the Cashfree
+-- webhook, and an operator releasing a UPI claim. Recomputing from the bookings
+-- table means every one of them stays correct without remembering to call
+-- anything.
+--
+-- Only confirmed bookings count. A pending cart that was never paid is not
+-- lifetime value, and a refund removes itself on the way out.
+-- --------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION refresh_customer_rollup() RETURNS TRIGGER AS $$
+DECLARE
+  target UUID;
+BEGIN
+  target := COALESCE(NEW.customer_id, OLD.customer_id);
+  IF target IS NULL THEN
+    RETURN NULL;
+  END IF;
+
+  UPDATE customers c
+     SET bookings_count = s.n,
+         tickets_count  = s.q,
+         lifetime_paise = s.amt
+    FROM (
+      SELECT count(*)::int                          AS n,
+             COALESCE(sum(quantity), 0)::int        AS q,
+             COALESCE(sum(amount_paise), 0)::bigint AS amt
+        FROM bookings
+       WHERE customer_id = target AND status = 'confirmed'
+    ) s
+   WHERE c.id = target;
+
+  RETURN NULL;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS bookings_customer_rollup ON bookings;
+CREATE TRIGGER bookings_customer_rollup
+  AFTER INSERT OR UPDATE OR DELETE ON bookings
+  FOR EACH ROW EXECUTE FUNCTION refresh_customer_rollup();
+
+DROP TRIGGER IF EXISTS customers_touch ON customers;
+CREATE TRIGGER customers_touch BEFORE UPDATE ON customers
+  FOR EACH ROW EXECUTE FUNCTION touch_updated_at();
+
+-- --------------------------------------------------------------------------
+-- Backfill: adopt any booking written before the customers table existed.
+-- Runs on every push and is a no-op once every booking has a customer_id.
+-- --------------------------------------------------------------------------
+INSERT INTO customers (email, name, phone, first_seen_at, last_seen_at, first_source)
+SELECT lower(b.customer_email),
+       (array_agg(b.customer_name  ORDER BY b.created_at DESC))[1],
+       (array_agg(b.customer_phone ORDER BY b.created_at DESC))[1],
+       min(b.created_at),
+       max(b.created_at),
+       (array_agg(b.source ORDER BY b.created_at ASC))[1]
+  FROM bookings b
+ WHERE b.customer_id IS NULL
+ GROUP BY lower(b.customer_email)
+ON CONFLICT (email) DO NOTHING;
+
+UPDATE bookings b
+   SET customer_id = c.id
+  FROM customers c
+ WHERE b.customer_id IS NULL AND c.email = lower(b.customer_email);
+
+-- --------------------------------------------------------------------------
+-- Pass shape lives on the tier, not in a lookup table in the code.
+--
+-- `admits` is how many heads one pass of this tier lets in — 1 for a solo
+-- pass, 2 for a couple, 5 for a VIP table. `redeemable_paise` is the part of
+-- the price that comes back as venue credit. Both were previously hard-coded
+-- in src/content/ticketing.ts, which meant repricing a tier in the database
+-- silently disagreed with what the door and the receipt believed.
+-- --------------------------------------------------------------------------
+ALTER TABLE ticket_tiers ADD COLUMN IF NOT EXISTS admits INTEGER NOT NULL DEFAULT 1;
+ALTER TABLE ticket_tiers ADD COLUMN IF NOT EXISTS redeemable_paise INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE ticket_tiers DROP CONSTRAINT IF EXISTS ticket_tiers_admits_check;
+ALTER TABLE ticket_tiers ADD CONSTRAINT ticket_tiers_admits_check CHECK (admits >= 1);
+ALTER TABLE ticket_tiers DROP CONSTRAINT IF EXISTS ticket_tiers_redeemable_check;
+ALTER TABLE ticket_tiers ADD CONSTRAINT ticket_tiers_redeemable_check CHECK (redeemable_paise >= 0);

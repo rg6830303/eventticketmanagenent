@@ -61,7 +61,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
         <div className="hidden border-t border-edge/60 sm:block">
           <div className="mx-auto w-full max-w-6xl px-4">
-            <AdminNav />
+            <AdminNav role={session.role} />
           </div>
         </div>
       </header>
@@ -72,7 +72,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       </main>
 
       <div className="fixed inset-x-0 bottom-0 z-40 border-t border-edge bg-canvas/95 backdrop-blur-xl sm:hidden">
-        <AdminNav variant="tabs" />
+        <AdminNav variant="tabs" role={session.role} />
       </div>
 
       <footer className="relative hidden border-t border-edge px-4 py-4 sm:block">

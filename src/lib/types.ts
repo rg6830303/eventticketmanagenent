@@ -44,6 +44,10 @@ export interface TicketTierRow {
   sold: number;
   perks: string[];
   sort_order: number;
+  /** Heads admitted by one pass of this tier: 1 solo, 2 couple, 5 VIP table. */
+  admits: number;
+  /** Part of the price returned as venue credit. */
+  redeemable_paise: number;
   active: boolean;
 }
 
@@ -51,6 +55,9 @@ export interface BookingRow {
   id: string;
   reference: string;
   event_id: string;
+  /** The durable customer record behind this checkout. Null only for rows
+   *  written before the customers table existed. */
+  customer_id: string | null;
   tier_id: string | null;
   customer_name: string;
   customer_email: string;
@@ -65,7 +72,7 @@ export interface BookingRow {
   amount_paise: number;
   currency: string;
   status: BookingStatus;
-  payment_provider: 'none' | 'razorpay' | 'comp' | 'cash';
+  payment_provider: 'none' | 'razorpay' | 'cashfree' | 'upi' | 'comp' | 'cash';
   payment_order_id: string | null;
   payment_id: string | null;
   paid_at: string | null;
@@ -88,6 +95,9 @@ export interface TicketRow {
   checked_in_at: string | null;
   checked_in_by: string | null;
   checked_in_gate: string | null;
+  /** How many heads this one QR admits. 1 for a solo pass, 2 for a couple. */
+  admits: number;
+  booking_item_id: string | null;
   created_at: string;
 }
 
@@ -113,6 +123,10 @@ export interface BookingDetail {
   event: EventRow;
   tier: TicketTierRow | null;
   tickets: TicketRow[];
+  /** Every pass type in the cart. Single-tier bookings have exactly one. */
+  items: BookingItemRow[];
+  /** The catalogued buyer, when the booking has been linked to one. */
+  customer: CustomerRow | null;
 }
 
 export interface ScanOutcome {
@@ -128,6 +142,8 @@ export interface ScanOutcome {
     bookingReference: string;
     quantity: number;
     checkedInAt: string | null;
+    /** Heads this one QR lets through. */
+    admits: number;
   };
   event?: { name: string; slug: string };
 }
@@ -136,4 +152,75 @@ export interface ApiError {
   error: string;
   code: string;
   details?: Record<string, string[]>;
+}
+
+/**
+ * The durable customer record. Distinct from the name/email/phone copied onto
+ * each booking: those are a snapshot of one checkout, this accumulates.
+ */
+export interface CustomerRow {
+  id: string;
+  email: string;
+  phone: string | null;
+  name: string;
+  first_seen_at: string;
+  last_seen_at: string;
+  /** Rollups maintained by a database trigger — never written by app code. */
+  bookings_count: number;
+  tickets_count: number;
+  lifetime_paise: number;
+  marketing_opt_in: boolean;
+  first_source: string | null;
+  last_ip: string | null;
+  last_user_agent: string | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+/** A customer row plus the derived columns the admin list shows. */
+export interface CustomerWithBookings extends CustomerRow {
+  last_reference: string | null;
+  pending_count: number;
+  checked_in_count: number;
+}
+
+/** One pass type within a cart. A booking has one row per distinct tier. */
+export interface BookingItemRow {
+  id: string;
+  booking_id: string;
+  tier_id: string | null;
+  tier_code: string;
+  tier_name: string;
+  /** Snapshotted at purchase — a later reprice must not rewrite an old order. */
+  unit_price_paise: number;
+  quantity: number;
+  admits_each: number;
+  redeemable_paise: number;
+  line_total_paise: number;
+  created_at: string;
+}
+
+/** One observation of a gateway payment. Append-only; nothing is updated. */
+export interface PaymentRow {
+  id: string;
+  booking_id: string | null;
+  provider: string;
+  order_id: string;
+  payment_id: string | null;
+  status: string;
+  amount_paise: number;
+  currency: string;
+  method: string | null;
+  bank_reference: string | null;
+  message: string | null;
+  source: 'order' | 'return' | 'webhook' | 'poll' | string;
+  raw: Record<string, unknown>;
+  created_at: string;
+}
+
+/** What the customer asked for, before any of it is priced or reserved. */
+export interface CartLineInput {
+  tierCode: string;
+  quantity: number;
 }

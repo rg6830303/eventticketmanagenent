@@ -206,6 +206,16 @@ export const REFERRAL = {
   discountRupees: 100,
   headline: 'Got a referral code?',
   copy: 'A valid code takes a flat ₹100 off your order, however many tickets are in it. One code per booking.',
+  /**
+   * The code printed as a tear-off coupon on the home page.
+   *
+   * This is a LIVE, redeemable row in `referral_codes`, not an illustration.
+   * Never use it as an input placeholder: styled like the field's own value it
+   * reads as pre-filled, and it hands every visitor who copies it a ₹100
+   * discount attributed to whoever the code belongs to. The referral inputs
+   * deliberately have no placeholder — they have a label and help text, which
+   * is what a code field actually needs.
+   */
   sampleCode: 'KAVYANSH100',
 } as const;
 

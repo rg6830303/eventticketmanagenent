@@ -422,7 +422,6 @@ export function BookingForm({
                     referral.status === 'valid' && 'border-leaf-500 focus:border-leaf-500 focus:shadow-[2px_2px_0_0_theme(colors.leaf.500)]',
                     referral.status === 'invalid' && 'field-error',
                   )}
-                  placeholder={REFERRAL.sampleCode}
                 />
                 {referral.status === 'checking' && (
                   <span className="absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin rounded-full border-2 border-edge border-t-vybe-500" />

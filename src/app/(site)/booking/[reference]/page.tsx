@@ -20,14 +20,23 @@ export const metadata: Metadata = {
 
 export default async function BookingConfirmationPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ reference: string }>;
+  searchParams: Promise<{ paid?: string; mailed?: string; status?: string }>;
 }) {
   const { reference } = await params;
+  const { paid, mailed, status } = await searchParams;
   const detail = await getBookingByReference(reference);
   if (!detail) notFound();
 
-  const { booking, event, tier, tickets } = detail;
+  const { booking, event, tier, tickets, items } = detail;
+  // Set by the Cashfree return URL, so it is only ever true immediately after a
+  // real, server-verified payment.
+  const justPaid = paid === '1';
+  // The gateway took the money but has not settled the order yet — a UPI
+  // collect request that is still with the customer's bank, typically.
+  const processing = status === 'processing' && booking.status === 'pending';
   const cancelled = booking.status === 'cancelled' || booking.status === 'refunded';
   // A pending booking has reserved inventory but no money and no minted
   // tickets. Congratulating someone here — and then showing them no QR — is the
@@ -44,6 +53,49 @@ export default async function BookingConfirmationPage({
         <Reveal>
           <div className="relative mx-auto max-w-2xl text-center">
             <div className="relative">
+              {/* Straight after a payment the one question is "did it work and
+                  where is my ticket". Answer both before anything else. */}
+              {justPaid && !unpaid && (
+                <div className="mb-7 rounded-2xl border-[1.5px] border-leaf-400 bg-leaf-100 px-5 py-4 text-left">
+                  <p className="font-display text-[1.05rem] font-semibold text-ink">
+                    Payment received — {formatInr(booking.amount_paise)} paid.
+                  </p>
+                  <p className="mt-1.5 text-[0.875rem] leading-relaxed text-slate">
+                    {mailed === '0' ? (
+                      <>
+                        Your {tickets.length === 1 ? 'QR pass is' : `${tickets.length} QR passes are`}{' '}
+                        below and confirmed. The email to{' '}
+                        <span className="font-medium text-ink">{maskEmail(booking.customer_email)}</span>{' '}
+                        is still going out — if it has not arrived in a few minutes, use Resend
+                        below.
+                      </>
+                    ) : (
+                      <>
+                        Your{' '}
+                        {tickets.length === 1 ? 'QR pass has' : `${tickets.length} QR passes have`}{' '}
+                        been emailed to{' '}
+                        <span className="font-medium text-ink">{maskEmail(booking.customer_email)}</span>
+                        . They are shown below too — screenshot them now.
+                      </>
+                    )}
+                  </p>
+                </div>
+              )}
+
+              {processing && (
+                <div className="mb-7 rounded-2xl border-[1.5px] border-vybe-400 bg-vybe-100 px-5 py-4 text-left">
+                  <p className="font-display text-[1.05rem] font-semibold text-ink">
+                    Your payment is still settling.
+                  </p>
+                  <p className="mt-1.5 text-[0.875rem] leading-relaxed text-slate">
+                    Do not pay again. Some UPI payments confirm a minute or two after the app says
+                    done. As soon as the bank confirms it, your QR passes are emailed to{' '}
+                    <span className="font-medium text-ink">{maskEmail(booking.customer_email)}</span>{' '}
+                    automatically. Refresh this page to check.
+                  </p>
+                </div>
+              )}
+
               {unpaid ? (
                 <>
                   <p className="kicker mb-3 text-flare-600">Payment outstanding</p>
@@ -112,7 +164,22 @@ export default async function BookingConfirmationPage({
               <Row label="Date" value={formatEventDate(event.starts_at)} />
               <Row label="Doors" value={formatEventTime(event.doors_at ?? event.starts_at)} />
               <Row label="Venue" value={event.venue_name} />
-              <Row label="Ticket" value={`${tier?.name ?? 'General Entry'} × ${booking.quantity}`} />
+              {/* A cart with more than one pass type has to itemise, or the
+                  receipt claims they bought only the biggest line. */}
+              {items.length > 1 ? (
+                items.map((item) => (
+                  <Row
+                    key={item.id}
+                    label={item.tier_name}
+                    value={`× ${item.quantity} · ${formatInr(item.line_total_paise)}`}
+                  />
+                ))
+              ) : (
+                <Row
+                  label="Ticket"
+                  value={`${items[0]?.tier_name ?? tier?.name ?? 'General Entry'} × ${booking.quantity}`}
+                />
+              )}
               <Row
                 label="Amount"
                 value={
@@ -179,7 +246,13 @@ export default async function BookingConfirmationPage({
             <h2 className="mb-3 font-display text-base font-semibold text-ink">Before you come</h2>
             <ul className="space-y-2 text-[13px] leading-relaxed text-slate">
               <li>· Carry a government photo ID matching the booking name. No ID, no entry.</li>
-              <li>· Each QR admits one person and works exactly once.</li>
+              {tickets.some((ticket) => (ticket.admits ?? 1) > 1) ? (
+                <li>
+                  · Each QR works exactly once and admits the number of people printed on it.
+                </li>
+              ) : (
+                <li>· Each QR admits one person and works exactly once.</li>
+              )}
               <li>· Entry closes 90 minutes before the event ends.</li>
               <li>· Management reserves the right of admission.</li>
             </ul>

@@ -146,7 +146,12 @@ async function logEmail(
  * socket between messages.
  */
 export async function sendTicketEmail(detail: BookingDetail): Promise<SendResult> {
-  const { booking, event, tier, tickets } = detail;
+  const { booking, event, tier, tickets, items } = detail;
+
+  // A cart can mix pass types, so each QR has to name its own tier rather than
+  // inherit the booking's headline one — otherwise a couple pass in a mixed
+  // order is emailed labelled as a normal pass.
+  const itemById = new Map(items.map((item) => [item.id, item]));
 
   const attachments = await Promise.all(
     tickets.map(async (ticket, index) => ({
@@ -170,12 +175,17 @@ export async function sendTicketEmail(detail: BookingDetail): Promise<SendResult
     tierName: tier?.name ?? 'General Entry',
     quantity: booking.quantity,
     amountPaise: booking.amount_paise,
-    tickets: tickets.map((ticket, index) => ({
-      code: ticket.code,
-      holderName: ticket.holder_name,
-      cid: `ticket-qr-${index}`,
-      url: ticketUrl(ticket.code),
-    })),
+    tickets: tickets.map((ticket, index) => {
+      const item = ticket.booking_item_id ? itemById.get(ticket.booking_item_id) : undefined;
+      return {
+        code: ticket.code,
+        holderName: ticket.holder_name,
+        cid: `ticket-qr-${index}`,
+        url: ticketUrl(ticket.code),
+        admits: ticket.admits ?? item?.admits_each ?? 1,
+        tierName: item?.tier_name ?? tier?.name ?? 'General Entry',
+      };
+    }),
     manageUrl: `${env.siteUrl}/booking/${booking.reference}`,
     supportEmail: env.smtp.replyTo || env.smtp.fromAddress,
     siteUrl: env.siteUrl,
