@@ -51,6 +51,9 @@ const BLUE = '#2586ef';
 const TEXT = '#0a2138';
 const MUTED = '#3c5c7d';
 
+/** Content-ID for the brand mark attachment. Shared with the mailer. */
+export const BRAND_MARK_CID = 'hov-brand-mark';
+
 function esc(value: string): string {
   return value
     .replace(/&/g, '&amp;')
@@ -126,6 +129,12 @@ export function ticketEmailHtml(data: TicketEmailData): string {
       <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="width:100%;max-width:600px;">
 
         <tr><td style="padding:0 0 28px 0;text-align:center;">
+          <!-- The mark is a cid: attachment, so it renders without the
+               "display images" prompt. The wordmark below stays live text on
+               purpose: if a client blocks the image anyway, the email still
+               says who it is from, which is most of what a logo is for. -->
+          <img src="cid:${BRAND_MARK_CID}" width="56" height="56" alt="Houz of Vybe"
+               style="display:block;margin:0 auto 12px auto;border:0;outline:none;text-decoration:none;border-radius:14px;" />
           <p style="margin:0;font:800 26px/1 Arial,Helvetica,sans-serif;letter-spacing:-0.5px;color:${TEXT};">
             HOUZ <span style="color:${BLUE};">OF</span> VYBE
           </p>
@@ -145,9 +154,14 @@ export function ticketEmailHtml(data: TicketEmailData): string {
                 ${esc(data.eventName)}
               </h1>
               ${data.eventTagline ? `<p style="margin:0 0 18px 0;font:400 15px/1.5 Arial,Helvetica,sans-serif;color:${MUTED};">${esc(data.eventTagline)}</p>` : ''}
-              <p style="margin:0;font:400 15px/1.7 Arial,Helvetica,sans-serif;color:${TEXT};">
-                Hey ${esc(data.customerName.split(' ')[0])}, your booking is confirmed.
-                ${data.quantity === 1 ? 'Your pass is' : `All ${data.quantity} passes are`} below.
+              <p style="margin:0 0 14px 0;font:400 15px/1.7 Arial,Helvetica,sans-serif;color:${TEXT};">
+                Hi ${esc(data.customerName.split(' ')[0])}, thank you for booking with us — your
+                payment has gone through and your ${data.quantity === 1 ? 'pass is' : `${data.quantity} passes are`}
+                confirmed and attached below.
+              </p>
+              <p style="margin:0;font:400 15px/1.7 Arial,Helvetica,sans-serif;color:${MUTED};">
+                Save this email. Screenshot the QR before you leave home — it scans perfectly
+                offline, and signal at the venue is not something we can promise.
               </p>
             </td></tr>
           </table>
@@ -179,7 +193,11 @@ export function ticketEmailHtml(data: TicketEmailData): string {
               </p>
               <ul style="margin:0;padding:0 0 0 18px;font:400 14px/1.8 Arial,Helvetica,sans-serif;color:${MUTED};">
                 <li>Carry a government photo ID matching the booking name. No ID, no entry.</li>
-                <li>Each QR admits one person and works exactly once.</li>
+                <li>${
+                  data.tickets.some((t) => t.admits > 1)
+                    ? 'Each QR works exactly once and admits the number of people printed on it.'
+                    : 'Each QR admits one person and works exactly once.'
+                }</li>
                 <li>Entry closes 90 minutes before the event ends.</li>
                 <li>Management reserves the right of admission.</li>
               </ul>
@@ -192,6 +210,13 @@ export function ticketEmailHtml(data: TicketEmailData): string {
              style="display:inline-block;background:${BLUE};color:#ffffff;text-decoration:none;padding:15px 34px;border-radius:999px;font:700 14px/1 Arial,Helvetica,sans-serif;">
             View all my tickets
           </a>
+        </td></tr>
+
+        <tr><td style="padding:0 0 26px 0;text-align:center;">
+          <p style="margin:0;font:400 14px/1.7 Arial,Helvetica,sans-serif;color:${TEXT};">
+            See you on the floor.<br />
+            <span style="font-weight:700;">The Houz of Vybe crew</span>
+          </p>
         </td></tr>
 
         <tr><td style="padding:22px 0 0 0;border-top:1px solid ${LINE};text-align:center;">

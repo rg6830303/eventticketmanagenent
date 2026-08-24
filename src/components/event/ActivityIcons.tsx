@@ -70,6 +70,20 @@ function Glass(props: IconProps) {
   );
 }
 
+function Stopwatch(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      {/* A stopwatch rather than a heart: every listing site draws speed dating
+          with a heart, and the thing that actually distinguishes it is the clock. */}
+      <path d="M9.5 2.5h5" />
+      <path d="M12 2.5v2.2" />
+      <circle cx="12" cy="13.5" r="7.8" />
+      <path d="M12 9.8v3.7l2.4 1.7" />
+      <path d="m18.4 7.2 1.6-1.6" />
+    </svg>
+  );
+}
+
 function Gift(props: IconProps) {
   return (
     <svg {...base} {...props}>
@@ -86,5 +100,6 @@ export const ACTIVITY_ICONS: Record<string, ComponentType<IconProps>> = {
   tattoo: Tattoo,
   lips: Lips,
   glass: Glass,
+  stopwatch: Stopwatch,
   gift: Gift,
 };

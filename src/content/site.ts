@@ -130,9 +130,9 @@ export const EVENT = {
       icon: 'lips',
     },
     {
-      title: 'Bar & kitchen',
-      note: 'Kingdome runs its full menu straight through the party.',
-      icon: 'glass',
+      title: 'Speed dating',
+      note: 'Short rounds, new faces, no pressure to stay past the buzzer.',
+      icon: 'stopwatch',
     },
     {
       title: 'And more on the day',

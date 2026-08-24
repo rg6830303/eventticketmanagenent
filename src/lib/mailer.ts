@@ -5,12 +5,14 @@ import { query } from './db';
 import { qrPngBuffer } from './qr';
 import { buildQrPayload, ticketUrl } from './tickets';
 import {
+  BRAND_MARK_CID,
   ticketEmailHtml,
   ticketEmailSubject,
   ticketEmailText,
   contactAckHtml,
   type TicketEmailData,
 } from './email-templates';
+import { brandMarkPng } from './email-assets';
 import type { BookingDetail } from './types';
 
 /**
@@ -94,14 +96,32 @@ async function sendMail(args: SendArgs): Promise<SendResult> {
   const smtp = env.smtp;
 
   try {
-    // Marks the message as transactional so Gmail does not file it under
-    // Promotions. Undefined values are omitted rather than sent as empty
-    // headers, which some MTAs reject.
-    const headers: Record<string, string> = { 'Auto-Submitted': 'auto-generated' };
+    // Deliverability headers.
+    //
+    // From MUST be the authenticated Gmail account. Gmail signs outbound mail
+    // with its own DKIM for that address and rewrites or rejects a From it does
+    // not own, and a From/envelope mismatch is one of the strongest spam
+    // signals there is. `fromAddress` is forced to the SMTP user below.
+    //
+    // List-Unsubscribe is not required for transactional mail, but Gmail's bulk
+    // sender rules reward its presence and never penalise it. The Post variant
+    // enables one-click unsubscribe, which Gmail surfaces instead of its
+    // "report spam" button — the single best trade there is, because an
+    // unsubscribe costs one address and a spam report costs domain reputation.
+    const headers: Record<string, string> = {
+      'Auto-Submitted': 'auto-generated',
+      'X-Auto-Response-Suppress': 'OOF, AutoReply',
+      'List-Unsubscribe': `<mailto:${smtp.replyTo || smtp.user}?subject=unsubscribe>`,
+      'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+    };
     if (args.bookingId) headers['X-Entity-Ref-ID'] = args.bookingId;
 
+    // Never send as an address Gmail has not authenticated us for.
+    const fromAddress = smtp.user || smtp.fromAddress;
+
     const info = (await getTransport().sendMail({
-      from: `"${smtp.fromName}" <${smtp.fromAddress}>`,
+      from: `"${smtp.fromName}" <${fromAddress}>`,
+      sender: fromAddress,
       to: args.to,
       bcc: smtp.bcc || undefined,
       replyTo: smtp.replyTo || undefined,
@@ -153,7 +173,7 @@ export async function sendTicketEmail(detail: BookingDetail): Promise<SendResult
   // order is emailed labelled as a normal pass.
   const itemById = new Map(items.map((item) => [item.id, item]));
 
-  const attachments = await Promise.all(
+  const qrAttachments = await Promise.all(
     tickets.map(async (ticket, index) => ({
       filename: `${ticket.code}.png`,
       content: await qrPngBuffer(await buildQrPayload(ticket.code), 560),
@@ -161,6 +181,17 @@ export async function sendTicketEmail(detail: BookingDetail): Promise<SendResult
       contentType: 'image/png',
     })),
   );
+
+  // The mark leads, so it is the first inline part a client encounters.
+  const attachments = [
+    {
+      filename: 'houz-of-vybe.png',
+      content: brandMarkPng(),
+      cid: BRAND_MARK_CID,
+      contentType: 'image/png',
+    },
+    ...qrAttachments,
+  ];
 
   const data: TicketEmailData = {
     customerName: booking.customer_name,

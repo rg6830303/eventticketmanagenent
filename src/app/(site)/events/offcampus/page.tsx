@@ -276,7 +276,7 @@ export default async function OffCampusPage() {
               ))}
             </address>
             <p className="mt-4 text-[0.9375rem] leading-relaxed text-slate">
-              {EVENT.venue.landmark}. The bar and kitchen run their full menu through the party.
+              {EVENT.venue.landmark}. The kitchen runs its full menu straight through the party.
             </p>
             <a
               href={EVENT.venue.mapsUrl}
