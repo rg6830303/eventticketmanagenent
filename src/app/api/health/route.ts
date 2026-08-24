@@ -28,7 +28,18 @@ export async function GET() {
         source: env.databaseUrlSource,
         ...(db.error ? { error: db.error } : {}),
       },
-      smtp: { configured: env.smtpConfigured },
+      // Names and presence only, never values. "configured: false" with no
+      // clue which of the two variables is missing is a guessing game played
+      // one redeploy at a time, and the answer is not a secret — whether an
+      // env var exists is already inferable from the behaviour.
+      smtp: {
+        configured: env.smtpConfigured,
+        present: Object.fromEntries(
+          ['SMTP_USER', 'SMTP_PASSWORD', 'SMTP_HOST', 'SMTP_PORT', 'MAIL_FROM_ADDRESS'].map(
+            (name) => [name, Boolean(process.env[name]?.trim())],
+          ),
+        ),
+      },
       // Which variable each signing key came from, and whether it was derived.
       // Never the key itself. "derived: true" against SUPABASE_JWT_SECRET means
       // rotating that secret will invalidate every QR pass already issued.
