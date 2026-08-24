@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import { Globe } from '@/components/brand/Globe';
-import { ExportButton } from '@/components/admin/ExportButton';
+import { ExcelButton } from '@/components/admin/ExcelButton';
 import { cn, formatInr, maskEmail, maskPhone, timeAgo } from '@/lib/utils';
 import type { AdminBookingRow } from '@/app/api/admin/bookings/route';
 
@@ -121,7 +121,7 @@ export function BookingsTable({
           )}
           {loading ? 'Searching…' : `${total} booking${total === 1 ? '' : 's'}`}
         </div>
-        <ExportButton />
+        <ExcelButton sheet="bookings" label="Export Excel" />
       </div>
 
       {loading && rows.length === 0 ? (

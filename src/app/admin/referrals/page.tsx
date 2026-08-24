@@ -1,6 +1,7 @@
 import { requireSession } from '@/lib/auth';
 import { listReferralCodesWithStats } from '@/lib/referrals';
 import { ReferralCodes } from '@/components/admin/ReferralCodes';
+import { ExcelButton } from '@/components/admin/ExcelButton';
 
 export const dynamic = 'force-dynamic';
 
@@ -26,12 +27,15 @@ export default async function ReferralsPage() {
 
   return (
     <div className="space-y-5">
-      <div>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
         <h1 className="font-display text-2xl font-bold text-ink">Referral codes</h1>
         <p className="mt-1 text-[13px] text-slate">
           Every code, what it has actually sold, and who bought with it. New codes work on the site
           the moment they are created.
         </p>
+        </div>
+        <ExcelButton sheet="referrals" label="Codes (Excel)" />
       </div>
 
       <ReferralCodes initialCodes={codes} initialTotals={totals} />

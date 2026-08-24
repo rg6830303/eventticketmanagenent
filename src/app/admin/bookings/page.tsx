@@ -1,6 +1,7 @@
 import { requireSession } from '@/lib/auth';
 import { query } from '@/lib/db';
 import { BookingsTable } from '@/components/admin/BookingsTable';
+import { ExcelButton } from '@/components/admin/ExcelButton';
 import type { AdminBookingRow } from '@/app/api/admin/bookings/route';
 
 export const dynamic = 'force-dynamic';
@@ -31,11 +32,17 @@ export default async function BookingsPage() {
 
   return (
     <div className="space-y-5">
-      <div>
-        <h1 className="font-display text-2xl font-bold text-ink">Bookings</h1>
-        <p className="mt-1 text-[13px] text-slate">
-          Contact details are masked here. Open a booking to see them in full.
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="font-display text-2xl font-bold text-ink">Bookings</h1>
+          <p className="mt-1 text-[13px] text-slate">
+            Contact details are masked here. Open a booking to see them in full.
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <ExcelButton sheet="bookings" label="Bookings (Excel)" />
+          <ExcelButton sheet="all" label="Everything (Excel)" />
+        </div>
       </div>
 
       <BookingsTable initialRows={rows} initialTotal={Number(totalRows[0]?.total ?? 0)} />

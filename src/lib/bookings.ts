@@ -869,3 +869,187 @@ export async function resolveScanInput(raw: string): Promise<ResolvedScanInput |
 
   return null;
 }
+
+// ---------------------------------------------------------------------------
+// Operator-issued passes
+// ---------------------------------------------------------------------------
+
+export interface IssueBookingArgs {
+  eventSlug: string;
+  name: string;
+  email: string;
+  phone: string;
+  /** An existing tier code, or null for a one-off pass defined inline. */
+  tierCode?: string | null;
+  /** Used when tierCode is null: what this pass is called on the ticket. */
+  customLabel?: string | null;
+  quantity: number;
+  /** Heads one pass admits. Ignored when an existing tier is chosen. */
+  admits?: number;
+  /**
+   * What was actually collected, in paise. Zero is a comp. A non-zero figure
+   * records cash or a bank transfer taken outside the gateway — it does not
+   * charge anyone.
+   */
+  amountPaise?: number;
+  note?: string | null;
+  /** The admin doing this. Recorded on the booking and in the audit log. */
+  issuedBy: string;
+  issuedByEmail: string;
+}
+
+/**
+ * Issue passes by hand, already confirmed.
+ *
+ * This is the guest-list and box-office path: a comp for a promoter, a pass for
+ * someone who paid in cash, a replacement for a booking that went wrong. It
+ * deliberately does not go through `createBooking`, because that function's job
+ * is to refuse to confirm anything that has not been paid for — a guarantee
+ * worth keeping absolute rather than punching a flag through.
+ *
+ * What it does share is `mintTickets`, so an operator-issued pass is
+ * byte-identical to one bought online: same code format, same signature, same
+ * behaviour at the door.
+ *
+ * Inventory is still consumed when a real tier is chosen. A comp occupies a
+ * place in the room exactly as a sale does, and a guest list that does not
+ * count against capacity is how a venue ends up over its licence.
+ */
+export async function issueBookingManually(args: IssueBookingArgs): Promise<BookingDetail> {
+  const quantity = Math.max(1, Math.min(Math.round(args.quantity), 50));
+  const amountPaise = Math.max(0, Math.round(args.amountPaise ?? 0));
+
+  const reference = await transaction(async (client) => {
+    const eventResult = await client.query<EventRow>(
+      'SELECT * FROM events WHERE slug = $1 FOR UPDATE',
+      [args.eventSlug],
+    );
+    const event = eventResult.rows[0];
+    if (!event) throw new BookingError('That event does not exist', 'event_not_found', 404);
+
+    let tier: TicketTierRow | null = null;
+    if (args.tierCode) {
+      const tierResult = await client.query<TicketTierRow>(
+        'SELECT * FROM ticket_tiers WHERE event_id = $1 AND code = $2 FOR UPDATE',
+        [event.id, args.tierCode.toUpperCase()],
+      );
+      tier = tierResult.rows[0] ?? null;
+      if (!tier) {
+        throw new BookingError(
+          `"${args.tierCode}" is not a ticket type for this event`,
+          'tier_not_found',
+          404,
+        );
+      }
+
+      const remaining = tier.quantity - tier.sold;
+      if (remaining < quantity) {
+        throw new BookingError(
+          `Only ${remaining} ${tier.name} left. Raise the tier's stock first, or issue a custom pass.`,
+          'insufficient_inventory',
+          409,
+        );
+      }
+    }
+
+    const admits = tier ? tier.admits : Math.max(1, Math.round(args.admits ?? 1));
+    const tierCode = tier?.code ?? 'CUSTOM';
+    const tierName = tier?.name ?? (args.customLabel?.trim() || 'Guest pass');
+    const bookingReference = generateBookingReference();
+
+    const customer = await upsertCustomerInTransaction(client, {
+      email: args.email,
+      name: args.name,
+      phone: args.phone,
+      source: 'admin',
+    });
+
+    const bookingResult = await client.query<BookingRow>(
+      `INSERT INTO bookings (
+         reference, event_id, tier_id, customer_id,
+         customer_name, customer_email, customer_phone,
+         quantity, subtotal_paise, discount_paise, amount_paise,
+         status, payment_provider, source, notes, paid_at
+       ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,0,$10,'confirmed',$11,'admin',$12,now())
+       RETURNING *`,
+      [
+        bookingReference,
+        event.id,
+        tier?.id ?? null,
+        customer.id,
+        args.name,
+        args.email.toLowerCase(),
+        args.phone,
+        quantity,
+        amountPaise,
+        amountPaise,
+        // 'comp' when nothing was collected, 'cash' when money changed hands
+        // off-gateway. Both are honest; neither claims a gateway payment.
+        amountPaise === 0 ? 'comp' : 'cash',
+        [`Issued by ${args.issuedByEmail}`, args.note?.trim()].filter(Boolean).join(' · ').slice(0, 500),
+      ],
+    );
+    const booking = bookingResult.rows[0];
+
+    await client.query(
+      `INSERT INTO booking_items (
+         booking_id, tier_id, tier_code, tier_name, unit_price_paise,
+         quantity, admits_each, redeemable_paise, line_total_paise
+       ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+      [
+        booking.id,
+        tier?.id ?? null,
+        tierCode,
+        tierName,
+        quantity > 0 ? Math.round(amountPaise / quantity) : 0,
+        quantity,
+        admits,
+        tier?.redeemable_paise ?? 0,
+        amountPaise,
+      ],
+    );
+
+    if (tier) {
+      await client.query('UPDATE ticket_tiers SET sold = sold + $2 WHERE id = $1', [
+        tier.id,
+        quantity,
+      ]);
+    }
+
+    await mintTickets(client, booking.id);
+    return bookingReference;
+  });
+
+  const detail = await getBookingByReference(reference);
+  if (!detail) throw new BookingError('Booking could not be read back', 'internal_error', 500);
+  return detail;
+}
+
+/** Recently issued-by-hand bookings, for the console's Tickets tab. */
+export async function listIssuedBookings(limit = 25): Promise<
+  Array<{
+    reference: string;
+    customer_name: string;
+    customer_email: string;
+    quantity: number;
+    amount_paise: number;
+    status: string;
+    notes: string | null;
+    email_sent_at: string | null;
+    created_at: string;
+    tier_name: string | null;
+    checked_in: number;
+  }>
+> {
+  return query(
+    `SELECT b.reference, b.customer_name, b.customer_email, b.quantity, b.amount_paise,
+            b.status, b.notes, b.email_sent_at, b.created_at,
+            (SELECT bi.tier_name FROM booking_items bi WHERE bi.booking_id = b.id LIMIT 1) AS tier_name,
+            (SELECT count(*)::int FROM tickets t WHERE t.booking_id = b.id AND t.status = 'used') AS checked_in
+       FROM bookings b
+      WHERE b.source = 'admin'
+      ORDER BY b.created_at DESC
+      LIMIT $1`,
+    [Math.min(Math.max(limit, 1), 200)],
+  );
+}

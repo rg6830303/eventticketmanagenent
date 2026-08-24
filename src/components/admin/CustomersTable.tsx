@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { cn, formatInr } from '@/lib/utils';
 import { Globe } from '@/components/brand/Globe';
 import type { CustomerWithBookings } from '@/lib/types';
+import { ExcelButton } from './ExcelButton';
 
 const PAGE_SIZE = 50;
 const EXPORT_LIMIT = 500;
@@ -108,7 +109,7 @@ export function CustomersTable({ initialRows, initialTotal }: Props) {
           Buyers only
         </label>
 
-        <ExportCustomersButton search={search} buyersOnly={buyersOnly} />
+        <ExcelButton sheet="customers" label="Customers (Excel)" />
       </div>
 
       {error && (
@@ -240,132 +241,4 @@ function Th({ children, className }: { children: React.ReactNode; className?: st
 
 function Td({ children, className }: { children: React.ReactNode; className?: string }) {
   return <td className={cn('px-3 py-2.5 align-top text-slate', className)}>{children}</td>;
-}
-
-// ---------------------------------------------------------------------------
-// CSV export
-// ---------------------------------------------------------------------------
-
-const NUMERIC = /^-?\d+(\.\d+)?$/;
-
-function csvCell(input: string | number | boolean | null): string {
-  const raw = String(input ?? '');
-  // A customer can call themselves "=cmd|…" — quoting alone would still hand a
-  // spreadsheet a live formula, so anything non-numeric gets a leading quote.
-  const safe = !NUMERIC.test(raw) && /^[=+\-@\t\r]/.test(raw) ? `'${raw}` : raw;
-  return /["\n\r,]/.test(safe) ? `"${safe.replace(/"/g, '""')}"` : safe;
-}
-
-const COLUMNS: Array<{ header: string; cell: (row: CustomerWithBookings) => string | number | boolean }> = [
-  { header: 'Name', cell: (r) => r.name },
-  { header: 'Email', cell: (r) => r.email },
-  { header: 'Phone', cell: (r) => r.phone ?? '' },
-  { header: 'Confirmed orders', cell: (r) => r.bookings_count },
-  { header: 'Passes bought', cell: (r) => r.tickets_count },
-  { header: 'Checked in', cell: (r) => r.checked_in_count },
-  { header: 'Lifetime spend (INR)', cell: (r) => (r.lifetime_paise / 100).toFixed(2) },
-  { header: 'Marketing opt-in', cell: (r) => (r.marketing_opt_in ? 'yes' : 'no') },
-  { header: 'First seen', cell: (r) => r.first_seen_at },
-  { header: 'Last seen', cell: (r) => r.last_seen_at },
-  { header: 'Latest reference', cell: (r) => r.last_reference ?? '' },
-  { header: 'Source', cell: (r) => r.first_source ?? '' },
-];
-
-function ExportCustomersButton({ search, buyersOnly }: { search: string; buyersOnly: boolean }) {
-  const [state, setState] = useState<'idle' | 'working' | 'done' | 'error'>('idle');
-  const [message, setMessage] = useState('');
-  const timer = useRef<number | null>(null);
-
-  useEffect(
-    () => () => {
-      if (timer.current !== null) window.clearTimeout(timer.current);
-    },
-    [],
-  );
-
-  function reset() {
-    if (timer.current !== null) window.clearTimeout(timer.current);
-    timer.current = window.setTimeout(() => setState('idle'), 4000);
-  }
-
-  async function handleExport() {
-    if (state === 'working') return;
-    setState('working');
-    setMessage('');
-
-    let url: string | null = null;
-    try {
-      const params = new URLSearchParams({ limit: String(EXPORT_LIMIT), page: '1' });
-      if (search) params.set('q', search);
-      if (buyersOnly) params.set('buyers', '1');
-
-      const response = await fetch(`/api/admin/customers?${params.toString()}`);
-      const body = (await response.json()) as { data?: { rows: CustomerWithBookings[] } };
-      const exportRows = body.data?.rows ?? [];
-
-      if (!response.ok || exportRows.length === 0) {
-        setMessage(response.ok ? 'Nothing to export yet.' : 'Export failed. Try again.');
-        setState('error');
-        reset();
-        return;
-      }
-
-      const lines = [COLUMNS.map((column) => csvCell(column.header)).join(',')];
-      for (const row of exportRows) {
-        lines.push(COLUMNS.map((column) => csvCell(column.cell(row))).join(','));
-      }
-
-      // BOM first, or Excel opens the file as Latin-1 and mangles names.
-      const blob = new Blob(['﻿', lines.join('\r\n')], { type: 'text/csv;charset=utf-8' });
-      url = URL.createObjectURL(blob);
-
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `houz-of-vybe-customers-${new Date().toISOString().slice(0, 10)}.csv`;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-
-      setMessage(`${exportRows.length} exported.`);
-      setState('done');
-      reset();
-    } catch {
-      setMessage('Could not reach the server.');
-      setState('error');
-      reset();
-    } finally {
-      // Freed on the next tick: revoking synchronously can cancel the download
-      // in Safari before it has read the blob.
-      if (url) {
-        const stale = url;
-        window.setTimeout(() => URL.revokeObjectURL(stale), 1000);
-      }
-    }
-  }
-
-  return (
-    <div className="flex items-center gap-2">
-      <button
-        type="button"
-        onClick={handleExport}
-        disabled={state === 'working'}
-        className={cn(
-          'btn-outline btn-sm gap-2 whitespace-nowrap px-4 py-2 text-[12px]',
-          state === 'done' && 'border-vybe-600 text-vybe-700',
-          state === 'error' && 'border-flare-500/60 text-flare-600',
-        )}
-      >
-        {state === 'working' && (
-          <Globe
-            strokeWidth={6}
-            className="h-3.5 w-3.5 animate-spin-slow text-vybe-600 [animation-duration:1.4s]"
-          />
-        )}
-        {state === 'working' ? 'Preparing…' : state === 'done' ? 'Downloaded' : 'Export CSV'}
-      </button>
-      <p aria-live="polite" className="text-[11px] text-muted">
-        {message}
-      </p>
-    </div>
-  );
 }

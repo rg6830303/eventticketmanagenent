@@ -9,6 +9,7 @@ const ITEMS = [
   { href: '/admin', label: 'Dashboard', icon: GridIcon, exact: true },
   { href: '/admin/scan', label: 'Scan', icon: ScanIcon },
   { href: '/admin/bookings', label: 'Bookings', icon: ListIcon },
+  { href: '/admin/tickets', label: 'Tickets', icon: TicketIcon, minRole: 'manager' as const },
   // Manager and above only. The page itself re-checks, but a link that always
   // 403s for gate staff is a link that teaches them the console is broken.
   { href: '/admin/customers', label: 'Customers', icon: PeopleIcon, minRole: 'manager' as const },
@@ -163,6 +164,15 @@ function PulseIcon({ className }: IconProps) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" className={className} aria-hidden>
       <path d="M2 12h4l3-8 6 16 3-8h4" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function TicketIcon({ className }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" className={className} aria-hidden>
+      <path d="M3 8.5V6.8A1.8 1.8 0 0 1 4.8 5h14.4A1.8 1.8 0 0 1 21 6.8v1.7a2.4 2.4 0 0 0 0 7v1.7a1.8 1.8 0 0 1-1.8 1.8H4.8A1.8 1.8 0 0 1 3 17.2v-1.7a2.4 2.4 0 0 0 0-7Z" />
+      <path d="M14 5v3M14 11v2M14 16v3" strokeDasharray="0.1 3" strokeLinecap="round" />
     </svg>
   );
 }
