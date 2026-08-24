@@ -8,6 +8,7 @@ import { addToCart, clearCart, loadCart, removeFromCart, setCartQuantity, type C
 import { REFERRAL } from '@/content/site';
 import type { TierOption } from '@/components/booking/BookingForm';
 import { cn } from '@/lib/utils';
+import { CartCheckout } from './CartCheckout';
 
 interface CartClientProps {
   eventName: string;
@@ -15,6 +16,10 @@ interface CartClientProps {
   tiers: TierOption[];
   eventDate: string;
   doorsAt: string;
+  /** Hard ceiling on passes per order, from MAX_TICKETS_PER_BOOKING. */
+  maxPasses: number;
+  /** False when the deployment has no live payment gateway configured. */
+  checkoutEnabled: boolean;
 }
 
 type ReferralStatus = 'empty' | 'checking' | 'valid' | 'invalid';
@@ -22,7 +27,15 @@ type ReferralStatus = 'empty' | 'checking' | 'valid' | 'invalid';
 const EASE = [0.16, 1, 0.3, 1] as const;
 const REFERRAL_KEY = 'hov-cart-referral-v1';
 
-export function CartClient({ eventName, eventSlug, tiers, eventDate, doorsAt }: CartClientProps) {
+export function CartClient({
+  eventName,
+  eventSlug,
+  tiers,
+  eventDate,
+  doorsAt,
+  maxPasses,
+  checkoutEnabled,
+}: CartClientProps) {
   const reduce = useReducedMotion();
   const tierMap = useMemo(() => new Map(tiers.map((tier) => [tier.code, tier])), [tiers]);
   const [hydrated, setHydrated] = useState(false);
@@ -342,26 +355,42 @@ export function CartClient({ eventName, eventSlug, tiers, eventDate, doorsAt }: 
           </div>
         </div>
 
+        {/* The checkout only exists once there is something to buy. An empty
+            cart showing a disabled Pay button reads as a broken page. */}
+        {hydrated && cartRows.length > 0 && (
+          <CartCheckout
+            eventSlug={eventSlug}
+            items={cartRows.map((row) => ({ code: row.code, quantity: row.quantity }))}
+            totalPasses={totalPasses}
+            totalPaise={total}
+            referralCode={referralStatus === 'valid' ? referralInput.trim().toUpperCase() : ''}
+            maxPasses={maxPasses}
+            checkoutEnabled={checkoutEnabled}
+          />
+        )}
+
         <div className="mt-6 flex flex-wrap gap-3">
           <Link href={`/events/${eventSlug}`} className="btn-outline">
             Back to tickets
           </Link>
+          {cartRows.length > 0 && (
+            <button type="button" onClick={clearAll} className="btn-outline">
+              Clear cart
+            </button>
+          )}
+        </div>
+
+        <p className="mt-4 text-center text-[0.8125rem] leading-relaxed text-slate">
+          Questions before you pay? Message{' '}
           <a
             href="https://ig.me/m/houzofvybe"
             target="_blank"
             rel="noopener noreferrer"
-            className="btn-primary"
+            className="link-swipe font-medium text-ink"
           >
-            Confirm via Instagram DM
-          </a>
-          <button type="button" onClick={clearAll} className="btn-outline">
-            Clear cart
-          </button>
-        </div>
-
-        <p className="mt-4 text-center text-[0.8125rem] leading-relaxed text-slate">
-          Once your cart is ready, tap Confirm via Instagram DM and send the order details to
-          <span className="font-medium text-ink"> @houzofvybe</span>.
+            @houzofvybe
+          </a>{' '}
+          on Instagram.
         </p>
       </aside>
     </div>

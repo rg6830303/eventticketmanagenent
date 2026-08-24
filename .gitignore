@@ -26,3 +26,6 @@ coverage/
 .idea/
 .vscode/*
 !.vscode/extensions.json
+
+# Local scratch space — never committed.
+.scratch/

@@ -9,13 +9,28 @@ const ITEMS = [
   { href: '/admin', label: 'Dashboard', icon: GridIcon, exact: true },
   { href: '/admin/scan', label: 'Scan', icon: ScanIcon },
   { href: '/admin/bookings', label: 'Bookings', icon: ListIcon },
+  // Manager and above only. The page itself re-checks, but a link that always
+  // 403s for gate staff is a link that teaches them the console is broken.
+  { href: '/admin/customers', label: 'Customers', icon: PeopleIcon, minRole: 'manager' as const },
   { href: '/admin/checkins', label: 'Door log', icon: PulseIcon },
   { href: '/admin/payments', label: 'UPI', icon: RupeeIcon },
 ];
 
-export function AdminNav({ variant = 'bar' }: { variant?: 'bar' | 'tabs' }) {
+const ROLE_RANK: Record<string, number> = { gate: 1, manager: 2, owner: 3 };
+
+export function AdminNav({
+  variant = 'bar',
+  role = 'owner',
+}: {
+  variant?: 'bar' | 'tabs';
+  role?: string;
+}) {
   const pathname = usePathname();
   const reduce = useReducedMotion();
+
+  const items = ITEMS.filter(
+    (item) => !item.minRole || (ROLE_RANK[role] ?? 0) >= ROLE_RANK[item.minRole],
+  );
 
   const isActive = (href: string, exact?: boolean) =>
     exact ? pathname === href : pathname === href || pathname.startsWith(`${href}/`);
@@ -26,8 +41,11 @@ export function AdminNav({ variant = 'bar' }: { variant?: 'bar' | 'tabs' }) {
 
   if (variant === 'tabs') {
     return (
-      <nav aria-label="Console" className="grid grid-cols-5">
-        {ITEMS.map((item) => {
+      <nav
+        aria-label="Console"
+        className={cn('grid', items.length >= 6 ? 'grid-cols-6' : 'grid-cols-5')}
+      >
+        {items.map((item) => {
           const active = isActive(item.href, item.exact);
           return (
             <Link
@@ -66,7 +84,7 @@ export function AdminNav({ variant = 'bar' }: { variant?: 'bar' | 'tabs' }) {
 
   return (
     <nav aria-label="Console" className="flex items-center gap-1 overflow-x-auto">
-      {ITEMS.map((item) => {
+      {items.map((item) => {
         const active = isActive(item.href, item.exact);
         return (
           <Link
@@ -139,6 +157,17 @@ function PulseIcon({ className }: IconProps) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" className={className} aria-hidden>
       <path d="M2 12h4l3-8 6 16 3-8h4" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function PeopleIcon({ className }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" className={className} aria-hidden>
+      <circle cx="9" cy="8" r="3.2" />
+      <path d="M3.5 20a5.5 5.5 0 0 1 11 0" strokeLinecap="round" />
+      <path d="M16 5.4a3.2 3.2 0 0 1 0 5.2" strokeLinecap="round" />
+      <path d="M17.5 14.2A5.5 5.5 0 0 1 20.5 20" strokeLinecap="round" />
     </svg>
   );
 }
