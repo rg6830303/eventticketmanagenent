@@ -348,7 +348,26 @@ configuration and the payments flag.
 
 ## Admin console
 
-Live at **`/admin`**. Sign in at `/admin/login` with a user created by `npm run admin:create`.
+**The console lives on its own hostname**, not on the marketing domain:
+
+| Host | What it serves |
+| --- | --- |
+| `hovadmin.vercel.app` | The console *is* the site. Every path is rewritten into `/admin`, so staff see `/login`, `/scan`, `/bookings` — the marketing pages are unreachable here |
+| `houzofvybe.com` | The public site. `/admin` and `/api/admin` return **404** — not a redirect, not a login wall |
+
+The 404 is deliberate. A login page on the public domain is a permanent,
+crawlable invitation to guess at credentials, and a redirect would confirm to
+anyone typing `/admin` that a console exists and where it lives. Returning
+nothing gives no signal that the two hostnames share a deployment at all.
+
+Both hostnames are aliases of the same Vercel project, so there is one
+deployment, one set of environment variables and one build. The split is done
+in `src/middleware.ts` and is keyed on `ADMIN_HOSTNAMES` (comma-separated,
+defaults to `hovadmin.vercel.app`). `localhost` is exempt — `npm run dev`
+serves both faces from one host, so `/admin` stays reachable in development.
+
+Sign in at `https://hovadmin.vercel.app/login` with a user created by
+`npm run admin:create`.
 
 | Page | What it does |
 | --- | --- |

@@ -103,9 +103,6 @@ export function Footer() {
             <a href={`mailto:${BRAND.email}`} className="transition-colors hover:text-ink">
               {BRAND.email}
             </a>
-            <Link href="/admin" className="transition-colors hover:text-ink">
-              Staff login
-            </Link>
           </div>
         </div>
       </div>
