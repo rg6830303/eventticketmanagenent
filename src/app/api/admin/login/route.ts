@@ -4,6 +4,7 @@ import { createSessionToken, login, setSessionCookie, verifyOrigin } from '@/lib
 import { recordAudit } from '@/lib/audit';
 import { LIMITS, rateLimit } from '@/lib/rate-limit';
 import { adminLoginSchema, fieldErrors } from '@/lib/validation';
+import { missingCoreConfig } from '@/lib/env';
 import { clientIp } from '@/lib/validation.server';
 
 export const runtime = 'nodejs';
@@ -12,6 +13,25 @@ export const dynamic = 'force-dynamic';
 export async function POST(request: NextRequest) {
   try {
     if (!verifyOrigin(request.headers)) return fail('Request blocked', 'bad_origin', 403);
+
+    // An unconfigured deployment fails on the first database call and surfaces
+    // as the generic "something went wrong" 500, which sends an operator
+    // hunting through logs for a missing environment variable. Name it instead.
+    //
+    // This is not a leak worth worrying about: /api/health already reports the
+    // same fact publicly, and a deployment with no database has no secrets in
+    // it to protect yet.
+    const missing = missingCoreConfig();
+    if (missing.length > 0) {
+      console.error('[admin.login] deployment is not configured', { missing });
+      return fail(
+        `This deployment is not configured yet — ${missing.join(', ')} ${
+          missing.length === 1 ? 'is' : 'are'
+        } not set in the hosting environment. Sign-in cannot work until that is fixed.`,
+        'not_configured',
+        503,
+      );
+    }
 
     const parsed = adminLoginSchema.safeParse(await readJson(request));
     if (!parsed.success) {

@@ -49,6 +49,19 @@ function secret(name: string): string {
   return value;
 }
 
+/**
+ * Which required variables are absent, without throwing to find out.
+ *
+ * `env.databaseUrl` and friends throw on access, which is the right behaviour
+ * at a call site that cannot continue without them — but it makes "is this
+ * deployment configured?" a question you can only answer by breaking. Reading
+ * process.env directly here keeps the check side-effect free.
+ */
+export function missingCoreConfig(): string[] {
+  const required = ['DATABASE_URL', 'ADMIN_SESSION_SECRET', 'TICKET_SIGNING_SECRET'];
+  return required.filter((name) => !process.env[name]?.trim());
+}
+
 export const env = {
   // Single source of truth — see site-url.ts for why this needs to be defensive.
   get siteUrl(): string {
