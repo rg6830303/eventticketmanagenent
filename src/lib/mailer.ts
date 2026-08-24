@@ -103,16 +103,14 @@ async function sendMail(args: SendArgs): Promise<SendResult> {
     // not own, and a From/envelope mismatch is one of the strongest spam
     // signals there is. `fromAddress` is forced to the SMTP user below.
     //
-    // List-Unsubscribe is not required for transactional mail, but Gmail's bulk
-    // sender rules reward its presence and never penalise it. The Post variant
-    // enables one-click unsubscribe, which Gmail surfaces instead of its
-    // "report spam" button — the single best trade there is, because an
-    // unsubscribe costs one address and a spam report costs domain reputation.
+    // No List-Unsubscribe. RFC 8058 one-click requires an HTTPS endpoint, and
+    // pairing the Post header with a bare mailto: — as this did briefly — is
+    // malformed, which is worse than omitting both. More to the point, a ticket
+    // someone paid for is not something to offer an unsubscribe from: honouring
+    // it would mean withholding their pass.
     const headers: Record<string, string> = {
       'Auto-Submitted': 'auto-generated',
       'X-Auto-Response-Suppress': 'OOF, AutoReply',
-      'List-Unsubscribe': `<mailto:${smtp.replyTo || smtp.user}?subject=unsubscribe>`,
-      'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
     };
     if (args.bookingId) headers['X-Entity-Ref-ID'] = args.bookingId;
 
@@ -176,7 +174,7 @@ export async function sendTicketEmail(detail: BookingDetail): Promise<SendResult
   const qrAttachments = await Promise.all(
     tickets.map(async (ticket, index) => ({
       filename: `${ticket.code}.png`,
-      content: await qrPngBuffer(await buildQrPayload(ticket.code), 560),
+      content: await qrPngBuffer(await buildQrPayload(ticket.code), 460),
       cid: `ticket-qr-${index}`,
       contentType: 'image/png',
     })),

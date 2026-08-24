@@ -774,3 +774,70 @@ export async function logRejectedScan(
     message,
   );
 }
+
+// ---------------------------------------------------------------------------
+// Manual entry at the door
+// ---------------------------------------------------------------------------
+
+export interface ResolvedScanInput {
+  /** The ticket code to check in. */
+  code: string;
+  /** How the input was understood, for the operator-facing message. */
+  via: 'ticket_code' | 'booking_reference';
+  /** Set when a reference resolved to one of several passes. */
+  position?: { index: number; total: number };
+}
+
+/**
+ * Turn something an operator typed into a ticket code.
+ *
+ * The HMAC on a QR exists to reject a forged pass before the database is
+ * touched — it stops a stranger spraying fake codes at the gate from turning
+ * into a spray of queries. That threat does not apply to a signed-in operator
+ * typing into the console, and refusing them is how a customer with a dead
+ * phone gets turned away from an event they paid for.
+ *
+ * So this path is deliberately allowed, and deliberately separate: it requires
+ * an authenticated session, it is recorded in scan_log like any other scan, and
+ * it never accepts a *signature* — only an identifier that must exist in the
+ * database to mean anything.
+ *
+ * Accepts a bare ticket code, or a booking reference. A reference resolves to
+ * that booking's next unredeemed pass, which is what "my phone died, my
+ * reference is HOV-8F3K2Q" should do at a door with a queue behind it.
+ */
+export async function resolveScanInput(raw: string): Promise<ResolvedScanInput | null> {
+  const input = raw.trim().toUpperCase().replace(/\s+/g, '');
+  if (!input) return null;
+
+  // A full ticket code: HOV-<EVENT>-<10>.
+  if (/^HOV-[0-9A-Z]{1,4}-[0-9A-Z]{10}$/.test(input)) {
+    const row = await queryOne<{ code: string }>('SELECT code FROM tickets WHERE code = $1', [input]);
+    return row ? { code: row.code, via: 'ticket_code' } : null;
+  }
+
+  // A booking reference: HOV-<6>.
+  if (/^HOV-[0-9A-Z]{6}$/.test(input)) {
+    const tickets = await query<{ code: string; status: string }>(
+      `SELECT t.code, t.status
+         FROM tickets t JOIN bookings b ON b.id = t.booking_id
+        WHERE b.reference = $1
+        ORDER BY t.seat_label ASC, t.created_at ASC`,
+      [input],
+    );
+    if (tickets.length === 0) return null;
+
+    // The next unredeemed pass, so scanning a family's reference repeatedly
+    // admits them one at a time rather than reporting a duplicate forever.
+    const nextIndex = tickets.findIndex((ticket) => ticket.status === 'valid');
+    const index = nextIndex === -1 ? tickets.length - 1 : nextIndex;
+
+    return {
+      code: tickets[index].code,
+      via: 'booking_reference',
+      position: { index: index + 1, total: tickets.length },
+    };
+  }
+
+  return null;
+}

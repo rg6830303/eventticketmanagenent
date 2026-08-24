@@ -89,6 +89,9 @@ export function ticketEmailHtml(data: TicketEmailData): string {
                 </p>
                 <img src="cid:${ticket.cid}" width="220" height="220" alt="QR code for ticket ${esc(ticket.code)}"
                      style="display:block;margin:0 auto;border-radius:12px;background:#ffffff;padding:12px;" />
+
+                <!-- The code is spelled out because a mail app with images off
+                     shows nothing above this line, and the door can type it. -->
                 <p style="margin:16px 0 0 0;font:700 15px/1.4 'Courier New',Courier,monospace;letter-spacing:2px;color:${TEXT};">
                   ${esc(ticket.code)}
                 </p>
@@ -99,10 +102,16 @@ export function ticketEmailHtml(data: TicketEmailData): string {
                       : 'One scan only.'
                   } Screenshot it — the venue has patchy signal.
                 </p>
-                <p style="margin:12px 0 0 0;">
-                  <a href="${esc(ticket.url)}" style="font:600 12px/1 Arial,Helvetica,sans-serif;color:${BLUE};text-decoration:none;">
-                    Open this pass in your browser &rarr;
+
+                <p style="margin:16px 0 0 0;">
+                  <a href="${esc(ticket.url)}"
+                     style="display:inline-block;border:1px solid ${BLUE};border-radius:8px;padding:11px 22px;font:700 13px/1 Arial,Helvetica,sans-serif;color:${BLUE};text-decoration:none;">
+                    Open this pass
                   </a>
+                </p>
+                <p style="margin:10px 0 0 0;font:400 12px/1.6 Arial,Helvetica,sans-serif;color:${MUTED};">
+                  No QR above? Some mail apps hide images. Tap <strong style="color:${TEXT};">Open this pass</strong>
+                  for a full-screen version, or just read the code out at the door.
                 </p>
               </td>
             </tr>
@@ -145,7 +154,7 @@ export function ticketEmailHtml(data: TicketEmailData): string {
 
         <tr><td style="padding:0 0 20px 0;">
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
-                 style="background:linear-gradient(135deg,#eaf3ff,#ffffff);border:1px solid ${LINE};border-radius:20px;">
+                 style="background:${CARD};border:1px solid ${LINE};border-radius:16px;">
             <tr><td style="padding:32px;">
               <p style="margin:0 0 8px 0;font:600 11px/1 Arial,Helvetica,sans-serif;letter-spacing:3px;text-transform:uppercase;color:${BLUE};">
                 You're on the list
@@ -206,9 +215,11 @@ export function ticketEmailHtml(data: TicketEmailData): string {
         </td></tr>
 
         <tr><td style="padding:0 0 28px 0;text-align:center;">
+          <!-- A bordered rectangle rather than a filled pill: the pill is the
+               shape every promotional email uses, and this is a receipt. -->
           <a href="${esc(data.manageUrl)}"
-             style="display:inline-block;background:${BLUE};color:#ffffff;text-decoration:none;padding:15px 34px;border-radius:999px;font:700 14px/1 Arial,Helvetica,sans-serif;">
-            View all my tickets
+             style="display:inline-block;border:1px solid ${BLUE};color:${BLUE};text-decoration:none;padding:13px 28px;border-radius:8px;font:700 13px/1 Arial,Helvetica,sans-serif;">
+            View this booking online
           </a>
         </td></tr>
 
@@ -225,7 +236,8 @@ export function ticketEmailHtml(data: TicketEmailData): string {
             <a href="mailto:${esc(data.supportEmail)}" style="color:${BLUE};text-decoration:none;">${esc(data.supportEmail)}</a>
           </p>
           <p style="margin:0;font:400 11px/1.7 Arial,Helvetica,sans-serif;color:#5d6b93;">
-            Houz of Vybe · Hyderabad, Telangana, India<br />
+            Houz of Vybe · Kingdome Klub &amp; Kitchen, 251/8, E/1, Kingdome Klub Rd,<br />
+            Financial District, Hyderabad, Telangana 500075, India<br />
             You received this because you booked tickets at
             <a href="${esc(data.siteUrl)}" style="color:#5d6b93;">${esc(data.siteUrl.replace(/^https?:\/\//, ''))}</a>.
           </p>

@@ -1,7 +1,7 @@
 import type { NextRequest } from 'next/server';
 import { fail, handleError, ok, readJson, tooManyRequests } from '@/lib/api';
 import { requireSession, verifyOrigin } from '@/lib/auth';
-import { checkInTicket, logRejectedScan } from '@/lib/bookings';
+import { checkInTicket, logRejectedScan, resolveScanInput } from '@/lib/bookings';
 import { LIMITS, rateLimit } from '@/lib/rate-limit';
 import { parseQrPayload } from '@/lib/tickets';
 import { scanSchema } from '@/lib/validation';
@@ -50,8 +50,19 @@ export async function POST(request: NextRequest) {
     const ip = clientIp(request.headers);
     const verified = await parseQrPayload(payload);
 
-    if (!verified.valid) {
-      const copy = REJECTION_COPY[verified.reason];
+    // A signed payload is the normal path. When the input is not one, it may
+    // still be an operator typing a code off a customer's confirmation email
+    // because their phone is dead — resolve that before rejecting them.
+    let code: string | null = verified.valid ? verified.code : null;
+    let manual: Awaited<ReturnType<typeof resolveScanInput>> = null;
+
+    if (!code) {
+      manual = await resolveScanInput(payload);
+      code = manual?.code ?? null;
+    }
+
+    if (!code) {
+      const copy = REJECTION_COPY[verified.valid ? 'malformed' : verified.reason];
       await logRejectedScan(
         verified.code ?? payload.slice(0, 64),
         'invalid_signature',
@@ -70,13 +81,27 @@ export async function POST(request: NextRequest) {
     }
 
     const outcome = await checkInTicket({
-      code: verified.code,
+      code,
       mode,
       operatorId: session.sub,
       eventSlug: eventSlug ?? null,
       gate: gate ?? null,
       ipAddress: ip,
     });
+
+    // Say plainly that this was typed rather than scanned, and which pass of a
+    // multi-pass booking it was — an operator holding a queue needs to know
+    // whether the other three people are still to come through.
+    if (manual && outcome.ok) {
+      const where =
+        manual.via === 'booking_reference' && manual.position
+          ? ` Pass ${manual.position.index} of ${manual.position.total} on this booking.`
+          : '';
+      return ok({
+        ...outcome,
+        message: `${outcome.message}${where} Entered by hand, not scanned.`,
+      } satisfies ScanOutcome);
+    }
 
     return ok(outcome);
   } catch (error) {
