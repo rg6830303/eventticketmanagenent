@@ -349,6 +349,15 @@ export async function reconcileBooking(booking: BookingRow): Promise<ReconcileRe
   if (!booking.payment_order_id) {
     return { reference: booking.reference, outcome: 'no_order', message: 'No order was created' };
   }
+  // An id from a previous gateway cannot be looked up here, and trying turns
+  // every page view of an old abandoned booking into a failed API call.
+  if (!booking.payment_order_id.startsWith('order_')) {
+    return {
+      reference: booking.reference,
+      outcome: 'no_order',
+      message: 'Order belongs to a previous payment provider',
+    };
+  }
 
   let captured: { id: string; amount: number; method?: string } | null = null;
 
@@ -429,6 +438,11 @@ export async function reconcilePending(withinHours = 72): Promise<ReconcileResul
     `SELECT * FROM bookings
       WHERE status = 'pending'
         AND payment_order_id IS NOT NULL
+        -- Razorpay order ids only. Bookings left over from a previous gateway
+        -- carry ids this account has never heard of, and asking about them
+        -- burns a failed API call each and fills the ledger with noise on
+        -- every sweep, forever.
+        AND payment_order_id LIKE 'order\_%'
         AND created_at > now() - ($1 || ' hours')::interval
       ORDER BY created_at DESC
       LIMIT 200`,
