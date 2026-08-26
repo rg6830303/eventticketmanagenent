@@ -205,7 +205,6 @@ export function ticketEmailHtml(data: TicketEmailData): string {
                 Before you come
               </p>
               <ul style="margin:0;padding:0 0 0 18px;font:400 14px/1.8 Arial,Helvetica,sans-serif;color:${MUTED};">
-                <li>Carry a government photo ID matching the booking name. No ID, no entry.</li>
                 <li>${
                   data.tickets.some((t) => t.admits > 1)
                     ? 'Each QR works exactly once and admits the number of people printed on it.'
