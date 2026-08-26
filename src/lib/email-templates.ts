@@ -18,6 +18,11 @@ export interface TicketEmailData {
   venueAddress: string | null;
   startsAt: string;
   doorsAt: string | null;
+  /**
+   * Kept on the payload though the ticket email no longer prints an age line —
+   * the door still enforces it, and an event that reinstates the notice should
+   * not need the mailer changed to get the number back.
+   */
   ageLimit: number;
   tierName: string;
   quantity: number;
@@ -187,7 +192,6 @@ export function ticketEmailHtml(data: TicketEmailData): string {
               ${row('Ticket type', data.tierName)}
               ${row('Quantity', String(data.quantity))}
               ${row('Amount paid', data.amountPaise === 0 ? 'Complimentary entry' : formatInr(data.amountPaise))}
-              ${row('Age policy', `${data.ageLimit}+ · Government photo ID mandatory`)}
             </td></tr>
           </table>
         </td></tr>
@@ -272,7 +276,6 @@ export function ticketEmailText(data: TicketEmailData): string {
     `Ticket:     ${data.tierName} x${data.quantity}`,
     `Amount:     ${data.amountPaise === 0 ? 'Complimentary entry' : formatInr(data.amountPaise)}`,
     `Reference:  ${data.bookingReference}`,
-    `Age policy: ${data.ageLimit}+, government photo ID mandatory`,
     '',
     'YOUR PASSES',
     ...data.tickets.flatMap((t, i) => [
