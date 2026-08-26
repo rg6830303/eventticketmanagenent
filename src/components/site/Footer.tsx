@@ -105,6 +105,12 @@ export function Footer() {
             </a>
           </div>
         </div>
+
+        {/* Credit line. Lives in the shared footer so it appears on every page
+            of the site rather than being pasted per-page and drifting. */}
+        <p className="mt-6 text-center text-[0.8125rem] text-muted sm:text-left">
+          HIRE by Yella Narsimha Rajini
+        </p>
       </div>
     </footer>
   );
