@@ -457,3 +457,72 @@ export async function reconcilePending(withinHours = 72): Promise<ReconcileResul
   }
   return results;
 }
+
+// ---------------------------------------------------------------------------
+// Undelivered tickets
+// ---------------------------------------------------------------------------
+
+export interface UndeliveredBooking {
+  reference: string;
+  customer_name: string;
+  customer_email: string;
+  amount_paise: number;
+  paid_at: string;
+  last_error: string | null;
+}
+
+/**
+ * Paid customers who have not been emailed their pass.
+ *
+ * This should always be empty. When it is not, somebody has money taken and no
+ * ticket — which on 24 August went unnoticed for hours because the only way to
+ * find out was a customer getting in touch. Confirmed bookings with no
+ * `email_sent_at` is the exact question, and it is cheap to ask.
+ */
+export async function undeliveredTickets(): Promise<UndeliveredBooking[]> {
+  return query<UndeliveredBooking>(
+    `SELECT b.reference, b.customer_name, b.customer_email, b.amount_paise, b.paid_at,
+            (SELECT l.error FROM email_log l
+              WHERE l.booking_id = b.id AND l.status = 'failed'
+              ORDER BY l.created_at DESC LIMIT 1) AS last_error
+       FROM bookings b
+      WHERE b.status = 'confirmed'
+        AND b.email_sent_at IS NULL
+      ORDER BY b.paid_at ASC
+      LIMIT 200`,
+  );
+}
+
+/**
+ * Send every outstanding ticket email.
+ *
+ * Goes through the same guarded delivery path a payment does, so a booking that
+ * quietly succeeded between the listing and the send is not emailed twice.
+ */
+export async function sendUndeliveredTickets(): Promise<{
+  attempted: number;
+  sent: number;
+  failed: Array<{ reference: string; error: string }>;
+}> {
+  const { getBookingByReference } = await import('./bookings');
+  const outstanding = await undeliveredTickets();
+
+  let sent = 0;
+  const failed: Array<{ reference: string; error: string }> = [];
+
+  for (const row of outstanding) {
+    const detail = await getBookingByReference(row.reference);
+    if (!detail) {
+      failed.push({ reference: row.reference, error: 'Booking could not be read back' });
+      continue;
+    }
+    // Sequential: Gmail throttles a burst from one account, and a rejected
+    // connection mid-sweep would look like a delivery failure rather than a
+    // rate limit.
+    const ok = await deliverTickets(detail);
+    if (ok) sent += 1;
+    else failed.push({ reference: row.reference, error: 'Send failed — see email_log' });
+  }
+
+  return { attempted: outstanding.length, sent, failed };
+}
