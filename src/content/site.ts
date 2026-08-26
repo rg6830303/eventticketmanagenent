@@ -125,12 +125,14 @@ export const EVENT = {
       icon: 'tattoo',
     },
     {
-      title: 'Kissing booth',
-      note: 'Exactly what it says on the poster. Entirely opt-in.',
-      icon: 'lips',
+      title: 'Private booth',
+      // The old note read "exactly what it says on the poster", which only
+      // worked while the title was self-explanatory. It no longer is.
+      note: 'A curtained corner of your own. Entirely opt-in.',
+      icon: 'booth',
     },
     {
-      title: 'Speed dating',
+      title: 'Find your Vybe',
       note: 'Short rounds, new faces, no pressure to stay past the buzzer.',
       icon: 'stopwatch',
     },

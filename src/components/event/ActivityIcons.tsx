@@ -4,7 +4,7 @@ import type { ComponentType, SVGProps } from 'react';
  * Line icons for the activity list.
  *
  * Drawn here rather than pulled from an icon set: the activities on this poster
- * (a kissing booth, a tattoo gun) do not exist in any general-purpose set, and
+ * (a curtained booth, a tattoo gun) do not exist in any general-purpose set, and
  * a grid where two icons are hand-made and four are borrowed always looks it.
  * All six share a 24px box, a 1.5 stroke and round caps.
  */
@@ -70,11 +70,24 @@ function Glass(props: IconProps) {
   );
 }
 
+function Booth(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      {/* A curtained booth: a rail with drapes drawn back, which reads as
+          privacy without illustrating what happens inside it. */}
+      <path d="M3 4.5h18" />
+      <path d="M6 4.5v15c2.2-.7 3.4-2.1 3.4-4.3V4.5" />
+      <path d="M18 4.5v15c-2.2-.7-3.4-2.1-3.4-4.3V4.5" />
+      <path d="M12 9.5v10" strokeDasharray="0.1 3" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 function Stopwatch(props: IconProps) {
   return (
     <svg {...base} {...props}>
-      {/* A stopwatch rather than a heart: every listing site draws speed dating
-          with a heart, and the thing that actually distinguishes it is the clock. */}
+      {/* A stopwatch rather than a heart: the rounds are the thing that makes
+          this work, and a heart would promise something the format does not. */}
       <path d="M9.5 2.5h5" />
       <path d="M12 2.5v2.2" />
       <circle cx="12" cy="13.5" r="7.8" />
@@ -99,6 +112,7 @@ export const ACTIVITY_ICONS: Record<string, ComponentType<IconProps>> = {
   camera: Camera,
   tattoo: Tattoo,
   lips: Lips,
+  booth: Booth,
   glass: Glass,
   stopwatch: Stopwatch,
   gift: Gift,
