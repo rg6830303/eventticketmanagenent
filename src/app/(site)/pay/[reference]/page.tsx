@@ -167,6 +167,7 @@ export default async function PayPage({
                     <CashfreeCheckout
                       reference={booking.reference}
                       amountPaise={booking.amount_paise}
+                      hasUpiFallback={Boolean(upiEnabled && upiUri && upiQr)}
                     />
                   ) : (
                     <RazorpayCheckout

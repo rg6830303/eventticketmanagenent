@@ -18,6 +18,12 @@ interface Props {
   /** Rendered on the button; the server is what actually prices the order. */
   label?: string;
   className?: string;
+  /**
+   * True when a second rail is on the same page. Changes what a failure says:
+   * pointing somebody at the UPI box below is far better than apologising when
+   * the thing they need is six inches further down.
+   */
+  hasUpiFallback?: boolean;
 }
 
 /**
@@ -32,7 +38,13 @@ interface Props {
  * to reach Cashfree; `/api/payments/cashfree/return` re-reads the order from
  * Cashfree's API and that is what issues the passes.
  */
-export function CashfreeCheckout({ reference, amountPaise, label, className }: Props) {
+export function CashfreeCheckout({
+  reference,
+  amountPaise,
+  label,
+  className,
+  hasUpiFallback = false,
+}: Props) {
   const router = useRouter();
   const reduce = useReducedMotion();
   const [phase, setPhase] = useState<Phase>('idle');
@@ -73,7 +85,13 @@ export function CashfreeCheckout({ reference, amountPaise, label, className }: P
 
       if (!response.ok || !body.data) {
         setPhase('error');
-        setError(body.error ?? 'We could not start the payment. Try again in a moment.');
+        const serverText = body.error ?? 'We could not start the payment. Try again in a moment.';
+        setError(
+          hasUpiFallback && response.status === 503
+            ? 'Card payment is unavailable right now — nothing has been charged. ' +
+              'Use the UPI option just below instead; it works and your passes are still held.'
+            : serverText,
+        );
         return;
       }
 
@@ -101,7 +119,7 @@ export function CashfreeCheckout({ reference, amountPaise, label, className }: P
       setPhase('error');
       setError('We could not open the payment window. Check your connection and try again.');
     }
-  }, [reference, router]);
+  }, [reference, router, hasUpiFallback]);
 
   const busy = phase === 'starting' || phase === 'redirecting';
 

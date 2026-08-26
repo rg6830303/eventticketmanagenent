@@ -147,25 +147,42 @@ export function CartCheckout({
 
         setPhase('starting-payment');
 
-        const orderResponse = await fetch('/api/payments/cashfree/order', {
+        // Gateway-agnostic: the server decides which rail is live. Only
+        // Cashfree can be opened from here, because its SDK takes a session and
+        // leaves; everything else needs the checkout page to render it.
+        const sessionResponse = await fetch('/api/payments/session', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ reference }),
         });
-        const orderBody = (await orderResponse.json()) as {
-          data?: { alreadyPaid?: boolean; paymentSessionId?: string; mode?: CashfreeMode };
+        const sessionBody = (await sessionResponse.json()) as {
+          data?: {
+            alreadyPaid?: boolean;
+            provider?: string;
+            paymentSessionId?: string;
+            mode?: CashfreeMode;
+            payUrl?: string;
+          };
         };
 
-        if (!orderResponse.ok || !orderBody.data?.paymentSessionId) {
-          router.push(body.data.payUrl ?? `/pay/${reference}`);
+        if (sessionBody.data?.alreadyPaid) {
+          router.push(`/booking/${reference}?paid=1`);
+          return;
+        }
+
+        if (!sessionResponse.ok || !sessionBody.data?.paymentSessionId) {
+          // Every other outcome — another gateway, a UPI fallback, or a gateway
+          // that refused — is handled by the checkout page, which is never a
+          // dead end while any rail is configured.
+          router.push(sessionBody.data?.payUrl ?? body.data.payUrl ?? `/pay/${reference}`);
           return;
         }
 
         setPhase('redirecting');
 
         const opened = await openCashfreeCheckout(
-          orderBody.data.paymentSessionId,
-          orderBody.data.mode ?? 'production',
+          sessionBody.data.paymentSessionId,
+          sessionBody.data.mode ?? 'production',
         );
         // A successful handoff never returns. Anything that does lands the
         // customer on the checkout page, which can retry on its own.
