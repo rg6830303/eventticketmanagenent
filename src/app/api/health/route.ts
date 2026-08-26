@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { pingDatabase } from '@/lib/db';
 import { env } from '@/lib/env';
 import { signingKeyReport } from '@/lib/signing-key';
-import { probeGateway } from '@/lib/cashfree';
+import { probeGateway } from '@/lib/payments';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -16,7 +16,7 @@ export const dynamic = 'force-dynamic';
 export async function GET(request: NextRequest) {
   const db = await pingDatabase();
 
-  // Opt-in, because it creates a real (unpaid, expiring) order at Cashfree.
+  // Opt-in, because it creates a real order at the gateway that nobody pays.
   // Worth having: an account that can authenticate but cannot trade looks
   // completely healthy from every other check.
   const probe =
@@ -58,13 +58,9 @@ export async function GET(request: NextRequest) {
       payments: {
         enabled: env.paymentsEnabled,
         provider: env.paymentsEnabled ? env.paymentProvider : 'none',
-        mode:
-          env.paymentProvider === 'cashfree'
-            ? env.cashfree.sandbox
-              ? 'sandbox'
-              : 'production'
-            : null,
-        configured: env.paymentProvider === 'cashfree' ? env.cashfree.configured : undefined,
+        configured: Boolean(env.razorpay.keyId && env.razorpay.keySecret),
+        // rzp_test_ keys are sandbox; rzp_live_ take real money.
+        mode: env.razorpay.keyId.startsWith('rzp_test') ? 'test' : 'live',
       },
       upi: { enabled: env.upi.enabled },
       ...(probe ? { gateway: probe } : {}),

@@ -134,7 +134,7 @@ export interface CreateBookingResult {
  *
  * With payments off — or on a zero-value order — the booking is confirmed and
  * ticketed on the spot. Otherwise it lands as `pending` and the gateway's
- * confirmation promotes it. The ticket-minting path is shared, so a Cashfree
+ * confirmation promotes it. The ticket-minting path is shared, so a paid
  * ticket is byte-identical to a comped one.
  */
 export async function createBooking(args: CreateBookingArgs): Promise<CreateBookingResult> {
@@ -404,7 +404,7 @@ interface MintClient {
  * database rather than taking them as an argument.
  *
  * That indirection is deliberate: minting happens from four call sites (the
- * free path, the Cashfree return, the Cashfree webhook and a UPI release) and
+ * free path, the gateway callback, the gateway webhook and a UPI release) and
  * three of them only have a booking id. Sourcing the lines from
  * `booking_items` means none of them can mint a ticket that disagrees with what
  * was actually bought.
@@ -497,7 +497,7 @@ export interface ConfirmPaymentArgs {
   orderId: string;
   signature: string;
   /** Defaults to whatever the booking was created against. */
-  provider?: 'razorpay' | 'cashfree' | 'upi' | 'cash' | 'comp';
+  provider?: 'razorpay' | 'upi' | 'cash' | 'comp';
 }
 
 /**

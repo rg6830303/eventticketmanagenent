@@ -180,18 +180,15 @@ export const env = {
    * Which gateway the checkout drives.
    *
    * Derived from the keys that are actually present rather than requiring a
-   * separate switch to be flipped in step with them: a deployment that has
-   * Cashfree credentials and a `PAYMENT_PROVIDER` still saying `razorpay` is a
-   * broken checkout, and that mismatch is invisible until a customer hits it.
-   * `PAYMENT_PROVIDER` is still honoured when set, for running two gateways
-   * side by side during a migration.
+   * separate switch to be flipped in step with them: a deployment holding
+   * credentials while a flag says otherwise is a broken checkout, and that
+   * mismatch stays invisible until a customer hits it. `PAYMENT_PROVIDER` is
+   * still honoured when set, so a rail can be closed without pulling its keys.
    */
-  get paymentProvider(): 'cashfree' | 'razorpay' | 'none' {
+  get paymentProvider(): 'razorpay' | 'none' {
     const declared = opt('PAYMENT_PROVIDER').toLowerCase();
-    if (declared === 'cashfree' || declared === 'razorpay' || declared === 'none') return declared;
-    if (opt('CASHFREE_APP_ID') && opt('CASHFREE_SECRET_KEY')) return 'cashfree';
-    if (opt('RAZORPAY_KEY_ID') && opt('RAZORPAY_KEY_SECRET')) return 'razorpay';
-    return 'none';
+    if (declared === 'razorpay' || declared === 'none') return declared;
+    return opt('RAZORPAY_KEY_ID') && opt('RAZORPAY_KEY_SECRET') ? 'razorpay' : 'none';
   },
 
   /**
@@ -214,29 +211,6 @@ export const env = {
    */
   get paymentsEnabled(): boolean {
     return bool('PAYMENTS_ENABLED', this.paymentProvider !== 'none');
-  },
-
-  /**
-   * Cashfree Payment Gateway.
-   *
-   * `sandbox` is inferred from the key prefix when CASHFREE_ENV is unset:
-   * `cfsk_ma_prod_…` is a live key and `cfsk_ma_test_…` is a sandbox one.
-   * Pointing a live key at the sandbox host (or the reverse) fails every call
-   * with an opaque auth error, and inferring it removes the chance to get that
-   * pairing wrong.
-   *
-   * The secret key doubles as the webhook signing key — Cashfree does not issue
-   * a separate one.
-   */
-  get cashfree() {
-    const appId = opt('CASHFREE_APP_ID');
-    const secretKey = opt('CASHFREE_SECRET_KEY');
-    const declared = opt('CASHFREE_ENV').toLowerCase();
-    const sandbox = declared
-      ? declared === 'sandbox' || declared === 'test'
-      : secretKey.includes('_test_');
-
-    return { appId, secretKey, sandbox, configured: Boolean(appId && secretKey) };
   },
 
   /**

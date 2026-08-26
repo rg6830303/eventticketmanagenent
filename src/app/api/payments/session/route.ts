@@ -3,8 +3,7 @@ import { fail, handleError, ok, readJson, tooManyRequests } from '@/lib/api';
 import { verifyOrigin } from '@/lib/auth';
 import { queryOne } from '@/lib/db';
 import { env } from '@/lib/env';
-import { CashfreeError } from '@/lib/cashfree';
-import { settleCashfreeOrder, startCashfreePayment } from '@/lib/payments';
+import { startPayment } from '@/lib/payments';
 import { LIMITS, rateLimit } from '@/lib/rate-limit';
 import { clientIp } from '@/lib/validation.server';
 import type { BookingRow } from '@/lib/types';
@@ -13,18 +12,17 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 /**
- * Start a payment, whichever gateway is live.
+ * Start a payment.
  *
- * The cart used to call the Cashfree endpoint by name, which meant switching
- * gateway — or losing one — broke the main Pay button on the busiest page of
+ * The cart used to call a gateway endpoint by name, which meant switching
+ * provider — or losing one — broke the main Pay button on the busiest page of
  * the site. This endpoint answers "how does this customer pay right now" and
  * the cart no longer needs to know.
  *
- * Only Cashfree can be opened straight from the cart, because its SDK takes a
- * session id and leaves. Razorpay needs its own component mounted, and the UPI
- * rail needs a QR on screen, so both are answered with a `payUrl` and the
- * checkout page renders the right thing. A customer is never shown a dead end
- * as long as any rail is configured.
+ * Razorpay's checkout needs its own component mounted with the order id, so the
+ * answer is always a `payUrl` and the checkout page renders it. Creating the
+ * order here rather than there means a gateway that cannot take money is
+ * discovered before the customer is sent anywhere.
  */
 export async function POST(request: NextRequest) {
   try {
@@ -58,86 +56,59 @@ export async function POST(request: NextRequest) {
       return fail('This booking has nothing to pay', 'zero_amount', 409);
     }
 
-    // Anything that is not Cashfree is rendered by the checkout page.
-    if (env.paymentProvider !== 'cashfree' || !env.cashfree.configured) {
-      const usable = env.paymentProvider !== 'none' || env.upi.enabled;
-      return ok({
-        provider: env.paymentProvider,
-        payUrl,
-        reference: booking.reference,
-        // False only when nothing at all can take money, so the cart can say so
-        // rather than sending somebody to a page with no buttons on it.
-        payable: usable,
-      });
-    }
-
-    // A previous attempt may have settled while the tab sat idle.
-    if (booking.payment_order_id) {
-      const settled = await settleCashfreeOrder(booking.payment_order_id, 'poll').catch(() => null);
-      if (settled?.outcome === 'paid') {
-        return ok({ alreadyPaid: true, reference: settled.booking?.reference ?? booking.reference });
+    // Payments off, or no gateway keys, but a UPI rail configured: that rail is
+    // rendered by the checkout page and is a genuine way to pay.
+    if (!env.paymentsEnabled || env.paymentProvider === 'none') {
+      if (env.upi.enabled) {
+        return ok({ provider: 'upi', payUrl, reference: booking.reference, payable: true });
       }
+      return fail(
+        'Online payment is not available right now. Nothing has been charged and your passes ' +
+          'are still held — please message @houzofvybe on Instagram and we will sort it out.',
+        'payments_unavailable',
+        503,
+      );
     }
 
     try {
-      const session = await startCashfreePayment(booking);
+      const session = await startPayment(booking);
       return ok({
-        provider: 'cashfree',
+        provider: 'razorpay',
         reference: booking.reference,
         orderId: session.orderId,
-        paymentSessionId: session.paymentSessionId,
         amountPaise: session.amountPaise,
-        mode: session.mode,
         payable: true,
         payUrl,
       });
     } catch (error) {
-      if (error instanceof CashfreeError && error.accountLevel && env.upi.enabled) {
-        // The card gateway is refusing at the account level and there is a
-        // second rail configured. Send them to it rather than to an apology —
-        // this is the whole reason a fallback exists.
-        console.error('[payments] card gateway refused; falling back to UPI', {
-          reference: booking.reference,
-          message: error.message,
-        });
+      console.error('[payments] could not create an order', {
+        reference: booking.reference,
+        error: error instanceof Error ? error.message : error,
+      });
+
+      // The gateway is configured but refusing. If a UPI rail exists, send them
+      // to it rather than to an apology — that is the entire reason a fallback
+      // is worth having, and an outage lasting days should not cost every sale
+      // in them.
+      if (env.upi.enabled) {
         return ok({
           provider: 'upi',
-          payUrl,
+          payUrl: `${payUrl}?via=upi`,
           reference: booking.reference,
           payable: true,
           fellBack: true,
         });
       }
-      throw error;
-    }
-  } catch (error) {
-    if (error instanceof CashfreeError) {
-      console.error(
-        error.accountLevel
-          ? '[payments] GATEWAY REFUSED — Cashfree will not accept transactions on this account'
-          : '[payments] Cashfree session failed',
-        { code: error.code, status: error.status, message: error.message },
-      );
-
-      if (error.accountLevel) {
-        return fail(
-          'Card and UPI payment is temporarily unavailable — this is a problem at our end, ' +
-            'not yours. Nothing has been charged and your passes are still held. ' +
-            'Please message @houzofvybe on Instagram and we will get you your ticket.',
-          'gateway_unavailable',
-          503,
-        );
-      }
 
       return fail(
-        error.retriable
-          ? 'We could not start the payment. Nothing has been charged — try again in a moment.'
-          : 'We could not start the payment. Nothing has been charged. Please message ' +
-            '@houzofvybe on Instagram and we will sort it out.',
-        'gateway_error',
-        502,
+        'Card payment is temporarily unavailable — this is a problem at our end, not yours. ' +
+          'Nothing has been charged and your passes are still held. Please message ' +
+          '@houzofvybe on Instagram and we will get you your ticket.',
+        'gateway_unavailable',
+        503,
       );
     }
+  } catch (error) {
     return handleError(error, 'payments.session');
   }
 }

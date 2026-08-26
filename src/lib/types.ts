@@ -72,7 +72,7 @@ export interface BookingRow {
   amount_paise: number;
   currency: string;
   status: BookingStatus;
-  payment_provider: 'none' | 'razorpay' | 'cashfree' | 'upi' | 'comp' | 'cash';
+  payment_provider: 'none' | 'razorpay' | 'upi' | 'comp' | 'cash';
   payment_order_id: string | null;
   payment_id: string | null;
   paid_at: string | null;

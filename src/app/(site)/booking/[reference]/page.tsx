@@ -31,7 +31,8 @@ export default async function BookingConfirmationPage({
   if (!detail) notFound();
 
   const { booking, event, tier, tickets, items } = detail;
-  // Set by the Cashfree return URL, so it is only ever true immediately after a
+  // Set once a payment has been verified server-side, so it is only ever true
+  // immediately after a
   // real, server-verified payment.
   const justPaid = paid === '1';
   // The gateway took the money but has not settled the order yet — a UPI

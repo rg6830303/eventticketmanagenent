@@ -1,7 +1,9 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "nextjs",
-  "regions": ["bom1"],
+  "regions": [
+    "bom1"
+  ],
   "functions": {
     "src/app/api/bookings/route.ts": {
       "maxDuration": 30
@@ -12,19 +14,13 @@
     "src/app/api/contact/route.ts": {
       "maxDuration": 20
     },
-    "src/app/api/payments/cashfree/order/route.ts": {
-      "maxDuration": 30
-    },
-    "src/app/api/payments/cashfree/return/route.ts": {
-      "maxDuration": 45
-    },
-    "src/app/api/payments/cashfree/webhook/route.ts": {
-      "maxDuration": 45
-    },
     "src/app/api/payments/razorpay/verify/route.ts": {
       "maxDuration": 30
     },
     "src/app/api/payments/razorpay/webhook/route.ts": {
+      "maxDuration": 30
+    },
+    "src/app/api/payments/session/route.ts": {
       "maxDuration": 30
     }
   }

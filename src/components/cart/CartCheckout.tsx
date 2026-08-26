@@ -6,7 +6,6 @@ import Link from 'next/link';
 import { useCallback, useRef, useState } from 'react';
 import { cn, formatInr } from '@/lib/utils';
 import { clearCart, type CartItem } from '@/lib/cart';
-import { openCashfreeCheckout, type CashfreeMode } from '@/components/payment/cashfree-sdk';
 
 const EASE = [0.16, 1, 0.3, 1] as const;
 
@@ -32,7 +31,7 @@ interface FieldErrors {
  *
  * Collects the three things a ticket cannot be issued without — a name to print
  * on it, an address to send it to, a number to reach the buyer on — and then
- * does the whole handoff in one action: create the booking, open the Cashfree
+ * does the whole handoff in one action: create the booking, open the payment
  * session, redirect.
  *
  * The failure design matters more than the happy path. Once `/api/bookings`
@@ -147,22 +146,17 @@ export function CartCheckout({
 
         setPhase('starting-payment');
 
-        // Gateway-agnostic: the server decides which rail is live. Only
-        // Cashfree can be opened from here, because its SDK takes a session and
-        // leaves; everything else needs the checkout page to render it.
+        // Gateway-agnostic: the server creates the order and decides which rail
+        // is live, so the cart never names a provider. Razorpay's checkout needs
+        // its own component mounted with the order id, so the handoff is always
+        // to the checkout page rather than straight to a hosted page.
         const sessionResponse = await fetch('/api/payments/session', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ reference }),
         });
         const sessionBody = (await sessionResponse.json()) as {
-          data?: {
-            alreadyPaid?: boolean;
-            provider?: string;
-            paymentSessionId?: string;
-            mode?: CashfreeMode;
-            payUrl?: string;
-          };
+          data?: { alreadyPaid?: boolean; payUrl?: string };
         };
 
         if (sessionBody.data?.alreadyPaid) {
@@ -170,23 +164,8 @@ export function CartCheckout({
           return;
         }
 
-        if (!sessionResponse.ok || !sessionBody.data?.paymentSessionId) {
-          // Every other outcome — another gateway, a UPI fallback, or a gateway
-          // that refused — is handled by the checkout page, which is never a
-          // dead end while any rail is configured.
-          router.push(sessionBody.data?.payUrl ?? body.data.payUrl ?? `/pay/${reference}`);
-          return;
-        }
-
         setPhase('redirecting');
-
-        const opened = await openCashfreeCheckout(
-          sessionBody.data.paymentSessionId,
-          sessionBody.data.mode ?? 'production',
-        );
-        // A successful handoff never returns. Anything that does lands the
-        // customer on the checkout page, which can retry on its own.
-        if (!opened.ok) router.push(`/pay/${reference}`);
+        router.push(sessionBody.data?.payUrl ?? body.data.payUrl ?? `/pay/${reference}`);
       } catch {
         if (reference) {
           router.push(`/pay/${reference}`);
@@ -354,7 +333,7 @@ export function CartCheckout({
         </div>
 
         <p className="mt-4 text-center text-[0.75rem] leading-relaxed text-muted">
-          Payment is handled by Cashfree. Card, UPI and net-banking details are entered on their
+          Payment is handled by Razorpay. Card, UPI and net-banking details are entered on their
           secure page and never reach our servers.
         </p>
       </div>

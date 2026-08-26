@@ -1,47 +1,32 @@
 import 'server-only';
+import crypto from 'node:crypto';
+import Razorpay from 'razorpay';
 import { query, queryOne } from './db';
 import { env } from './env';
-import {
-  buildOrderId,
-  CashfreeError,
-  createOrder,
-  fetchOrder,
-  fetchOrderPayments,
-  paymentMethodLabel,
-  referenceFromOrderId,
-  rupeesToPaise,
-  successfulPayment,
-  type CashfreeOrder,
-  type CashfreePayment,
-} from './cashfree';
-import { confirmPendingBooking, markEmailSent, releasePendingBooking } from './bookings';
+import { markEmailSent } from './bookings';
 import { sendTicketEmail } from './mailer';
 import type { BookingDetail, BookingRow, PaymentRow } from './types';
 
 /**
  * Payment settlement.
  *
- * The single rule this module exists to hold: **a booking is confirmed by
- * Cashfree's API and by nothing else.** Not by a redirect landing on the return
- * URL, not by a webhook body, not by anything the browser says. Both of those
- * are only signals that it is now worth *asking*, and `settleCashfreeOrder` is
- * the one function that asks.
+ * One rule holds this together: **a booking is confirmed by a signature the
+ * gateway produced and by nothing else.** Not by a redirect landing back on the
+ * site, not by a request body, not by anything the browser says. Those are only
+ * signals that it is worth checking; the HMAC is what authorises the state
+ * change.
  *
  * Everything observed on the way is appended to the `payments` table, so a
- * disputed charge can be reconstructed from what Cashfree actually said and
+ * disputed charge can be reconstructed from what the gateway actually said and
  * when, rather than from an inference about what the code must have done.
  */
 
-export type SettleSource = 'order' | 'return' | 'webhook' | 'poll';
+export type SettleSource = 'order' | 'verify' | 'webhook' | 'poll';
 
-export interface SettleResult {
-  /** 'paid' is the only outcome that mints tickets. */
-  outcome: 'paid' | 'pending' | 'failed' | 'expired' | 'unknown_order' | 'not_configured';
-  booking: BookingRow | null;
-  detail: BookingDetail | null;
-  orderStatus: string | null;
-  emailSent: boolean;
-  message: string;
+function client(): Razorpay {
+  const { keyId, keySecret } = env.razorpay;
+  if (!keyId || !keySecret) throw new Error('Razorpay credentials are not configured');
+  return new Razorpay({ key_id: keyId, key_secret: keySecret });
 }
 
 // ---------------------------------------------------------------------------
@@ -74,7 +59,7 @@ export async function recordPayment(row: {
        ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`,
       [
         row.bookingId,
-        row.provider ?? 'cashfree',
+        row.provider ?? 'razorpay',
         row.orderId,
         row.paymentId ?? null,
         row.status,
@@ -93,20 +78,17 @@ export async function recordPayment(row: {
 }
 
 export async function listPaymentsForBooking(bookingId: string): Promise<PaymentRow[]> {
-  return query<PaymentRow>(
-    'SELECT * FROM payments WHERE booking_id = $1 ORDER BY created_at ASC',
-    [bookingId],
-  );
+  return query<PaymentRow>('SELECT * FROM payments WHERE booking_id = $1 ORDER BY created_at ASC', [
+    bookingId,
+  ]);
 }
 
 /**
  * Resolve a gateway order id back to its booking.
  *
- * Three routes, cheapest first. The ledger is authoritative because it holds
- * every order ever created for a booking; `bookings.payment_order_id` only
- * holds the most recent one, so a customer who paid an earlier attempt would
- * otherwise be unfindable. The reference embedded in the order id is the last
- * resort for an order created before the ledger row committed.
+ * The ledger is consulted first because it holds every order ever created for a
+ * booking, where `bookings.payment_order_id` only holds the most recent — a
+ * customer who paid against an earlier attempt would otherwise be unfindable.
  */
 export async function bookingForOrderId(orderId: string): Promise<BookingRow | null> {
   const viaLedger = await queryOne<BookingRow>(
@@ -119,15 +101,7 @@ export async function bookingForOrderId(orderId: string): Promise<BookingRow | n
   );
   if (viaLedger) return viaLedger;
 
-  const viaBooking = await queryOne<BookingRow>(
-    'SELECT * FROM bookings WHERE payment_order_id = $1',
-    [orderId],
-  );
-  if (viaBooking) return viaBooking;
-
-  const reference = referenceFromOrderId(orderId);
-  if (!reference) return null;
-  return queryOne<BookingRow>('SELECT * FROM bookings WHERE reference = $1', [reference]);
+  return queryOne<BookingRow>('SELECT * FROM bookings WHERE payment_order_id = $1', [orderId]);
 }
 
 // ---------------------------------------------------------------------------
@@ -136,295 +110,133 @@ export async function bookingForOrderId(orderId: string): Promise<BookingRow | n
 
 export interface StartPaymentResult {
   orderId: string;
-  paymentSessionId: string;
   amountPaise: number;
-  /** 'production' | 'sandbox' — the browser SDK needs to be told which. */
-  mode: 'production' | 'sandbox';
-  /** True when an existing, still-payable order was handed back. */
-  reused: boolean;
+  currency: string;
+  /** Publishable. Safe in the browser; it cannot move money on its own. */
+  keyId: string;
 }
 
 /**
- * Get a payable Cashfree session for a pending booking.
+ * Create a Razorpay order for a pending booking.
  *
- * An existing ACTIVE order is reused rather than replaced. Creating a fresh
- * order on every click leaves a trail of live orders for the same booking, any
- * of which could be paid, and reconciling that is a manual job nobody wants at
- * 1am. A new order is only minted when the previous one is genuinely dead.
+ * The booking reference is the receipt. Razorpay dedupes on it, so a customer
+ * who abandons and comes back lands on the same order rather than leaving a
+ * trail of live orders for one booking, any of which could be paid.
+ *
+ * The amount comes from the booking row and never from the request, so somebody
+ * editing the call cannot choose their own price.
  */
-export async function startCashfreePayment(booking: BookingRow): Promise<StartPaymentResult> {
-  const mode: 'production' | 'sandbox' = env.cashfree.sandbox ? 'sandbox' : 'production';
-  const returnUrl = `${env.siteUrl}/api/payments/cashfree/return?order_id={order_id}`;
-  const notifyUrl = `${env.siteUrl}/api/payments/cashfree/webhook`;
+export async function startPayment(booking: BookingRow): Promise<StartPaymentResult> {
+  const { keyId } = env.razorpay;
 
-  if (booking.payment_order_id) {
-    const existing = await fetchOrder(booking.payment_order_id).catch(() => null);
-    if (existing?.order_status === 'ACTIVE' && existing.payment_session_id) {
-      // Only reuse when the price still matches. A cart edited between attempts
-      // must not be paid at the old total.
-      if (rupeesToPaise(existing.order_amount) === booking.amount_paise) {
-        return {
-          orderId: existing.order_id,
-          paymentSessionId: existing.payment_session_id,
-          amountPaise: booking.amount_paise,
-          mode,
-          reused: true,
-        };
-      }
-    }
-  }
-
-  const orderId = buildOrderId(booking.reference);
-
-  let order: Awaited<ReturnType<typeof createOrder>>;
+  let order: { id: string; amount: number | string; currency: string };
   try {
-    order = await createOrder({
-      orderId,
-      amountPaise: booking.amount_paise,
+    order = (await client().orders.create({
+      amount: booking.amount_paise,
       currency: booking.currency,
-      customer: {
-        id: booking.customer_id ?? booking.reference,
-        name: booking.customer_name,
-        email: booking.customer_email,
-        phone: booking.customer_phone,
-      },
-      returnUrl,
-      notifyUrl,
-      note: `Passes for ${booking.reference}`,
-      tags: { reference: booking.reference, bookingId: booking.id },
-      expiryMinutes: 30,
-    });
+      receipt: booking.reference,
+      notes: { bookingId: booking.id, reference: booking.reference },
+    })) as typeof order;
   } catch (error) {
-    // A failed order creation used to leave no trace at all: no order id on the
-    // booking, no ledger row, nothing to look at afterwards. That is how a
-    // gateway outage ran for twelve hours looking exactly like customers
-    // changing their minds. Every attempt is recorded now, successful or not.
-    const cf = error instanceof CashfreeError ? error : null;
+    // A failed order creation used to leave no trace at all: no order id, no
+    // ledger row, nothing to look at afterwards. That is how a gateway outage
+    // ran for twelve hours looking exactly like customers changing their minds.
     await recordPayment({
       bookingId: booking.id,
-      orderId,
-      status: cf?.accountLevel ? 'GATEWAY_REFUSED' : 'CREATE_FAILED',
+      orderId: `FAILED-${booking.reference}`,
+      status: 'CREATE_FAILED',
       amountPaise: booking.amount_paise,
       currency: booking.currency,
       source: 'order',
       message: error instanceof Error ? error.message : 'Order creation failed',
-      raw: { code: cf?.code, status: cf?.status, accountLevel: cf?.accountLevel ?? false },
     });
     throw error;
   }
 
-  if (!order.payment_session_id) {
-    throw new Error('Cashfree created the order without a payment session');
-  }
-
-  await query(
-    `UPDATE bookings SET payment_order_id = $2, payment_provider = 'cashfree' WHERE id = $1`,
-    [booking.id, order.order_id],
-  );
+  await query('UPDATE bookings SET payment_order_id = $2, payment_provider = $3 WHERE id = $1', [
+    booking.id,
+    order.id,
+    'razorpay',
+  ]);
 
   await recordPayment({
     bookingId: booking.id,
-    orderId: order.order_id,
-    status: order.order_status ?? 'CREATED',
+    orderId: order.id,
+    status: 'CREATED',
     amountPaise: booking.amount_paise,
     currency: booking.currency,
     source: 'order',
     message: 'Order created',
-    raw: redactOrder(order),
+    raw: { id: order.id, amount: order.amount, currency: order.currency },
   });
 
-  return {
-    orderId: order.order_id,
-    paymentSessionId: order.payment_session_id,
-    amountPaise: booking.amount_paise,
-    mode,
-    reused: false,
-  };
+  return { orderId: order.id, amountPaise: booking.amount_paise, currency: booking.currency, keyId };
 }
 
 // ---------------------------------------------------------------------------
-// Settling a payment
+// Verification
 // ---------------------------------------------------------------------------
+
+/** Constant-time compare that tolerates unequal lengths without throwing. */
+export function safeEqual(a: string, b: string): boolean {
+  const bufA = Buffer.from(a);
+  const bufB = Buffer.from(b);
+  if (bufA.length !== bufB.length) return false;
+  return crypto.timingSafeEqual(bufA, bufB);
+}
 
 /**
- * Ask Cashfree what actually happened to an order, and act on the answer.
- *
- * Safe to call repeatedly and from anywhere — the return URL, the webhook, an
- * operator clicking "re-check" — because every step is idempotent:
- * `confirmPendingBooking` only promotes a `pending` row, minting is skipped
- * when tickets already exist, and the email send is guarded on `email_sent_at`.
- *
- * The amount is re-checked against the booking. A short payment is left pending
- * and flagged rather than confirmed: handing over passes for less than the
- * price is the one mistake here that cannot be undone at the door.
+ * The signature Razorpay puts on a completed checkout: HMAC-SHA256 of
+ * `order_id|payment_id` under the key secret. This is the only thing that
+ * authorises confirming a booking from the browser — every id in the callback
+ * is attacker-controlled until it checks out.
  */
-export async function settleCashfreeOrder(
-  orderId: string,
-  source: SettleSource,
-): Promise<SettleResult> {
-  if (!env.cashfree.configured) {
-    return {
-      outcome: 'not_configured',
-      booking: null,
-      detail: null,
-      orderStatus: null,
-      emailSent: false,
-      message: 'Cashfree is not configured on this deployment',
-    };
-  }
+export function verifyCheckoutSignature(args: {
+  orderId: string;
+  paymentId: string;
+  signature: string;
+}): boolean {
+  const { keySecret } = env.razorpay;
+  if (!keySecret) return false;
 
-  const booking = await bookingForOrderId(orderId);
+  const expected = crypto
+    .createHmac('sha256', keySecret)
+    .update(`${args.orderId}|${args.paymentId}`)
+    .digest('hex');
 
-  let order: CashfreeOrder;
-  try {
-    order = await fetchOrder(orderId);
-  } catch (error) {
-    const message = error instanceof Error ? error.message : 'Cashfree lookup failed';
-    await recordPayment({
-      bookingId: booking?.id ?? null,
-      orderId,
-      status: 'LOOKUP_FAILED',
-      source,
-      message,
-    });
-
-    // A 404 is Cashfree saying the order does not exist, which is an answer
-    // rather than an outage. Reporting it as "still processing" would leave
-    // somebody who mistyped a URL waiting for a payment that was never made.
-    if (error instanceof CashfreeError && error.status === 404) {
-      return {
-        outcome: 'unknown_order',
-        booking,
-        detail: null,
-        orderStatus: null,
-        emailSent: false,
-        message: 'We could not match that payment to a booking',
-      };
-    }
-
-    // Anything else is a transport or gateway failure. Throwing lets the caller
-    // fall back to "still settling" and lets the webhook retry.
-    throw error;
-  }
-
-  if (!booking) {
-    await recordPayment({
-      bookingId: null,
-      orderId,
-      status: order.order_status ?? 'UNKNOWN',
-      source,
-      message: 'No booking matches this order id',
-      raw: redactOrder(order),
-    });
-    return {
-      outcome: 'unknown_order',
-      booking: null,
-      detail: null,
-      orderStatus: order.order_status ?? null,
-      emailSent: false,
-      message: 'We could not match that payment to a booking',
-    };
-  }
-
-  const payments = await fetchOrderPayments(orderId).catch(() => [] as CashfreePayment[]);
-  const success = successfulPayment(payments);
-  const paidPaise = success ? rupeesToPaise(success.payment_amount ?? order.order_amount) : 0;
-
-  await recordPayment({
-    bookingId: booking.id,
-    orderId,
-    paymentId: success?.cf_payment_id != null ? String(success.cf_payment_id) : null,
-    status: order.order_status ?? 'UNKNOWN',
-    amountPaise: paidPaise || booking.amount_paise,
-    currency: order.order_currency ?? booking.currency,
-    method: paymentMethodLabel(success),
-    bankReference: typeof success?.bank_reference === 'string' ? success.bank_reference : null,
-    message: typeof success?.payment_message === 'string' ? success.payment_message : null,
-    source,
-    raw: { order: redactOrder(order), payment: success ? redactPayment(success) : null },
-  });
-
-  // --- Paid ------------------------------------------------------------
-  if (order.order_status === 'PAID' && success) {
-    if (paidPaise + 100 < booking.amount_paise) {
-      // Tolerance of ₹1 absorbs a gateway rounding difference; anything larger
-      // is a real shortfall and needs a human, not a ticket.
-      console.error('[payments] short payment', {
-        orderId,
-        expected: booking.amount_paise,
-        received: paidPaise,
-      });
-      return {
-        outcome: 'pending',
-        booking,
-        detail: null,
-        orderStatus: order.order_status,
-        emailSent: false,
-        message: 'The amount received does not match the order. Our team is checking it.',
-      };
-    }
-
-    const detail = await confirmPendingBooking(booking.id, {
-      paymentId: String(success.cf_payment_id ?? orderId),
-      orderId,
-      signature: typeof success.bank_reference === 'string' ? success.bank_reference : source,
-      provider: 'cashfree',
-    });
-
-    const emailSent = await deliverTickets(detail);
-
-    return {
-      outcome: 'paid',
-      booking: detail.booking,
-      detail,
-      orderStatus: order.order_status,
-      emailSent,
-      message: 'Payment confirmed',
-    };
-  }
-
-  // --- Dead ------------------------------------------------------------
-  if (order.order_status === 'EXPIRED' || order.order_status === 'TERMINATED') {
-    await releasePendingBooking(booking.id, `Cashfree order ${order.order_status} (${orderId})`);
-    return {
-      outcome: 'expired',
-      booking,
-      detail: null,
-      orderStatus: order.order_status,
-      emailSent: false,
-      message: 'This payment window has closed. Start a new booking.',
-    };
-  }
-
-  // --- Still open ------------------------------------------------------
-  const dropped = payments.some((payment) =>
-    ['FAILED', 'USER_DROPPED', 'CANCELLED'].includes(String(payment.payment_status)),
-  );
-
-  return {
-    outcome: dropped ? 'failed' : 'pending',
-    booking,
-    detail: null,
-    orderStatus: order.order_status ?? null,
-    emailSent: false,
-    message: dropped
-      ? 'That payment did not go through. Nothing was charged — try again.'
-      : 'Payment has not completed yet.',
-  };
+  return safeEqual(args.signature, expected);
 }
+
+/**
+ * Verify a Razorpay webhook.
+ *
+ * The RAW body is hashed — parsing to JSON and re-serialising reorders keys and
+ * every signature fails.
+ */
+export function verifyWebhookSignature(rawBody: string, signature: string | null): boolean {
+  const secret = env.razorpay.webhookSecret;
+  if (!secret || !signature) return false;
+
+  const expected = crypto.createHmac('sha256', secret).update(rawBody).digest('hex');
+  return safeEqual(signature, expected);
+}
+
+// ---------------------------------------------------------------------------
+// Delivery
+// ---------------------------------------------------------------------------
 
 /**
  * Send the ticket email once per booking.
  *
- * Guarded on `email_sent_at` because the return URL and the webhook both reach
- * here for the same payment, and two identical ticket emails read as a double
- * charge to the person receiving them.
+ * Guarded on `email_sent_at` because the browser callback and the webhook both
+ * reach here for the same payment, and two identical ticket emails read as a
+ * double charge to the person receiving them.
  *
- * A send failure is never allowed to propagate: the money is taken and the
- * passes exist, so the correct outcome is a confirmed booking the customer can
- * resend from, not a 500 that makes them think they lost their tickets.
+ * A send failure never propagates: the money is taken and the passes exist, so
+ * the right outcome is a confirmed booking the customer can resend from, not a
+ * 500 that makes them think they lost their tickets.
  */
-async function deliverTickets(detail: BookingDetail): Promise<boolean> {
+export async function deliverTickets(detail: BookingDetail): Promise<boolean> {
   if (detail.booking.email_sent_at) return true;
 
   try {
@@ -448,38 +260,58 @@ async function deliverTickets(detail: BookingDetail): Promise<boolean> {
 }
 
 // ---------------------------------------------------------------------------
-// Redaction
+// Health
 // ---------------------------------------------------------------------------
 
 /**
- * Keep the fields that answer reconciliation questions, drop the rest.
+ * Can we actually take money right now?
  *
- * The raw payloads carry the customer's phone and email alongside instrument
- * detail, and a JSONB column is the wrong place for a second copy of either —
- * it outlives the booking, is not covered by the deletion path, and buys
- * nothing a join cannot.
+ * Credentials authenticating is not the same as an account being able to trade:
+ * a merchant account that has been switched off answers reads with 200 and
+ * refuses order creation. The only honest probe is to try creating one, so this
+ * creates a ₹1 order that nobody pays.
+ *
+ * That leaves a real order in the dashboard, which is why it is off the hot
+ * path and runs only when /api/health is asked for `?probe=gateway`.
  */
-function redactOrder(order: CashfreeOrder): Record<string, unknown> {
-  return {
-    cf_order_id: order.cf_order_id,
-    order_id: order.order_id,
-    order_status: order.order_status,
-    order_amount: order.order_amount,
-    order_currency: order.order_currency,
-    order_expiry_time: order.order_expiry_time,
-  };
-}
+export async function probeGateway(): Promise<{
+  ok: boolean;
+  reason?: string;
+  accountLevel?: boolean;
+}> {
+  const { keyId, keySecret } = env.razorpay;
+  if (!keyId || !keySecret) return { ok: false, reason: 'not_configured' };
 
-function redactPayment(payment: CashfreePayment): Record<string, unknown> {
-  return {
-    cf_payment_id: payment.cf_payment_id,
-    payment_status: payment.payment_status,
-    payment_amount: payment.payment_amount,
-    payment_currency: payment.payment_currency,
-    payment_time: payment.payment_time,
-    payment_group: payment.payment_group,
-    payment_message: payment.payment_message,
-    bank_reference: payment.bank_reference,
-    method: paymentMethodLabel(payment),
-  };
+  try {
+    await client().orders.create({
+      amount: 100,
+      currency: 'INR',
+      receipt: `PROBE-${crypto.randomBytes(6).toString('hex')}`,
+      notes: { purpose: 'automated gateway health probe, never paid' },
+    });
+    return { ok: true };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    // Razorpay's SDK hangs the API error object off `error.error`.
+    const detail =
+      typeof error === 'object' && error !== null && 'error' in error
+        ? ((error as { error?: { description?: string; code?: string } }).error ?? null)
+        : null;
+
+    const text = detail?.description ?? message;
+    const lower = text.toLowerCase();
+
+    return {
+      ok: false,
+      reason: text,
+      // Wording that means "this account cannot trade" rather than "this request
+      // was malformed" — the two need completely different people to fix them.
+      accountLevel:
+        lower.includes('not activated') ||
+        lower.includes('not enabled') ||
+        lower.includes('authentication') ||
+        lower.includes('suspended') ||
+        lower.includes('unauthorized'),
+    };
+  }
 }

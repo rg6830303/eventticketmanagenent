@@ -1,9 +1,9 @@
 import type { NextRequest } from 'next/server';
-import Razorpay from 'razorpay';
 import { fail, handleError, ok, readJson } from '@/lib/api';
 import { verifyOrigin } from '@/lib/auth';
-import { query, queryOne } from '@/lib/db';
+import { queryOne } from '@/lib/db';
 import { env } from '@/lib/env';
+import { startPayment } from '@/lib/payments';
 import type { BookingRow } from '@/lib/types';
 
 export const runtime = 'nodejs';
@@ -12,9 +12,9 @@ export const dynamic = 'force-dynamic';
 /**
  * Creates the Razorpay order for a pending booking.
  *
- * Payments are currently switched off, so this returns 503 before touching the
- * SDK. The implementation below is complete: turning PAYMENTS_ENABLED on and
- * supplying the keys is the only change needed to go live.
+ * Only the publishable key id reaches the browser; the secret never leaves the
+ * server, and the amount is read from the booking row rather than the request,
+ * so a customer editing the call cannot choose their own price.
  */
 export async function POST(request: NextRequest) {
   try {
@@ -51,27 +51,16 @@ export async function POST(request: NextRequest) {
       return fail('This booking has nothing to pay', 'zero_amount', 409);
     }
 
-    const client = new Razorpay({
-      key_id: env.razorpay.keyId,
-      key_secret: env.razorpay.keySecret,
-    });
 
-    const order = await client.orders.create({
-      amount: booking.amount_paise,
-      currency: booking.currency,
-      // Razorpay caps receipt at 40 chars and dedupes on it, which conveniently
-      // makes a retried checkout reuse the same order instead of creating one more.
-      receipt: booking.reference,
-      notes: { bookingId: booking.id, reference: booking.reference },
-    });
-
-    await query('UPDATE bookings SET payment_order_id = $2 WHERE id = $1', [booking.id, order.id]);
+    // startPayment owns order creation so the ledger records every attempt,
+    // successful or not — a failed one used to leave no trace whatsoever.
+    const session = await startPayment(booking);
 
     return ok({
-      orderId: order.id,
-      amount: order.amount,
-      currency: order.currency,
-      keyId: env.razorpay.keyId,
+      orderId: session.orderId,
+      amount: session.amountPaise,
+      currency: session.currency,
+      keyId: session.keyId,
       reference: booking.reference,
     });
   } catch (error) {

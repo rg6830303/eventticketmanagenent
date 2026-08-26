@@ -1,23 +1,14 @@
-import crypto from 'node:crypto';
 import type { NextRequest } from 'next/server';
 import { fail, handleError, ok, readJson } from '@/lib/api';
 import { verifyOrigin } from '@/lib/auth';
 import { queryOne } from '@/lib/db';
 import { env } from '@/lib/env';
-import { confirmPendingBooking, markEmailSent } from '@/lib/bookings';
-import { sendTicketEmail } from '@/lib/mailer';
+import { confirmPendingBooking } from '@/lib/bookings';
+import { deliverTickets, recordPayment, verifyCheckoutSignature } from '@/lib/payments';
 import type { BookingRow } from '@/lib/types';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
-
-/** Constant-time compare that tolerates unequal lengths without throwing. */
-function safeEqual(a: string, b: string): boolean {
-  const bufA = Buffer.from(a);
-  const bufB = Buffer.from(b);
-  if (bufA.length !== bufB.length) return false;
-  return crypto.timingSafeEqual(bufA, bufB);
-}
 
 /**
  * Browser-side confirmation after Razorpay checkout succeeds.
@@ -56,13 +47,22 @@ export async function POST(request: NextRequest) {
       return fail('Incomplete payment confirmation', 'missing_payment_fields', 400);
     }
 
-    const expected = crypto
-      .createHmac('sha256', env.razorpay.keySecret)
-      .update(`${razorpay_order_id}|${razorpay_payment_id}`)
-      .digest('hex');
+    const signatureValid = verifyCheckoutSignature({
+      orderId: razorpay_order_id,
+      paymentId: razorpay_payment_id,
+      signature: razorpay_signature,
+    });
 
-    if (!safeEqual(razorpay_signature, expected)) {
+    if (!signatureValid) {
       console.error('[payments] signature mismatch', { order: razorpay_order_id });
+      await recordPayment({
+        bookingId: null,
+        orderId: razorpay_order_id,
+        paymentId: razorpay_payment_id,
+        status: 'SIGNATURE_MISMATCH',
+        source: 'verify',
+        message: 'Rejected: signature did not verify',
+      });
       return fail('Payment could not be verified', 'invalid_signature', 400);
     }
 
@@ -76,15 +76,28 @@ export async function POST(request: NextRequest) {
       paymentId: razorpay_payment_id,
       orderId: razorpay_order_id,
       signature: razorpay_signature,
+      provider: 'razorpay',
     });
 
-    const sent = await sendTicketEmail(detail);
-    if (sent.ok) await markEmailSent(detail.booking.id);
+    await recordPayment({
+      bookingId: detail.booking.id,
+      orderId: razorpay_order_id,
+      paymentId: razorpay_payment_id,
+      status: 'PAID',
+      amountPaise: detail.booking.amount_paise,
+      currency: detail.booking.currency,
+      source: 'verify',
+      message: 'Signature verified',
+    });
+
+    // Reported separately from confirmation: the money is taken and the passes
+    // exist whether or not the email lands.
+    const emailSent = await deliverTickets(detail);
 
     return ok({
       reference: detail.booking.reference,
       status: detail.booking.status,
-      emailSent: sent.ok,
+      emailSent,
     });
   } catch (error) {
     return handleError(error, 'payments.verify');

@@ -5,7 +5,6 @@ import { getBookingByReference } from '@/lib/bookings';
 import { env } from '@/lib/env';
 import { BRAND, EVENT } from '@/content/site';
 import { formatEventDate, formatEventTime, formatInr } from '@/lib/utils';
-import { CashfreeCheckout } from '@/components/payment/CashfreeCheckout';
 import { RazorpayCheckout } from '@/components/payment/RazorpayCheckout';
 import { UpiCheckout } from '@/components/payment/UpiCheckout';
 import { Reveal } from '@/components/ui/Reveal';
@@ -35,10 +34,10 @@ export default async function PayPage({
   searchParams,
 }: {
   params: Promise<{ reference: string }>;
-  searchParams: Promise<{ status?: string }>;
+  searchParams: Promise<{ status?: string; via?: string }>;
 }) {
   const { reference } = await params;
-  const { status } = await searchParams;
+  const { status, via } = await searchParams;
   const detail = await getBookingByReference(reference).catch(() => null);
 
   if (!detail) notFound();
@@ -61,6 +60,10 @@ export default async function PayPage({
    * in the browser would let a tampered client show a QR for any figure it
    * liked and then file a claim against the real order.
    */
+  // Which rail this page should render. `via` wins when the session endpoint
+  // has already discovered the configured provider cannot take money.
+  const rail = via === 'razorpay' || via === 'upi' ? via : env.paymentProvider;
+
   const upiEnabled = env.upi.enabled;
   const upiUri = upiEnabled
     ? buildUpiUri({
@@ -163,13 +166,11 @@ export default async function PayPage({
                 <div className="card-print p-6">
                   {/* Which rail is live is decided by which keys are set, not
                       by a flag that can disagree with them — see env.paymentProvider. */}
-                  {env.paymentProvider === 'cashfree' ? (
-                    <CashfreeCheckout
-                      reference={booking.reference}
-                      amountPaise={booking.amount_paise}
-                      hasUpiFallback={Boolean(upiEnabled && upiUri && upiQr)}
-                    />
-                  ) : (
+                  {/* One card rail. `?via=upi` is set when the session endpoint
+                      failed over because the gateway refused, in which case the
+                      UPI block below is the thing to use and a dead card button
+                      would only get in the way. */}
+                  {rail !== 'upi' && (
                     <RazorpayCheckout
                       reference={booking.reference}
                       amountPaise={booking.amount_paise}
@@ -230,8 +231,8 @@ export default async function PayPage({
                 <div className="card-print border-flare-500 p-4 text-[0.8125rem] leading-relaxed text-flare-600">
                   <p className="font-semibold">Online payment is switched off</p>
                   <p className="mt-1.5">
-                    This booking is held but cannot be paid for yet. Set CASHFREE_APP_ID and
-                    CASHFREE_SECRET_KEY in the deployment (or UPI_ENABLED with UPI_VPA), then
+                    This booking is held but cannot be paid for yet. Set RAZORPAY_KEY_ID and
+                    RAZORPAY_KEY_SECRET in the deployment (or UPI_ENABLED with UPI_VPA), then
                     reload this page.
                   </p>
                 </div>
