@@ -3,6 +3,7 @@ import { requireSession } from '@/lib/auth';
 import { query, queryOne } from '@/lib/db';
 import { formatInr, maskEmail, timeAgo, formatEventDate } from '@/lib/utils';
 import { StatCard, CapacityBar } from '@/components/admin/StatCard';
+import { GatewayStatus } from '@/components/admin/GatewayStatus';
 import { LiveStats } from '@/components/admin/LiveStats';
 import type { AdminStats } from '@/app/api/admin/stats/route';
 import { Globe } from '@/components/brand/Globe';
@@ -132,6 +133,7 @@ export default async function AdminDashboard({
 
   return (
     <div className="space-y-6">
+      <GatewayStatus />
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="font-display text-2xl font-bold text-ink">{active.name}</h1>
