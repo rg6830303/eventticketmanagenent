@@ -1,10 +1,12 @@
-import crypto from 'node:crypto';
 import { NextResponse, type NextRequest } from 'next/server';
-import { queryOne } from '@/lib/db';
 import { env } from '@/lib/env';
-import { confirmPendingBooking, markEmailSent } from '@/lib/bookings';
-import { sendTicketEmail } from '@/lib/mailer';
-import type { BookingRow } from '@/lib/types';
+import { confirmPendingBooking } from '@/lib/bookings';
+import {
+  bookingForOrderId,
+  deliverTickets,
+  recordPayment,
+  verifyWebhookSignature,
+} from '@/lib/payments';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -26,18 +28,16 @@ export async function POST(request: NextRequest) {
   }
 
   const raw = await request.text();
-  const signature = request.headers.get('x-razorpay-signature') ?? '';
-  const secret = env.razorpay.webhookSecret;
+  const signature = request.headers.get('x-razorpay-signature');
 
-  if (!secret) {
-    console.error('[webhook] RAZORPAY_WEBHOOK_SECRET is not set');
-    return NextResponse.json({ received: false }, { status: 500 });
+  if (!env.razorpay.webhookSecret) {
+    console.error('[webhook] RAZORPAY_WEBHOOK_SECRET is not set — cannot verify anything');
+    return NextResponse.json({ received: false, reason: 'not_configured' }, { status: 500 });
   }
 
-  const expected = crypto.createHmac('sha256', secret).update(raw).digest('hex');
-  const a = Buffer.from(signature);
-  const b = Buffer.from(expected);
-  if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) {
+  // The RAW body is hashed. Parsing to JSON and re-serialising reorders keys
+  // and every signature fails.
+  if (!verifyWebhookSignature(raw, signature)) {
     console.error('[webhook] signature mismatch');
     return NextResponse.json({ received: false }, { status: 400 });
   }
@@ -57,10 +57,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ received: true, ignored: 'missing_ids' });
     }
 
-    const booking = await queryOne<BookingRow>(
-      'SELECT * FROM bookings WHERE payment_order_id = $1',
-      [payment.order_id],
-    );
+    // Via the ledger, which holds every order ever created for a booking —
+    // `payment_order_id` only holds the most recent, so a customer who paid an
+    // earlier attempt would otherwise be unfindable.
+    const booking = await bookingForOrderId(payment.order_id);
     if (!booking) return NextResponse.json({ received: true, ignored: 'unknown_order' });
     if (booking.status === 'confirmed') {
       return NextResponse.json({ received: true, ignored: 'already_confirmed' });
@@ -69,13 +69,27 @@ export async function POST(request: NextRequest) {
     const detail = await confirmPendingBooking(booking.id, {
       paymentId: payment.id,
       orderId: payment.order_id,
-      signature,
+      signature: signature ?? 'webhook',
+      provider: 'razorpay',
     });
 
-    const sent = await sendTicketEmail(detail);
-    if (sent.ok) await markEmailSent(detail.booking.id);
+    await recordPayment({
+      bookingId: detail.booking.id,
+      orderId: payment.order_id,
+      paymentId: payment.id,
+      status: 'PAID',
+      amountPaise: detail.booking.amount_paise,
+      currency: detail.booking.currency,
+      source: 'webhook',
+      message: 'Confirmed by payment.captured',
+    });
 
-    return NextResponse.json({ received: true, reference: detail.booking.reference });
+    // Guarded on email_sent_at, so a webhook arriving just after the browser
+    // callback cannot send the same customer a second identical ticket email —
+    // which reads as a double charge to whoever receives it.
+    const emailSent = await deliverTickets(detail);
+
+    return NextResponse.json({ received: true, reference: detail.booking.reference, emailSent });
   } catch (error) {
     // Signature was valid, so this is our bug, not a spoofed request. Log it and
     // still return 200 — a retry storm will not fix a code defect.
