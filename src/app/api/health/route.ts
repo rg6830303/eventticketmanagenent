@@ -61,6 +61,19 @@ export async function GET(request: NextRequest) {
         configured: Boolean(env.razorpay.keyId && env.razorpay.keySecret),
         // rzp_test_ keys are sandbox; rzp_live_ take real money.
         mode: env.razorpay.keyId.startsWith('rzp_test') ? 'test' : 'live',
+        // Names and presence only, never values. "configured: false" with no
+        // clue which variable is missing is a guessing game played one redeploy
+        // at a time, and whether an env var exists is already inferable from
+        // the behaviour it produces.
+        present: Object.fromEntries(
+          [
+            'RAZORPAY_KEY_ID',
+            'RAZORPAY_KEY_SECRET',
+            'RAZORPAY_WEBHOOK_SECRET',
+            'PAYMENT_PROVIDER',
+            'PAYMENTS_ENABLED',
+          ].map((name) => [name, Boolean(process.env[name]?.trim())]),
+        ),
       },
       upi: { enabled: env.upi.enabled },
       ...(probe ? { gateway: probe } : {}),
