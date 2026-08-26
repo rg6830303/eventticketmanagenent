@@ -31,8 +31,10 @@ export async function POST(request: NextRequest) {
   const signature = request.headers.get('x-razorpay-signature');
 
   if (!env.razorpay.webhookSecret) {
-    console.error('[webhook] RAZORPAY_WEBHOOK_SECRET is not set — cannot verify anything');
-    return NextResponse.json({ received: false, reason: 'not_configured' }, { status: 500 });
+    // Not an error: this deployment deliberately runs without a webhook, and
+    // reconciliation covers the same ground by polling. Refusing quietly beats
+    // logging a failure on every unsolicited request that reaches the URL.
+    return NextResponse.json({ received: false, reason: 'webhooks_not_configured' }, { status: 503 });
   }
 
   // The RAW body is hashed. Parsing to JSON and re-serialising reorders keys

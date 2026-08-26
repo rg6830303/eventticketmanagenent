@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import { getBookingByReference } from '@/lib/bookings';
+import { reconcileBooking } from '@/lib/payments';
 import { getSiteUrl } from '@/lib/site-url';
 import { cn, formatEventDate, formatEventTime, formatInr, maskEmail, formatDateTime } from '@/lib/utils';
 import { Reveal } from '@/components/ui/Reveal';
@@ -27,8 +28,20 @@ export default async function BookingConfirmationPage({
 }) {
   const { reference } = await params;
   const { paid, mailed, status } = await searchParams;
-  const detail = await getBookingByReference(reference);
+  let detail = await getBookingByReference(reference);
   if (!detail) notFound();
+
+  // Somebody who paid and closed the tab before the browser confirmed lands
+  // here with a booking that still says pending. Ask the gateway whether the
+  // money actually arrived — this is the webhook's job, done by asking rather
+  // than waiting to be told, and it is the difference between a customer
+  // waiting a moment and a customer never getting their ticket.
+  if (detail.booking.status === 'pending' && detail.booking.payment_order_id) {
+    const settled = await reconcileBooking(detail.booking).catch(() => null);
+    if (settled?.outcome === 'paid') {
+      detail = (await getBookingByReference(reference)) ?? detail;
+    }
+  }
 
   const { booking, event, tier, tickets, items } = detail;
   // Set once a payment has been verified server-side, so it is only ever true

@@ -315,3 +315,131 @@ export async function probeGateway(): Promise<{
     };
   }
 }
+
+// ---------------------------------------------------------------------------
+// Reconciliation — the webhook's job, done with only the API keys
+// ---------------------------------------------------------------------------
+
+export interface ReconcileResult {
+  reference: string;
+  outcome: 'paid' | 'unpaid' | 'no_order' | 'error';
+  paymentId?: string | null;
+  emailSent?: boolean;
+  message?: string;
+}
+
+/**
+ * Ask Razorpay whether a pending booking was actually paid, and finish it if so.
+ *
+ * A webhook is the usual way to catch someone who pays and closes the tab
+ * before the browser-side verify call fires. Without a webhook secret there is
+ * no webhook — but the same question can be asked directly, because the API
+ * keys can read the payments against an order. Polling is less immediate than a
+ * push, and it is the difference between a customer waiting minutes and a
+ * customer never getting their ticket at all.
+ *
+ * Authorised-but-not-captured is deliberately treated as unpaid: the money has
+ * been held, not taken, and issuing a pass against it would hand over entry for
+ * a payment that can still fall through.
+ */
+export async function reconcileBooking(booking: BookingRow): Promise<ReconcileResult> {
+  if (booking.status === 'confirmed') {
+    return { reference: booking.reference, outcome: 'paid', message: 'Already confirmed' };
+  }
+  if (!booking.payment_order_id) {
+    return { reference: booking.reference, outcome: 'no_order', message: 'No order was created' };
+  }
+
+  let captured: { id: string; amount: number; method?: string } | null = null;
+
+  try {
+    const result = (await client().orders.fetchPayments(booking.payment_order_id)) as {
+      items?: Array<{ id: string; status: string; amount: number; method?: string }>;
+    };
+    captured = result.items?.find((p) => p.status === 'captured') ?? null;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'lookup failed';
+    await recordPayment({
+      bookingId: booking.id,
+      orderId: booking.payment_order_id,
+      status: 'LOOKUP_FAILED',
+      source: 'poll',
+      message,
+    });
+    return { reference: booking.reference, outcome: 'error', message };
+  }
+
+  if (!captured) {
+    return { reference: booking.reference, outcome: 'unpaid', message: 'No captured payment' };
+  }
+
+  // Short payment is left alone for a human. Handing over passes for less than
+  // the price is the one mistake here that cannot be undone at the door.
+  if (captured.amount + 100 < booking.amount_paise) {
+    await recordPayment({
+      bookingId: booking.id,
+      orderId: booking.payment_order_id,
+      paymentId: captured.id,
+      status: 'SHORT_PAYMENT',
+      amountPaise: captured.amount,
+      source: 'poll',
+      message: `Captured ${captured.amount} against ${booking.amount_paise}`,
+    });
+    return {
+      reference: booking.reference,
+      outcome: 'error',
+      message: 'Captured amount is short of the order total',
+    };
+  }
+
+  const { confirmPendingBooking } = await import('./bookings');
+  const detail = await confirmPendingBooking(booking.id, {
+    paymentId: captured.id,
+    orderId: booking.payment_order_id,
+    // No signature exists on this path; the authority is Razorpay's own API
+    // saying the payment is captured, which is at least as strong.
+    signature: 'reconciled-via-api',
+    provider: 'razorpay',
+  });
+
+  await recordPayment({
+    bookingId: detail.booking.id,
+    orderId: booking.payment_order_id,
+    paymentId: captured.id,
+    status: 'PAID',
+    amountPaise: captured.amount,
+    currency: detail.booking.currency,
+    method: captured.method ?? null,
+    source: 'poll',
+    message: 'Confirmed by reconciliation',
+  });
+
+  const emailSent = await deliverTickets(detail);
+  return { reference: detail.booking.reference, outcome: 'paid', paymentId: captured.id, emailSent };
+}
+
+/**
+ * Sweep every pending booking that has an order against it.
+ *
+ * Scoped to the last few days by default: an order older than that has expired
+ * at Razorpay and re-asking about it is a wasted call on every sweep forever.
+ */
+export async function reconcilePending(withinHours = 72): Promise<ReconcileResult[]> {
+  const pending = await query<BookingRow>(
+    `SELECT * FROM bookings
+      WHERE status = 'pending'
+        AND payment_order_id IS NOT NULL
+        AND created_at > now() - ($1 || ' hours')::interval
+      ORDER BY created_at DESC
+      LIMIT 200`,
+    [String(withinHours)],
+  );
+
+  const results: ReconcileResult[] = [];
+  for (const booking of pending) {
+    // Sequential on purpose: this runs against a live payment API and a burst of
+    // parallel lookups is how a rate limit turns a reconciliation into an outage.
+    results.push(await reconcileBooking(booking));
+  }
+  return results;
+}
