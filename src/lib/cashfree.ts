@@ -36,6 +36,41 @@ export class CashfreeError extends Error {
     super(message);
     this.name = 'CashfreeError';
   }
+
+  /**
+   * Whether trying again could plausibly work.
+   *
+   * This distinction is the difference between a customer waiting thirty
+   * seconds and a customer tapping Pay five times against an account that
+   * cannot take money at all. A timeout or a 5xx is worth another go; being
+   * told the merchant account is switched off is not, and telling somebody to
+   * "try again in a moment" in that case is simply false.
+   */
+  get retriable(): boolean {
+    if (this.code === 'timeout' || this.code === 'network_error') return true;
+    if (this.status === 429) return true;
+    return this.status >= 500;
+  }
+
+  /**
+   * True when Cashfree is refusing because of the merchant account itself —
+   * disabled transactions, failed KYC, a breached limit — rather than anything
+   * about this particular order. No code change fixes one of these; somebody
+   * has to talk to Cashfree.
+   */
+  get accountLevel(): boolean {
+    const text = `${this.message}`.toLowerCase();
+    return (
+      this.status === 401 ||
+      this.status === 403 ||
+      text.includes('not enabled') ||
+      text.includes('not activated') ||
+      text.includes('suspended') ||
+      text.includes('blocked') ||
+      text.includes('kyc') ||
+      text.includes('limit exceeded')
+    );
+  }
 }
 
 /** paise -> the decimal rupee number Cashfree expects. */
@@ -284,4 +319,51 @@ export function buildOrderId(reference: string): string {
 export function referenceFromOrderId(orderId: string): string | null {
   const match = /^([A-Z0-9]+-[A-Z0-9]+)-[A-F0-9]{8}$/i.exec(orderId);
   return match ? match[1].toUpperCase() : null;
+}
+
+/**
+ * Ask Cashfree whether it will actually take a transaction right now.
+ *
+ * Credentials authenticating is not the same as the account being able to
+ * trade: a disabled merchant account answers reads with 200 and refuses order
+ * creation with 400. The only honest probe is to try creating one, so this
+ * creates a ₹1 order against a throwaway id and reads the answer.
+ *
+ * The order is never paid and expires as soon as Cashfree allows, which is
+ * strictly more than fifteen minutes — pass exactly 15 and it rejects the
+ * expiry before it ever gets to the question you asked, which makes the probe
+ * cheerfully report the wrong fault. That is a real order in the dashboard, so
+ * this is deliberately off the hot path: it runs only when /api/health is
+ * asked for `?probe=gateway`.
+ */
+export async function probeGateway(): Promise<{
+  ok: boolean;
+  reason?: string;
+  accountLevel?: boolean;
+}> {
+  if (!env.cashfree.configured) return { ok: false, reason: 'not_configured' };
+
+  const id = `HOVPROBE-${crypto.randomBytes(6).toString('hex').toUpperCase()}`;
+
+  try {
+    await createOrder({
+      orderId: id,
+      amountPaise: 100,
+      customer: {
+        id: 'healthprobe',
+        name: 'Health Probe',
+        email: 'probe@houzofvybe.com',
+        phone: '9999999999',
+      },
+      returnUrl: `${env.siteUrl}/api/payments/cashfree/return?order_id={order_id}`,
+      note: 'Automated gateway health probe — never paid',
+      expiryMinutes: 20,
+    });
+    return { ok: true };
+  } catch (error) {
+    if (error instanceof CashfreeError) {
+      return { ok: false, reason: error.message, accountLevel: error.accountLevel };
+    }
+    return { ok: false, reason: error instanceof Error ? error.message : 'probe failed' };
+  }
 }

@@ -176,22 +176,42 @@ export async function startCashfreePayment(booking: BookingRow): Promise<StartPa
 
   const orderId = buildOrderId(booking.reference);
 
-  const order = await createOrder({
-    orderId,
-    amountPaise: booking.amount_paise,
-    currency: booking.currency,
-    customer: {
-      id: booking.customer_id ?? booking.reference,
-      name: booking.customer_name,
-      email: booking.customer_email,
-      phone: booking.customer_phone,
-    },
-    returnUrl,
-    notifyUrl,
-    note: `Passes for ${booking.reference}`,
-    tags: { reference: booking.reference, bookingId: booking.id },
-    expiryMinutes: 30,
-  });
+  let order: Awaited<ReturnType<typeof createOrder>>;
+  try {
+    order = await createOrder({
+      orderId,
+      amountPaise: booking.amount_paise,
+      currency: booking.currency,
+      customer: {
+        id: booking.customer_id ?? booking.reference,
+        name: booking.customer_name,
+        email: booking.customer_email,
+        phone: booking.customer_phone,
+      },
+      returnUrl,
+      notifyUrl,
+      note: `Passes for ${booking.reference}`,
+      tags: { reference: booking.reference, bookingId: booking.id },
+      expiryMinutes: 30,
+    });
+  } catch (error) {
+    // A failed order creation used to leave no trace at all: no order id on the
+    // booking, no ledger row, nothing to look at afterwards. That is how a
+    // gateway outage ran for twelve hours looking exactly like customers
+    // changing their minds. Every attempt is recorded now, successful or not.
+    const cf = error instanceof CashfreeError ? error : null;
+    await recordPayment({
+      bookingId: booking.id,
+      orderId,
+      status: cf?.accountLevel ? 'GATEWAY_REFUSED' : 'CREATE_FAILED',
+      amountPaise: booking.amount_paise,
+      currency: booking.currency,
+      source: 'order',
+      message: error instanceof Error ? error.message : 'Order creation failed',
+      raw: { code: cf?.code, status: cf?.status, accountLevel: cf?.accountLevel ?? false },
+    });
+    throw error;
+  }
 
   if (!order.payment_session_id) {
     throw new Error('Cashfree created the order without a payment session');

@@ -1,7 +1,8 @@
-import { NextResponse } from 'next/server';
+import { NextResponse, type NextRequest } from 'next/server';
 import { pingDatabase } from '@/lib/db';
 import { env } from '@/lib/env';
 import { signingKeyReport } from '@/lib/signing-key';
+import { probeGateway } from '@/lib/cashfree';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -12,8 +13,16 @@ export const dynamic = 'force-dynamic';
  * a real authenticated connection to Gmail, which would be a rude thing to do
  * on every uptime check.
  */
-export async function GET() {
+export async function GET(request: NextRequest) {
   const db = await pingDatabase();
+
+  // Opt-in, because it creates a real (unpaid, expiring) order at Cashfree.
+  // Worth having: an account that can authenticate but cannot trade looks
+  // completely healthy from every other check.
+  const probe =
+    new URL(request.url).searchParams.get('probe') === 'gateway'
+      ? await probeGateway().catch(() => ({ ok: false, reason: 'probe threw' }))
+      : null;
 
   const body = {
     status: db.ok ? 'ok' : 'degraded',
@@ -58,6 +67,7 @@ export async function GET() {
         configured: env.paymentProvider === 'cashfree' ? env.cashfree.configured : undefined,
       },
       upi: { enabled: env.upi.enabled },
+      ...(probe ? { gateway: probe } : {}),
     },
   };
 

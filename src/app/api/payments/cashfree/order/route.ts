@@ -87,9 +87,34 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     if (error instanceof CashfreeError) {
-      console.error('[payments] Cashfree order failed', { code: error.code, message: error.message });
+      // Loud and specific in the log, because an account-level refusal is an
+      // outage somebody has to act on, not a blip. The customer-facing text
+      // below deliberately says nothing about the merchant account.
+      console.error(
+        error.accountLevel
+          ? '[payments] GATEWAY REFUSED — Cashfree will not accept transactions on this account'
+          : '[payments] Cashfree order failed',
+        { code: error.code, status: error.status, message: error.message },
+      );
+
+      if (error.accountLevel) {
+        // Telling somebody to "try again in a moment" when the gateway cannot
+        // take money at all is untrue, and it is what made ten people tap Pay
+        // repeatedly during the last outage. Say it is us, and stop them.
+        return fail(
+          'Card and UPI payment is temporarily unavailable — this is a problem at our end, ' +
+            'not yours. Nothing has been charged and your passes are still held. ' +
+            'Please message @houzofvybe on Instagram and we will get you your ticket.',
+          'gateway_unavailable',
+          503,
+        );
+      }
+
       return fail(
-        'We could not start the payment. Nothing has been charged — try again in a moment.',
+        error.retriable
+          ? 'We could not start the payment. Nothing has been charged — try again in a moment.'
+          : 'We could not start the payment. Nothing has been charged. Please message ' +
+            '@houzofvybe on Instagram and we will sort it out.',
         'gateway_error',
         502,
       );
