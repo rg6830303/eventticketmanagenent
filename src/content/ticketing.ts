@@ -26,17 +26,30 @@ export const FALLBACK_TICKET_TIERS = [
     perks: ['Admits 2 guests', '₹1,000 cover redeemable', 'Best for pairs'],
   },
   {
-    code: 'VIPTABLE',
-    name: 'VIP Table - 10 Pass',
+    code: 'GROUP',
+    name: 'Group Pass',
     description:
-      'A reserved VIP table package for ten guests, with a generous cover value redeemable at the venue.',
+      'Entry for five, with half the cover value of a VIP table. The cheapest way in for a group.',
+    pricePaise: 555_500,
+    redeemablePaise: 250_000,
+    pax: 5,
+    priceUnit: '/ group',
+    remaining: 100_000,
+    total: 100_000,
+    perks: ['Admits 5 guests', '₹2,500 cover redeemable', 'Best value for a group'],
+  },
+  {
+    code: 'VIPTABLE',
+    name: 'VIP Pass',
+    description:
+      'A reserved VIP table for five guests, with a generous cover value redeemable at the venue.',
     pricePaise: 1_000_000,
     redeemablePaise: 500_000,
-    pax: 10,
+    pax: 5,
     priceUnit: '/ table',
     remaining: 100_000,
     total: 100_000,
-    perks: ['Admits 10 guests', '₹5,000 cover redeemable', 'Reserved VIP table'],
+    perks: ['Admits 5 guests', '₹5,000 cover redeemable', 'Reserved VIP table'],
   },
 ] as const;
 

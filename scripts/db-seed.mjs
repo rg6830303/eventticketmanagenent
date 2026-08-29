@@ -77,16 +77,28 @@ const TIERS = [
     sort_order: 2,
   },
   {
-    code: 'VIPTABLE',
-    name: 'VIP Table - 10 Pass',
+    code: 'GROUP',
+    name: 'Group Pass',
     description:
-      'A reserved VIP table package for ten guests, with a generous cover value redeemable at the venue.',
+      'Entry for five, with half the cover value of a VIP table. The cheapest way in for a group.',
+    price_paise: 555500,
+    quantity: 100000,
+    admits: 5,
+    redeemable_paise: 250000,
+    perks: ['Admits 5 guests', '₹2,500 cover redeemable', 'Best value for a group'],
+    sort_order: 3,
+  },
+  {
+    code: 'VIPTABLE',
+    name: 'VIP Pass',
+    description:
+      'A reserved VIP table for five guests, with a generous cover value redeemable at the venue.',
     price_paise: 1000000,
     quantity: 100000,
-    admits: 10,
+    admits: 5,
     redeemable_paise: 500000,
-    perks: ['Admits 10 guests', '₹5,000 cover redeemable', 'Reserved VIP table'],
-    sort_order: 3,
+    perks: ['Admits 5 guests', '₹5,000 cover redeemable', 'Reserved VIP table'],
+    sort_order: 4,
   },
 ];
 
