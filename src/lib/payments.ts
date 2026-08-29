@@ -430,10 +430,12 @@ export async function reconcileBooking(booking: BookingRow): Promise<ReconcileRe
 /**
  * Sweep every pending booking that has an order against it.
  *
- * Scoped to the last few days by default: an order older than that has expired
- * at Razorpay and re-asking about it is a wasted call on every sweep forever.
+ * Scoped to the last thirty days by default. The window used to be three, which
+ * is fine for catching a payment that has just happened and useless for finding
+ * one that slipped through a week ago — and a customer who paid and never got
+ * their ticket does not stop being owed it after 72 hours.
  */
-export async function reconcilePending(withinHours = 72): Promise<ReconcileResult[]> {
+export async function reconcilePending(withinHours = 720): Promise<ReconcileResult[]> {
   const pending = await query<BookingRow>(
     `SELECT * FROM bookings
       WHERE status = 'pending'

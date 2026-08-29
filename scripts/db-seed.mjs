@@ -20,6 +20,11 @@ const pool = new pg.Pool({
  * Prices and stock are the operator's call — edit TIERS below and re-run, the
  * insert is an upsert and will not lower a tier's quantity under what has
  * already sold.
+ *
+ * Quantities are deliberately enormous rather than absent: the CHECK
+ * (sold <= quantity) constraint is what stops a race overselling the room, and
+ * it is worth keeping even when the ceiling is effectively infinite. Set a real
+ * number here the day the door actually has a limit.
  */
 
 const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000;
@@ -42,7 +47,7 @@ const EVENT = {
   starts: ist(2026, 9, 12, 12, 0),
   ends: ist(2026, 9, 12, 16, 0),
   doors: ist(2026, 9, 12, 12, 0),
-  capacity: 400,
+  capacity: 100000,
   ageLimit: 18,
 };
 
@@ -53,7 +58,7 @@ const TIERS = [
     description:
       'Solo entry to the complete non-alcoholic party, with part of the pass value redeemable at the venue.',
     price_paise: 111100,
-    quantity: 200,
+    quantity: 100000,
     admits: 1,
     redeemable_paise: 50000,
     perks: ['Admits 1 guest', '₹500 redeemable', 'Full party access'],
@@ -65,7 +70,7 @@ const TIERS = [
     description:
       'A two-person pass designed for pairs, with a shared redeemable value at the venue.',
     price_paise: 200000,
-    quantity: 75,
+    quantity: 100000,
     admits: 2,
     redeemable_paise: 100000,
     perks: ['Admits 2 guests', '₹1,000 redeemable', 'Best for pairs'],
@@ -77,7 +82,7 @@ const TIERS = [
     description:
       'A reserved VIP table package for five guests, with a generous redeemable value at the venue.',
     price_paise: 1000000,
-    quantity: 10,
+    quantity: 100000,
     admits: 5,
     redeemable_paise: 500000,
     perks: ['Admits 5 guests', '₹5,000 redeemable', 'Reserved VIP table'],
