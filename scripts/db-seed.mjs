@@ -57,11 +57,11 @@ const TIERS = [
     name: 'Normal Pass',
     description:
       'Solo entry to the complete non-alcoholic party, with part of the pass value redeemable at the venue.',
-    price_paise: 111100,
+    price_paise: 130000,
     quantity: 100000,
     admits: 1,
     redeemable_paise: 50000,
-    perks: ['Admits 1 guest', '₹500 redeemable', 'Full party access'],
+    perks: ['Admits 1 guest', '₹500 cover redeemable', 'Full party access'],
     sort_order: 1,
   },
   {
@@ -69,23 +69,23 @@ const TIERS = [
     name: 'Couple Pass',
     description:
       'A two-person pass designed for pairs, with a shared redeemable value at the venue.',
-    price_paise: 200000,
+    price_paise: 250000,
     quantity: 100000,
     admits: 2,
     redeemable_paise: 100000,
-    perks: ['Admits 2 guests', '₹1,000 redeemable', 'Best for pairs'],
+    perks: ['Admits 2 guests', '₹1,000 cover redeemable', 'Best for pairs'],
     sort_order: 2,
   },
   {
     code: 'VIPTABLE',
-    name: 'VIP Table - 5 Pass',
+    name: 'VIP Table - 10 Pass',
     description:
-      'A reserved VIP table package for five guests, with a generous redeemable value at the venue.',
+      'A reserved VIP table package for ten guests, with a generous cover value redeemable at the venue.',
     price_paise: 1000000,
     quantity: 100000,
-    admits: 5,
+    admits: 10,
     redeemable_paise: 500000,
-    perks: ['Admits 5 guests', '₹5,000 redeemable', 'Reserved VIP table'],
+    perks: ['Admits 10 guests', '₹5,000 cover redeemable', 'Reserved VIP table'],
     sort_order: 3,
   },
 ];
