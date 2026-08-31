@@ -14,6 +14,10 @@ export const maxDuration = 60;
  * that way for a day because the only recovery was a button somebody had to
  * remember to press.
  *
+ * Scheduled daily, because Vercel's Hobby plan rejects anything finer at deploy
+ * time. That is a backstop, not the mechanism: the throttled sweep on the
+ * payment path is what makes recovery take minutes.
+ *
  * Vercel signs cron invocations with CRON_SECRET when it is set. Without it the
  * route stays reachable, because an unauthenticated sweep can only ever confirm
  * bookings the gateway already reports as paid — it cannot invent a payment,
