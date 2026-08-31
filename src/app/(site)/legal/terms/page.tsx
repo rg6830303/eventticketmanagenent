@@ -47,14 +47,12 @@ export default function TermsPage() {
                 sufficient.
               </p>
               <p>
-                Alcohol is served only to attendees who meet the legal drinking age in Telangana,
-                which is higher than the entry age. The venue verifies age separately at the bar and
-                may refuse service.
+                Alcohol, where served, is subject to the legal drinking age in Telangana. The
+                venue verifies that separately at the bar and may refuse service. It is a venue
+                rule and is unrelated to entry.
               </p>
               <p>
-                The name on the identification should match the name on the booking. Where it does
-                not, admission is at the sole discretion of the door team. No ID means no entry, and
-                no refund.
+                Entry is by QR pass. Admission remains at the sole discretion of the door team.
               </p>
             </>
           ),

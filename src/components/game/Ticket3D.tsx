@@ -189,7 +189,7 @@ export function Ticket3D({
 
       <div className="border-t border-edge px-6 py-4">
         <p className="text-[11px] leading-relaxed text-muted">
-          One scan per pass. Bring a government photo ID that matches the booking name.
+          One scan per pass. Screenshot it before you arrive.
         </p>
       </div>
     </div>

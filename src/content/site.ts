@@ -19,12 +19,12 @@ export const BRAND = {
   // TODO(operator): swap in the live inboxes and number before you announce.
   email: 'hello@houzofvybe.com',
   supportEmail: 'tickets@houzofvybe.com',
-  phone: '+91 90000 00000',
-  whatsapp: '919000000000',
+  phone: '+91 88867 44499',
+  whatsapp: '918886744499',
   instagram: 'https://instagram.com/houzofvybe',
   socials: [
     { label: 'Instagram', href: 'https://instagram.com/houzofvybe' },
-    { label: 'WhatsApp', href: 'https://wa.me/919000000000' },
+    { label: 'WhatsApp', href: 'https://wa.me/918886744499' },
   ],
 } as const;
 
@@ -81,7 +81,6 @@ export const EVENT = {
   dateLabel: 'Saturday 12 September 2026',
   dateShort: '12.09.2026',
   timeLabel: '12 PM — 4 PM',
-  ageLabel: '18+',
   headline: 'The first party of your first year.',
   subhead:
     'Four hours, one rooftop bar, and the entire fresher batch in one place. Doors at noon, music until four.',
@@ -153,7 +152,6 @@ export const EVENT = {
   ],
 
   entryRules: [
-    'Carry a government photo ID. College ID alone is not enough at the door.',
     'One QR admits one person. Each ticket in your order gets its own code.',
     'Right of admission reserved. The door team can refuse entry.',
     'No re-entry once you leave the venue.',
@@ -171,10 +169,6 @@ export const EVENT = {
     {
       q: 'Can two of us use one QR?',
       a: 'No. Every QR admits one person and is dead the moment it is scanned. Book two tickets and you get two codes in the same email.',
-    },
-    {
-      q: 'What ID do I need?',
-      a: 'Any government photo ID: Aadhaar, passport, driving licence or voter ID. A DigiLocker copy is fine. The name should match the booking.',
     },
     {
       q: 'How do referral codes work?',

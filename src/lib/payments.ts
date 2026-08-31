@@ -528,3 +528,55 @@ export async function sendUndeliveredTickets(): Promise<{
 
   return { attempted: outstanding.length, sent, failed };
 }
+
+/**
+ * Run a reconciliation sweep, but at most once every few minutes.
+ *
+ * The manual sweep only helps when somebody remembers to press it, and four
+ * paying customers sat ticketless for a day because nobody did. This is the
+ * automatic version: cheap to call, safe to call from anywhere, and it
+ * piggybacks on traffic the site already gets.
+ *
+ * The throttle lives in the `rate_limits` table rather than in memory, because
+ * every serverless invocation has its own heap — an in-process flag would let
+ * a dozen concurrent instances each start their own sweep. The row is claimed
+ * with a conditional UPDATE, so exactly one caller wins and the rest return
+ * immediately.
+ */
+export async function maybeReconcile(everySeconds = 180): Promise<boolean> {
+  if (env.paymentProvider !== 'razorpay') return false;
+
+  try {
+    const rows = await query<{ claimed: boolean }>(
+      `INSERT INTO rate_limits (bucket, hits, window_start)
+       VALUES ('reconcile-sweep', 1, now())
+       ON CONFLICT (bucket) DO UPDATE
+         SET window_start = now(), hits = rate_limits.hits + 1
+         WHERE rate_limits.window_start < now() - ($1 || ' seconds')::interval
+       RETURNING true AS claimed`,
+      [String(everySeconds)],
+    );
+
+    // No row returned means another invocation swept recently. Nothing to do.
+    if (!rows[0]?.claimed) return false;
+  } catch {
+    // The throttle is an optimisation, not a correctness guarantee. If it
+    // cannot be read, skip rather than risk a stampede.
+    return false;
+  }
+
+  try {
+    const results = await reconcilePending();
+    const paid = results.filter((r) => r.outcome === 'paid');
+    if (paid.length > 0) {
+      console.error(
+        `[payments] automatic sweep recovered ${paid.length} paid booking(s): ` +
+          paid.map((r) => r.reference).join(', '),
+      );
+    }
+    return true;
+  } catch (error) {
+    console.error('[payments] automatic sweep failed:', error instanceof Error ? error.message : error);
+    return false;
+  }
+}

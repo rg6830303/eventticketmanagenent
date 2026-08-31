@@ -139,7 +139,6 @@ export default async function OffCampusPage() {
                     value={event ? formatEventTime(event.doors_at ?? event.starts_at) : '12:00 PM'}
                   />
                   <Fact label="Until" value="4:00 PM" />
-                  <Fact label="Age" value={`${event?.age_limit ?? 18}+`} />
                 </dl>
               </Reveal>
 
@@ -242,7 +241,7 @@ export default async function OffCampusPage() {
         <div className="shell">
           <div className="edit-head">
             <h2 id="event-tickets" className="h-section">
-              {soldOut ? 'Sold out.' : 'Phase 1 pass pricing.'}
+              {soldOut ? 'Sold out.' : 'Phase 2 pass pricing.'}
             </h2>
             <span className="edit-index">03 — Tickets</span>
           </div>

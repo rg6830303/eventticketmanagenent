@@ -204,7 +204,7 @@ export function CartCheckout({
         <Field
           id="cart-name"
           label="Full name"
-          hint="As printed on the photo ID you will show at the door."
+          hint="This is the name printed on your pass."
           value={form.name}
           onChange={set('name')}
           autoComplete="name"
@@ -255,7 +255,7 @@ export function CartCheckout({
             <Link href="/legal/refunds" className="link-swipe font-medium text-ink">
               refund policy
             </Link>
-            , and confirm every guest will carry photo ID.
+            .
           </span>
         </label>
         {fieldErrors.consent && (

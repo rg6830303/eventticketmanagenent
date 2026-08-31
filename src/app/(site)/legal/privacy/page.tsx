@@ -25,7 +25,7 @@ export default function PrivacyPage() {
               <p>When you book a ticket we collect only what is needed to issue and deliver it:</p>
               <ul>
                 <li>
-                  <strong>Your name</strong> — printed on the pass and checked against your photo ID
+                  <strong>Your name</strong> — printed on the pass so the door can match it to your booking
                   at the door.
                 </li>
                 <li>

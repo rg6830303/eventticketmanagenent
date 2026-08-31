@@ -484,7 +484,7 @@ export function BookingForm({
               <Collapse show={Boolean(errorFor('name'))} reduce={Boolean(reduce)}>
                 <p className="error-text">{errorFor('name')}</p>
               </Collapse>
-              <p className="help">The door checks this against your photo ID.</p>
+              <p className="help">This is the name printed on your pass.</p>
             </div>
 
             <div>
@@ -579,8 +579,7 @@ export function BookingForm({
                 className="mt-0.5 h-[18px] w-[18px] shrink-0 accent-vybe-500"
               />
               <span className="text-[0.8125rem] leading-relaxed text-slate">
-                I am {EVENT.ageLabel.replace('+', '')} or older, I will carry a government photo ID
-                matching this name, and I accept the{' '}
+                I accept the{' '}
                 <Link href="/legal/terms" className="font-medium text-vybe-600 underline underline-offset-2">
                   entry terms
                 </Link>

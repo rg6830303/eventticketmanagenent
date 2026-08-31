@@ -3,7 +3,7 @@ import { fail, handleError, ok, readJson, tooManyRequests } from '@/lib/api';
 import { verifyOrigin } from '@/lib/auth';
 import { queryOne } from '@/lib/db';
 import { env } from '@/lib/env';
-import { startPayment } from '@/lib/payments';
+import { maybeReconcile, startPayment } from '@/lib/payments';
 import { LIMITS, rateLimit } from '@/lib/rate-limit';
 import { clientIp } from '@/lib/validation.server';
 import type { BookingRow } from '@/lib/types';
@@ -45,6 +45,12 @@ export async function POST(request: NextRequest) {
     if (!booking) return fail('We could not find that booking', 'booking_not_found', 404);
 
     const payUrl = `/pay/${booking.reference}`;
+
+    // Fire-and-forget: somebody starting a payment is a good moment to check
+    // whether an earlier one was completed and never confirmed. Throttled to
+    // once every few minutes across all instances, and deliberately not
+    // awaited — this customer's checkout must not wait on other people's.
+    void maybeReconcile();
 
     if (booking.status === 'confirmed') {
       return ok({ alreadyPaid: true, reference: booking.reference });

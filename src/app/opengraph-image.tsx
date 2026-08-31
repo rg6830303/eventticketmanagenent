@@ -85,7 +85,6 @@ export default function OpengraphImage() {
           <div style={{ display: 'flex', gap: '44px' }}>
             <Stat label="Date" value={EVENT.dateShort} />
             <Stat label="Time" value="12 — 5 PM" />
-            <Stat label="Entry" value={EVENT.ageLabel} />
           </div>
           <div
             style={{

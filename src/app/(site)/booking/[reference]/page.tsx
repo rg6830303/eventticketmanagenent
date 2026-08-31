@@ -200,7 +200,6 @@ export default async function BookingConfirmationPage({
                   booking.amount_paise === 0 ? 'Complimentary entry' : formatInr(booking.amount_paise)
                 }
               />
-              <Row label="Age policy" value={`${event.age_limit}+ · photo ID required`} />
             </dl>
 
             <div className="rule-receipt my-6" />
@@ -259,7 +258,6 @@ export default async function BookingConfirmationPage({
           <div className="card-print p-6">
             <h2 className="mb-3 font-display text-base font-semibold text-ink">Before you come</h2>
             <ul className="space-y-2 text-[13px] leading-relaxed text-slate">
-              <li>· Carry a government photo ID matching the booking name. No ID, no entry.</li>
               {tickets.some((ticket) => (ticket.admits ?? 1) > 1) ? (
                 <li>
                   · Each QR works exactly once and admits the number of people printed on it.

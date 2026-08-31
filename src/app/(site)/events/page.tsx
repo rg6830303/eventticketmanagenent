@@ -143,7 +143,7 @@ function EventCard({ event }: { event: EventRow }) {
             {event.tagline && <p className="mt-1.5 text-[14px] text-vybe-600">{event.tagline}</p>}
             <p className="mt-3 text-[13px] text-slate">
               {event.venue_name}, {event.city} · doors{' '}
-              {formatEventTime(event.doors_at ?? event.starts_at)} · {event.age_limit}+
+              {formatEventTime(event.doors_at ?? event.starts_at)}
             </p>
           </TiltLayer>
 

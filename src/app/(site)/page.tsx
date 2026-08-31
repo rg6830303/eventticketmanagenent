@@ -266,7 +266,7 @@ export default async function HomePage() {
         <Reveal>
           <div className="edit-head">
             <h2 id="tickets-heading" className="h-section">
-              Phase 1 pass pricing.
+              Phase 2 pass pricing.
             </h2>
             <span className="edit-index">03 — Tickets</span>
           </div>

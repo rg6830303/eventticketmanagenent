@@ -136,7 +136,6 @@ export default async function TicketPage({ params }: { params: Promise<{ payload
               <Item label="Ticket type" value={pass.tier_name ?? 'General Entry'} />
               <Item label="Booking" value={pass.booking_reference} mono />
               {pass.seat_label && <Item label="Pass" value={pass.seat_label} mono />}
-              <Item label="Entry" value={`${pass.age_limit}+ · photo ID`} />
             </dl>
 
             <div className="border-t border-edge pt-3">
