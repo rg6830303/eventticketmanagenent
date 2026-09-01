@@ -1,4 +1,4 @@
-import { formatEventDate, formatEventTime, formatInr } from './utils';
+import { formatEventDate, formatEventTime } from './utils';
 
 /**
  * Email markup.
@@ -26,6 +26,12 @@ export interface TicketEmailData {
   ageLimit: number;
   tierName: string;
   quantity: number;
+  /**
+   * Kept on the payload though the email no longer prints it. The ticket is an
+   * entry pass, not a receipt — what it needs to carry is who, when, where and
+   * the QR. The figure stays available for a future receipt template without
+   * the mailer having to be changed to find it again.
+   */
   amountPaise: number;
   tickets: Array<{
     code: string;
@@ -191,7 +197,6 @@ export function ticketEmailHtml(data: TicketEmailData): string {
               ${data.venueAddress ? row('Address', data.venueAddress) : ''}
               ${row('Ticket type', data.tierName)}
               ${row('Quantity', String(data.quantity))}
-              ${row('Amount paid', data.amountPaise === 0 ? 'Complimentary entry' : formatInr(data.amountPaise))}
             </td></tr>
           </table>
         </td></tr>
@@ -273,7 +278,6 @@ export function ticketEmailText(data: TicketEmailData): string {
     `Doors:      ${formatEventTime(data.doorsAt ?? data.startsAt)}`,
     `Venue:      ${data.venueName}${data.venueAddress ? `, ${data.venueAddress}` : ''}`,
     `Ticket:     ${data.tierName} x${data.quantity}`,
-    `Amount:     ${data.amountPaise === 0 ? 'Complimentary entry' : formatInr(data.amountPaise)}`,
     `Reference:  ${data.bookingReference}`,
     '',
     'YOUR PASSES',
