@@ -1,10 +1,10 @@
 import type { Metadata } from 'next';
 import { getEventBySlug, listTiers } from '@/lib/bookings';
 import { env } from '@/lib/env';
+import { listStorefrontTiers } from '@/lib/storefront-tiers';
 import { EVENT, FEATURED_EVENT_SLUG } from '@/content/site';
 import { formatEventDate, formatEventTime } from '@/lib/utils';
 import { CartClient } from '@/components/cart/CartClient';
-import { FALLBACK_TICKET_TIERS, getTicketTierMeta } from '@/content/ticketing';
 
 export const dynamic = 'force-dynamic';
 
@@ -22,26 +22,7 @@ export default async function CartPage() {
   // lets in. The content constants are only a fallback for a deployment whose
   // database is unreachable — a cart that renders nothing is worse than one
   // that renders last-known prices and fails at checkout with a real message.
-  const phaseOneRows = tierRows.filter((tier) => getTicketTierMeta(tier.code));
-  const tiers = phaseOneRows.length === FALLBACK_TICKET_TIERS.length
-    ? phaseOneRows.map((tier) => {
-        const meta = getTicketTierMeta(tier.code);
-        return {
-          code: tier.code,
-          name: tier.name,
-          description: tier.description,
-          pricePaise: tier.price_paise,
-          remaining: Math.max(0, tier.quantity - tier.sold),
-          perks: Array.isArray(tier.perks) ? tier.perks : [],
-          redeemablePaise: tier.redeemable_paise || meta?.redeemablePaise || 0,
-          pax: tier.admits || meta?.pax || 1,
-          priceUnit: meta?.priceUnit ?? '/ pass',
-        };
-      })
-    : FALLBACK_TICKET_TIERS.map(({ total: _total, ...tier }) => ({
-        ...tier,
-        perks: [...tier.perks],
-      }));
+  const tiers = await listStorefrontTiers(event?.id ?? null);
 
   return (
     <div className="relative">

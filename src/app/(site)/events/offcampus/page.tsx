@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
+import { listStorefrontTiers } from '@/lib/storefront-tiers';
 import { getEventBySlug, listTiers } from '@/lib/bookings';
 import { BRAND, EVENT, PARTNER, REFERRAL } from '@/content/site';
 import { formatEventDate, formatEventTime, formatInr } from '@/lib/utils';
@@ -13,7 +14,6 @@ import { TicketRail, type RailTier } from '@/components/event/TicketRail';
 import { StickyBuyBar } from '@/components/event/StickyBuyBar';
 import { Accordion } from '@/components/events/Accordion';
 import { getSiteUrl } from '@/lib/site-url';
-import { FALLBACK_TICKET_TIERS, getTicketTierMeta } from '@/content/ticketing';
 
 export const dynamic = 'force-dynamic';
 
@@ -26,25 +26,7 @@ export const metadata: Metadata = {
 export default async function OffCampusPage() {
   const event = await getEventBySlug(EVENT.slug).catch(() => null);
   const tierRows = event ? await listTiers(event.id).catch(() => []) : [];
-  const phaseOneRows = tierRows.filter((tier) => getTicketTierMeta(tier.code));
-
-  const tiers: RailTier[] = phaseOneRows.length === FALLBACK_TICKET_TIERS.length
-    ? phaseOneRows.map((tier) => {
-        const meta = getTicketTierMeta(tier.code);
-        return {
-          code: tier.code,
-          name: tier.name,
-          description: tier.description,
-          pricePaise: tier.price_paise,
-          remaining: Math.max(0, tier.quantity - tier.sold),
-          total: tier.quantity,
-          perks: Array.isArray(tier.perks) ? tier.perks : [],
-          redeemablePaise: meta?.redeemablePaise ?? 0,
-          pax: meta?.pax ?? 1,
-          priceUnit: meta?.priceUnit ?? '/ pass',
-        };
-      })
-    : FALLBACK_TICKET_TIERS.map((tier) => ({ ...tier, perks: [...tier.perks] }));
+  const tiers = await listStorefrontTiers(event?.id ?? null);
 
   const onSale = tiers.filter((tier) => tier.remaining > 0);
   const fromPaise = onSale.length ? Math.min(...onSale.map((tier) => tier.pricePaise)) : null;

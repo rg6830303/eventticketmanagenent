@@ -520,3 +520,12 @@ ALTER TABLE ticket_tiers DROP CONSTRAINT IF EXISTS ticket_tiers_admits_check;
 ALTER TABLE ticket_tiers ADD CONSTRAINT ticket_tiers_admits_check CHECK (admits >= 1);
 ALTER TABLE ticket_tiers DROP CONSTRAINT IF EXISTS ticket_tiers_redeemable_check;
 ALTER TABLE ticket_tiers ADD CONSTRAINT ticket_tiers_redeemable_check CHECK (redeemable_paise >= 0);
+
+-- --------------------------------------------------------------------------
+-- price_unit — the "/ pass", "/ couple", "/ table" suffix beside a price.
+--
+-- Previously hard-coded per tier code in src/content/ticketing.ts, which meant
+-- a tier created or renamed from the admin console had no way to say how its
+-- price is denominated. It belongs with the price it qualifies.
+-- --------------------------------------------------------------------------
+ALTER TABLE ticket_tiers ADD COLUMN IF NOT EXISTS price_unit TEXT NOT NULL DEFAULT '/ pass';

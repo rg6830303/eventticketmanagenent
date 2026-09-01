@@ -207,6 +207,24 @@ export async function sendTicketEmail(detail: BookingDetail): Promise<SendResult
   // order is emailed labelled as a normal pass.
   const itemById = new Map(items.map((item) => [item.id, item]));
 
+  // Pass names come from the tier as it stands today, so renaming a pass in the
+  // console reaches every email including resends of old bookings — a rename is
+  // cosmetic and there is no reason for two customers to see different words for
+  // the same thing.
+  //
+  // The AMOUNT is emphatically not treated that way. It stays as booking
+  // .amount_paise, the figure actually charged, because a receipt that quietly
+  // restates itself at today's price is wrong in a way that starts arguments.
+  const liveNames = new Map<string, string>();
+  const tierIds = [...new Set(items.map((item) => item.tier_id).filter(Boolean))] as string[];
+  if (tierIds.length > 0) {
+    const current = await query<{ id: string; name: string }>(
+      'SELECT id, name FROM ticket_tiers WHERE id = ANY($1::uuid[])',
+      [tierIds],
+    ).catch(() => []);
+    for (const row of current) liveNames.set(row.id, row.name);
+  }
+
   const qrAttachments = await Promise.all(
     tickets.map(async (ticket, index) => ({
       filename: `${ticket.code}.png`,
@@ -237,7 +255,10 @@ export async function sendTicketEmail(detail: BookingDetail): Promise<SendResult
     startsAt: event.starts_at,
     doorsAt: event.doors_at,
     ageLimit: event.age_limit,
-    tierName: tier?.name ?? 'General Entry',
+    tierName:
+      (items[0]?.tier_id ? liveNames.get(items[0].tier_id) : undefined) ??
+      tier?.name ??
+      'General Entry',
     quantity: booking.quantity,
     amountPaise: booking.amount_paise,
     tickets: await Promise.all(
@@ -249,7 +270,11 @@ export async function sendTicketEmail(detail: BookingDetail): Promise<SendResult
           cid: `ticket-qr-${index}`,
           url: await ticketUrl(ticket.code),
           admits: ticket.admits ?? item?.admits_each ?? 1,
-          tierName: item?.tier_name ?? tier?.name ?? 'General Entry',
+          tierName:
+          (item?.tier_id ? liveNames.get(item.tier_id) : undefined) ??
+          item?.tier_name ??
+          tier?.name ??
+          'General Entry',
         };
       }),
     ),
