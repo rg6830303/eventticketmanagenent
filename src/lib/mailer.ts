@@ -41,12 +41,29 @@ function getTransport(): Transporter {
       port: smtp.port,
       secure: smtp.secure, // true for 465, false for 587 (STARTTLS)
       auth: { user: smtp.user, pass: smtp.password },
-      pool: true,
-      maxConnections: 3,
-      maxMessages: 50,
-      connectionTimeout: 15_000,
-      greetingTimeout: 10_000,
-      socketTimeout: 25_000,
+      /*
+       * Deliberately NOT pooled.
+       *
+       * Pooling assumes a long-lived process. This runs on Vercel, where the
+       * container is frozen between invocations and Gmail drops an idle socket
+       * within about a minute — so a thawed function reaches for a pooled
+       * connection that is already dead at the other end. Nothing signals that:
+       * the write goes into a black hole and the send hangs for the whole
+       * socketTimeout before failing. Measured, that was a flat 25s, which
+       * overruns the 30s function limit once the retry is added and kills the
+       * email outright while the booking is already confirmed.
+       *
+       * Each invocation sends one message, so a pool was never buying anything
+       * here. A fresh connection per send costs one handshake and cannot go
+       * stale.
+       *
+       * `pool` is omitted rather than set to false: nodemailer picks its
+       * options overload on that key, and naming it explicitly resolves to the
+       * generic transport type instead of the SMTP one.
+       */
+      connectionTimeout: 10_000,
+      greetingTimeout: 8_000,
+      socketTimeout: 12_000,
     });
   }
   return globalThis.__hovTransport;
@@ -296,7 +313,11 @@ export async function sendTicketEmail(detail: BookingDetail): Promise<SendResult
   const first = await sendMail(payload);
   if (first.ok) return first;
 
-  // One retry on a fresh connection.
+  // One retry on a genuinely fresh connection. The old transport is closed
+  // rather than just dereferenced — dropping the reference alone leaves its
+  // sockets open until GC, which is how a function leaks connections against
+  // Gmail's concurrency limit.
+  globalThis.__hovTransport?.close();
   globalThis.__hovTransport = undefined;
   return sendMail(payload);
 }

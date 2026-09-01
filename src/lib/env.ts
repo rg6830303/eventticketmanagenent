@@ -161,7 +161,14 @@ export const env = {
       port: int('SMTP_PORT', 465),
       secure: bool('SMTP_SECURE', true),
       user: opt('SMTP_USER'),
-      password: opt('SMTP_PASSWORD'),
+      // Google shows an App Password as four space-separated groups
+      // ("abcd efgh ijkl mnop") and people paste exactly that. Gmail wants the
+      // 16 characters with no spaces and answers anything else with
+      // "535 5.7.8 Username and Password not accepted" — which surfaces as
+      // every ticket email silently failing while the booking still confirms.
+      // A space is never valid inside an App Password, so stripping all
+      // whitespace can only ever fix that paste, never corrupt a real secret.
+      password: opt('SMTP_PASSWORD').replace(/\s+/g, ''),
       fromName: opt('MAIL_FROM_NAME', 'Houz of Vybe'),
       fromAddress: opt('MAIL_FROM_ADDRESS', opt('SMTP_USER')),
       replyTo: opt('MAIL_REPLY_TO'),

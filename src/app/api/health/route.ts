@@ -3,6 +3,7 @@ import { pingDatabase } from '@/lib/db';
 import { env } from '@/lib/env';
 import { signingKeyReport } from '@/lib/signing-key';
 import { probeGateway } from '@/lib/payments';
+import { verifySmtp } from '@/lib/mailer';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -19,9 +20,28 @@ export async function GET(request: NextRequest) {
   // Opt-in, because it creates a real order at the gateway that nobody pays.
   // Worth having: an account that can authenticate but cannot trade looks
   // completely healthy from every other check.
+  const requested = new URL(request.url).searchParams.get('probe');
+
   const probe =
-    new URL(request.url).searchParams.get('probe') === 'gateway'
+    requested === 'gateway'
       ? await probeGateway().catch(() => ({ ok: false, reason: 'probe threw' }))
+      : null;
+
+  /*
+   * Opt-in SMTP auth check.
+   *
+   * `configured` below only says the two variables are non-empty, which is not
+   * the same question as "can we actually send". A wrong App Password reports
+   * configured: true and then fails every ticket email — silently, because a
+   * send failure never blocks the booking. This opens one authenticated
+   * connection and closes it, so it stays off the uptime path.
+   */
+  const smtpProbe =
+    requested === 'smtp'
+      ? await verifySmtp().catch((error) => ({
+          ok: false,
+          error: error instanceof Error ? error.message : 'probe threw',
+        }))
       : null;
 
   const body = {
@@ -77,6 +97,7 @@ export async function GET(request: NextRequest) {
       },
       upi: { enabled: env.upi.enabled },
       ...(probe ? { gateway: probe } : {}),
+      ...(smtpProbe ? { smtpAuth: smtpProbe } : {}),
     },
   };
 

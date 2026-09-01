@@ -14,6 +14,16 @@ import { PrintButton } from '@/components/booking/PrintButton';
 
 export const dynamic = 'force-dynamic';
 
+/*
+ * This page is not just a render: `reconcileBooking` below can confirm a
+ * payment, mint passes and send the ticket email, which means it makes a
+ * gateway call and an SMTP round trip. Every API route that does the same work
+ * is given 30s in vercel.json, but a page inherits the platform default — about
+ * 10s — so the one path a customer actually lands on after paying was the only
+ * one that could be killed mid-send, leaving a confirmed booking with no email.
+ */
+export const maxDuration = 30;
+
 export const metadata: Metadata = {
   title: 'Your booking',
   robots: { index: false, follow: false },
