@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { cn, formatInr } from '@/lib/utils';
-import { suggestEmailCorrection } from '@/lib/validation';
+import { normaliseIndianMobile, suggestEmailCorrection } from '@/lib/validation';
 import { EVENT, REFERRAL } from '@/content/site';
 
 export interface TierOption {
@@ -174,7 +174,13 @@ export function BookingForm({
   }, [referralInput, subtotal, checkReferral]);
 
   // ---- Validation ---------------------------------------------------------
-  const normalisedPhone = phone.replace(/[\s\-()]/g, '').replace(/^(\+91|0091|91|0)/, '');
+  // The same normaliser the server uses. It used to be a second, subtly
+  // different copy of the rule that stripped a leading "91" unconditionally, so
+  // an ordinary number like 9100013561 was cut down to 00013561 and rejected
+  // here before the server ever saw it — every mobile in the 91 series turned
+  // away at checkout. One shared function, so the field and the API can never
+  // disagree about what a valid number looks like again.
+  const normalisedPhone = normaliseIndianMobile(phone);
   const emailSuggestion = email.includes('@') ? suggestEmailCorrection(email) : null;
 
   const nameValid = name.trim().length >= 2;
@@ -185,7 +191,7 @@ export function BookingForm({
   if (touched.name && !nameValid) localErrors.name = 'Enter your full name';
   if (touched.email && !emailValid) localErrors.email = 'Enter a valid email address';
   if (touched.phone && !phoneValid) {
-    localErrors.phone = 'Enter a valid 10-digit Indian mobile number';
+    localErrors.phone = 'Enter a 10-digit Indian mobile number. +91, spaces and dashes are fine.';
   }
 
   function errorFor(field: Field): string | undefined {
@@ -540,13 +546,17 @@ export function BookingForm({
                     onBlur={() => setTouched((t) => ({ ...t, phone: true }))}
                     autoComplete="tel-national"
                     inputMode="numeric"
-                    maxLength={14}
+                    maxLength={18}
                     className={cn('field rounded-l-none pr-11', errorFor('phone') && 'field-error')}
                     placeholder="98765 43210"
+                    aria-describedby="phone-help"
                   />
                   <FieldTick show={phoneValid && !errorFor('phone')} reduce={Boolean(reduce)} />
                 </div>
               </div>
+              <p id="phone-help" className="help">
+                Any format works — +91, spaces or dashes.
+              </p>
               <Collapse show={Boolean(errorFor('phone'))} reduce={Boolean(reduce)}>
                 <p className="error-text">{errorFor('phone')}</p>
               </Collapse>

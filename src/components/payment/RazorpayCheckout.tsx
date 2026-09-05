@@ -73,6 +73,73 @@ export function RazorpayCheckout({
   const [phase, setPhase] = useState<Phase>('idle');
   const [error, setError] = useState<string | null>(null);
   const instance = useRef<RazorpayInstance | null>(null);
+  const watcher = useRef<{ timer: ReturnType<typeof setInterval> | null; onVisible: (() => void) | null }>(
+    { timer: null, onVisible: null },
+  );
+
+  const stopWatching = useCallback(() => {
+    if (watcher.current.timer) clearInterval(watcher.current.timer);
+    if (watcher.current.onVisible) {
+      document.removeEventListener('visibilitychange', watcher.current.onVisible);
+    }
+    watcher.current = { timer: null, onVisible: null };
+  }, []);
+
+  /**
+   * Ask the server whether this booking has been paid.
+   *
+   * The server does not take our word for it — it asks Razorpay's API about the
+   * order. This is only a nudge to look.
+   */
+  const checkPaid = useCallback(async () => {
+    try {
+      const response = await fetch(`/api/bookings/${reference}/claim`, { method: 'POST' });
+      const body = (await response.json()) as { data?: { status?: string } };
+      if (body.data?.status === 'confirmed') {
+        stopWatching();
+        setPhase('done');
+        router.replace(`/booking/${reference}?paid=1`);
+        return true;
+      }
+    } catch {
+      /* Offline or mid-redirect; the next tick tries again. */
+    }
+    return false;
+  }, [reference, router, stopWatching]);
+
+  /**
+   * Watch for the payment landing without us being told.
+   *
+   * Razorpay's `handler` callback fires in this page, and on a phone that is a
+   * fragile place to keep the only copy of "they paid". Paying by UPI sends the
+   * browser to the background to open GPay or PhonePe, and an in-app webview —
+   * Instagram's above all, which is where most of this traffic arrives from —
+   * is routinely evicted while it waits there. The customer pays, returns to a
+   * page that has been reloaded out from under the callback, and nothing tells
+   * the server anything.
+   *
+   * So we poll, and we check the instant the tab is looked at again, which is
+   * the exact moment somebody comes back from their UPI app. Whichever notices
+   * first wins; the server ignores a second confirmation.
+   */
+  const startWatching = useCallback(() => {
+    stopWatching();
+    const deadline = Date.now() + 8 * 60 * 1000;
+
+    watcher.current.timer = setInterval(() => {
+      if (Date.now() > deadline) {
+        stopWatching();
+        return;
+      }
+      void checkPaid();
+    }, 5000);
+
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') void checkPaid();
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    watcher.current.onVisible = onVisible;
+  }, [checkPaid, stopWatching]);
 
   // Warm the script up front. By the time anyone has read the summary and
   // reached for the button, the modal opens instantly instead of after a
@@ -83,8 +150,9 @@ export function RazorpayCheckout({
     });
     return () => {
       instance.current?.close();
+      stopWatching();
     };
-  }, []);
+  }, [stopWatching]);
 
   const verify = useCallback(
     async (payload: {
@@ -93,6 +161,7 @@ export function RazorpayCheckout({
       razorpay_signature: string;
     }) => {
       setPhase('verifying');
+      stopWatching();
       try {
         const response = await fetch('/api/payments/razorpay/verify', {
           method: 'POST',
@@ -104,10 +173,14 @@ export function RazorpayCheckout({
         if (!response.ok || !body.data) {
           // The money may well have left the account — never tell someone the
           // payment failed when only our confirmation did.
+          // The money has very likely left their account, so do not stop here.
+          // Watching asks the server to check with Razorpay directly, which
+          // usually resolves this within seconds and without anyone paying twice.
+          startWatching();
           setPhase('error');
           setError(
             body.error ??
-              'Your payment went through but we could not confirm it here. Do not pay again — contact us with your reference and we will issue the pass.',
+              'Your payment went through but we could not confirm it here. Do not pay again — we are still checking, and your passes will arrive by email.',
           );
           return;
         }
@@ -115,13 +188,14 @@ export function RazorpayCheckout({
         setPhase('done');
         router.replace(`/booking/${body.data.reference}?paid=1`);
       } catch {
+        startWatching();
         setPhase('error');
         setError(
-          'Your payment may have gone through. Do not pay again — check your email, or contact us with your booking reference.',
+          'Your payment may have gone through. Do not pay again — we are still checking, and your passes will arrive by email.',
         );
       }
     },
-    [router],
+    [router, stopWatching, startWatching],
   );
 
   const pay = useCallback(async () => {
@@ -177,7 +251,10 @@ export function RazorpayCheckout({
         modal: {
           confirm_close: true,
           ondismiss: () => {
-            // Closing the modal is not an error. The booking is still held.
+            // Closing the modal is not an error, and it is not proof they did
+            // not pay — plenty of people finish in their UPI app and shut this
+            // window on the way back. The booking is still held, and the
+            // watcher keeps checking.
             setPhase((current) => (current === 'verifying' ? current : 'idle'));
           },
         },
@@ -195,11 +272,16 @@ export function RazorpayCheckout({
       instance.current = rzp;
       setPhase('open');
       rzp.open();
+
+      // From here the payment may complete somewhere we cannot see — in a UPI
+      // app, after this webview has been evicted. Start watching now rather
+      // than trusting the callback to be the thing that tells us.
+      startWatching();
     } catch {
       setPhase('error');
       setError('We could not open the payment window. Check your connection and try again.');
     }
-  }, [reference, eventName, tierName, quantity, customer, verify]);
+  }, [reference, eventName, tierName, quantity, customer, verify, startWatching]);
 
   const busy = phase === 'opening' || phase === 'verifying' || phase === 'done';
 

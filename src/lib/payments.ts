@@ -543,7 +543,7 @@ export async function sendUndeliveredTickets(): Promise<{
  * with a conditional UPDATE, so exactly one caller wins and the rest return
  * immediately.
  */
-export async function maybeReconcile(everySeconds = 180): Promise<boolean> {
+export async function maybeReconcile(everySeconds = 90): Promise<boolean> {
   if (env.paymentProvider !== 'razorpay') return false;
 
   try {

@@ -229,7 +229,7 @@ export function CartCheckout({
           id="cart-phone"
           label="Mobile number"
           type="tel"
-          hint="10 digits. Used only if we need to reach you about this order."
+          hint="Any format works — +91, spaces or dashes. Used only if we need to reach you about this order."
           value={form.phone}
           onChange={set('phone')}
           autoComplete="tel"

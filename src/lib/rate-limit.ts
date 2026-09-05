@@ -85,4 +85,12 @@ export const LIMITS = {
   // A UTR claim is cheap to write and impossible to verify, so the ceiling is
   // low: this is the endpoint a script would use to hunt for live references.
   upiClaim: { limit: 8, window: 900 },
+  // Keyed by booking reference, not IP. The pay page polls while the customer
+  // is away in their UPI app, so this has to clear several minutes of polling
+  // plus a retry or two. Cheap, and it reveals nothing: the answer is decided
+  // by Razorpay's API, not by the caller.
+  claim: { limit: 150, window: 900 },
+  // The unsigned webhook path is a public URL. Real events are a trickle; this
+  // only exists so it cannot be hammered as a probe.
+  webhookUnsigned: { limit: 120, window: 300 },
 } as const;

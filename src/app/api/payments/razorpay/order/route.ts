@@ -3,7 +3,7 @@ import { fail, handleError, ok, readJson } from '@/lib/api';
 import { verifyOrigin } from '@/lib/auth';
 import { queryOne } from '@/lib/db';
 import { env } from '@/lib/env';
-import { startPayment } from '@/lib/payments';
+import { maybeReconcile, startPayment } from '@/lib/payments';
 import type { BookingRow } from '@/lib/types';
 
 export const runtime = 'nodejs';
@@ -18,6 +18,12 @@ export const dynamic = 'force-dynamic';
  */
 export async function POST(request: NextRequest) {
   try {
+    // Somebody reaching for the Pay button is the strongest signal there is
+    // that other people are paying right now — and that one of them has
+    // finished without their browser telling us. Throttled across instances and
+    // deliberately not awaited: this customer's checkout never waits on it.
+    void maybeReconcile();
+
     if (!env.paymentsEnabled) {
       return fail(
         'Online payment is not enabled yet — booking is currently free',

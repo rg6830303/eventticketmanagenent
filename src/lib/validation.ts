@@ -87,12 +87,45 @@ export const emailSchema = z
  * Indian mobile number. Accepts +91/0/91 prefixes and separators, normalises to
  * a bare 10-digit string starting 6–9.
  */
+/** A ten-digit Indian mobile, which is what the network actually needs. */
+const INDIAN_MOBILE = /^[6-9]\d{9}$/;
+
+/**
+ * Turn whatever somebody typed into ten digits.
+ *
+ * People paste numbers with spaces, dashes, brackets, a +91, a leading zero, or
+ * a country code they copied from WhatsApp. All of that should work — a
+ * checkout that rejects a real number the customer can read back to you is
+ * worse than one that accepts a slightly odd format.
+ *
+ * The bare ten-digit reading is tried FIRST, and that ordering is the whole
+ * point. The previous version stripped a leading "91" unconditionally, so
+ * 9100013561 — a perfectly ordinary mobile — became 00013561 and was rejected.
+ * Every number in the 91 series was refused at checkout, which is a large block
+ * of real customers.
+ *
+ * A prefix is only removed when what remains is itself a valid mobile, so
+ * stripping can never turn a good number into a bad one.
+ */
+export function normaliseIndianMobile(raw: string): string {
+  const digits = String(raw ?? '').replace(/\D/g, '');
+  if (INDIAN_MOBILE.test(digits)) return digits;
+
+  for (const prefix of ['0091', '091', '91', '0']) {
+    if (digits.startsWith(prefix)) {
+      const rest = digits.slice(prefix.length);
+      if (INDIAN_MOBILE.test(rest)) return rest;
+    }
+  }
+
+  return digits;
+}
+
 export const phoneSchema = z
   .string({ required_error: 'Phone number is required' })
   .trim()
-  .transform((value) => value.replace(/[\s\-()./]/g, ''))
-  .transform((value) => value.replace(/^(\+91|0091|91|0)/, ''))
-  .refine((value) => /^[6-9]\d{9}$/.test(value), {
+  .transform(normaliseIndianMobile)
+  .refine((value) => INDIAN_MOBILE.test(value), {
     message: 'Enter a valid 10-digit Indian mobile number',
   });
 
