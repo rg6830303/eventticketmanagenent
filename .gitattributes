@@ -1,0 +1,13 @@
+# Everything Git decides is text gets LF in the repository, whatever the editor
+# on the machine that wrote it does locally.
+* text=auto
+
+# These are executed by a Linux runner, and CRLF line endings break a shell
+# script there in a way that is genuinely baffling to debug — the interpreter
+# reports "command not found" against a line that is plainly correct, because
+# the carriage return is part of the command name. The payment heartbeat lives
+# in a workflow file edited from Windows, so pin it rather than rely on the
+# global autocrlf setting staying as it is.
+*.sh   text eol=lf
+*.yml  text eol=lf
+*.yaml text eol=lf
