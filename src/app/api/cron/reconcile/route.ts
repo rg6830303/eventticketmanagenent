@@ -87,12 +87,15 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // Counts only. A booking reference is a bearer credential — /booking/<ref>
+    // takes no login and renders the customer's name and QR passes — and this
+    // response is read by schedulers that log it, some of them publicly. The
+    // references go to the server log above, which is private, and nowhere else.
     return NextResponse.json({
       ok: true,
       hours,
       checked: results.length,
       recovered: paid.length,
-      references: paid.map((r) => r.reference),
     });
   } catch (error) {
     console.error('[cron] sweep failed:', error instanceof Error ? error.message : error);

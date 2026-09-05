@@ -62,8 +62,13 @@ jobs:
           CODE=$(printf '%s' "$BODY" | tail -n1)
           JSON=$(printf '%s' "$BODY" | sed '$d')
 
+          # Never print the response body. Action logs on a public repository
+          # are world-readable, and a booking reference is a bearer credential:
+          # /booking/<reference> needs no login and renders the customer's name
+          # and their QR passes. Echoing the sweep's output would publish working
+          # tickets for precisely the people it had just rescued. Only the
+          # HTTP status and a count leave this job.
           echo "HTTP $CODE"
-          echo "$JSON"
 
           if [ "$CODE" != "200" ]; then
             echo "::error::Reconcile sweep failed with HTTP $CODE"
