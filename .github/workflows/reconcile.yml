@@ -20,11 +20,17 @@
 # ON TIMING. GitHub's floor is one run per five minutes, and scheduled runs are
 # best-effort — GitHub staff acknowledged in June 2026 that drift had grown past
 # 30%, with runs starting well late. Two things make that survivable here.
-# First, each run sweeps three times across its window rather than once, so
-# on-time runs give roughly 100-second coverage. Second, and more important, the
-# sweep looks back a full 24 hours: a late run still recovers everyone a punctual
-# one would have. Drift costs a customer waiting time. It cannot cost them a
-# ticket.
+# First, each run sweeps twice, so a single cold start or network blip does not
+# cost the whole slot. Second, and far more important, the sweep looks back a
+# full 24 hours: a late run recovers exactly the customers a punctual one would
+# have. Drift costs somebody waiting time. It cannot cost them a ticket.
+#
+# ON COST. Minutes are free and unlimited on a public repository, but they are
+# not free to GitHub, and running a job continuously is not what Actions is for.
+# Two sweeps keeps each run near two minutes. Raising the loop count tightens
+# coverage and multiplies that; dropping it to one makes each run a few seconds.
+# The gain from going denser is small, because anyone who returns to the site is
+# already confirmed in seconds by the two paths above.
 #
 # The daily Vercel cron still runs the wide 30-day pass underneath this.
 #
@@ -103,19 +109,20 @@ jobs:
             return 0
           }
 
-          # Three passes across the five-minute window. GitHub will not schedule
-          # us more often than that, so the density has to come from inside the
-          # run: on-time runs end up checking roughly every 100 seconds.
+          # Two passes per run. GitHub will not schedule us more often than every
+          # five minutes, so a second pass halves the worst case inside a slot
+          # and means one cold start does not waste it.
+          PASSES=2
           FAILURES=0
-          for ATTEMPT in 1 2 3; do
-            echo "sweep $ATTEMPT/3"
+          for ATTEMPT in $(seq 1 $PASSES); do
+            echo "sweep $ATTEMPT/$PASSES"
             sweep || FAILURES=$((FAILURES + 1))
-            if [ "$ATTEMPT" != "3" ]; then sleep 100; fi
+            if [ "$ATTEMPT" != "$PASSES" ]; then sleep 120; fi
           done
 
           # One transient blip is not worth a red run; losing every sweep means
           # the heartbeat is genuinely down and somebody should know.
-          if [ "$FAILURES" = "3" ]; then
-            echo "::error::All three sweeps failed - payment confirmation is not running"
+          if [ "$FAILURES" = "$PASSES" ]; then
+            echo "::error::Every sweep failed - payment confirmation is not running"
             exit 1
           fi
