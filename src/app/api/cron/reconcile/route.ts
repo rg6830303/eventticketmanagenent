@@ -76,8 +76,17 @@ export async function GET(request: NextRequest) {
   // make us spend hundreds of calls against our own payment provider's quota.
   const requested = Number(request.nextUrl.searchParams.get('hours'));
   const ceiling = secret ? 720 : 24;
+
+  // Vercel's daily cron is the wide backstop, and vercel.json asks for it with
+  // a query string. Whether a scheduled invocation preserves that query is not
+  // something worth betting the backstop on, so recognise the caller too: if
+  // Vercel's cron arrives without an explicit window, give it the wide one it
+  // was configured for rather than silently doing the narrow pass forever.
+  const fromVercelCron = /vercel-cron/i.test(request.headers.get('user-agent') ?? '');
+  const fallback = fromVercelCron && secret ? 720 : 24;
+
   const hours =
-    Number.isFinite(requested) && requested > 0 ? Math.min(requested, ceiling) : 24;
+    Number.isFinite(requested) && requested > 0 ? Math.min(requested, ceiling) : fallback;
 
   try {
     const results = await reconcilePending(hours);
