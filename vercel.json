@@ -31,6 +31,10 @@
     {
       "path": "/api/cron/reconcile?hours=720",
       "schedule": "0 3 * * *"
+    },
+    {
+      "path": "/api/cron/reconcile?hours=720",
+      "schedule": "0 15 * * *"
     }
   ]
 }

@@ -1,3 +1,4 @@
+import { after } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { fail, handleError, ok, readJson } from '@/lib/api';
 import { verifyOrigin } from '@/lib/auth';
@@ -21,8 +22,8 @@ export async function POST(request: NextRequest) {
     // Somebody reaching for the Pay button is the strongest signal there is
     // that other people are paying right now — and that one of them has
     // finished without their browser telling us. Throttled across instances and
-    // deliberately not awaited: this customer's checkout never waits on it.
-    void maybeReconcile();
+    // run after the response: this customer's checkout never waits on it.
+    after(() => maybeReconcile().catch(() => {}));
 
     if (!env.paymentsEnabled) {
       return fail(

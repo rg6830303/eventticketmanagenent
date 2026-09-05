@@ -1,3 +1,4 @@
+import { after } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { fail, handleError, ok, readJson, tooManyRequests } from '@/lib/api';
 import { verifyOrigin } from '@/lib/auth';
@@ -48,9 +49,8 @@ export async function POST(request: NextRequest) {
 
     // Fire-and-forget: somebody starting a payment is a good moment to check
     // whether an earlier one was completed and never confirmed. Throttled to
-    // once every few minutes across all instances, and deliberately not
-    // awaited — this customer's checkout must not wait on other people's.
-    void maybeReconcile();
+    // once every few minutes across all instances, and run after the response — this customer's checkout must not wait on other people's.
+    after(() => maybeReconcile().catch(() => {}));
 
     if (booking.status === 'confirmed') {
       return ok({ alreadyPaid: true, reference: booking.reference });
