@@ -14,6 +14,10 @@ import { getClaimForBooking } from '@/lib/upi-claims';
 import { qrDataUrl } from '@/lib/qr';
 
 export const dynamic = 'force-dynamic';
+// This page now makes a live gateway call before it renders. The platform
+// default would kill the render mid-flight if Razorpay were slow, so give it
+// room — and see the timeout below, which is what actually keeps it quick.
+export const maxDuration = 30;
 
 export const metadata: Metadata = {
   title: 'Checkout',
@@ -57,7 +61,14 @@ export default async function PayPage({
    * Asking Razorpay costs one call and turns that into a ticket.
    */
   if (detail.booking.status === 'pending' && detail.booking.payment_order_id) {
-    const settled = await reconcileBooking(detail.booking).catch(() => null);
+    // Bounded, because this sits between the customer and the Pay button. If
+    // the gateway is slow we would rather show a checkout that works than hold
+    // a blank page waiting for a certainty we cannot get in time — the sweep,
+    // the poller and this same check on the next load all still catch it.
+    const settled = await Promise.race([
+      reconcileBooking(detail.booking).catch(() => null),
+      new Promise<null>((resolve) => setTimeout(() => resolve(null), 6000)),
+    ]);
     if (settled?.outcome === 'paid') {
       detail = (await getBookingByReference(reference).catch(() => null)) ?? detail;
     }

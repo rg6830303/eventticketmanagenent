@@ -1,6 +1,6 @@
 import { timingSafeEqual } from 'node:crypto';
 import { NextResponse, type NextRequest } from 'next/server';
-import { reconcilePending } from '@/lib/payments';
+import { reconcilePending, sendUndeliveredTickets } from '@/lib/payments';
 import { rateLimit } from '@/lib/rate-limit';
 import { clientIp } from '@/lib/validation.server';
 
@@ -51,12 +51,7 @@ export async function GET(request: NextRequest) {
     // trailing newline, and a 401 caused by invisible whitespace is a horrible
     // thing to debug at the point where tickets have quietly stopped arriving.
     const auth = request.headers.get('authorization')?.trim() ?? '';
-    // Some schedulers cannot set headers at all, so a token in the query string
-    // is accepted too. Prefer the header: a URL is far likelier to end up in a
-    // log somewhere.
-    const token = request.nextUrl.searchParams.get('token')?.trim() ?? '';
-
-    const presented = auth.startsWith('Bearer ') ? auth.slice(7).trim() : token;
+    const presented = auth.startsWith('Bearer ') ? auth.slice(7).trim() : '';
     if (!matches(presented, secret)) {
       return NextResponse.json({ ok: false }, { status: 401 });
     }
@@ -74,12 +69,34 @@ export async function GET(request: NextRequest) {
 
   // Default is deliberately narrow: this endpoint is expected to be called
   // often, and the wide pass is the once-a-day one that asks for it explicitly.
+  //
+  // An unauthenticated caller cannot ask for the wide pass at all. The whole
+  // cost of this endpoint is one live Razorpay lookup per booking in the
+  // window, so an open door that accepts ?hours=720 is a way for a stranger to
+  // make us spend hundreds of calls against our own payment provider's quota.
   const requested = Number(request.nextUrl.searchParams.get('hours'));
-  const hours = Number.isFinite(requested) && requested > 0 ? Math.min(requested, 720) : 24;
+  const ceiling = secret ? 720 : 24;
+  const hours =
+    Number.isFinite(requested) && requested > 0 ? Math.min(requested, ceiling) : 24;
 
   try {
     const results = await reconcilePending(hours);
     const paid = results.filter((r) => r.outcome === 'paid');
+
+    /**
+     * Confirming is only half of delivery.
+     *
+     * A booking whose confirm succeeded but whose email failed — a refused SMTP
+     * connection, a timeout — sits at confirmed with no timestamp and nothing
+     * scheduled to try again. The only recovery was a button in the admin
+     * console that somebody had to think to press, which is exactly the shape
+     * of problem that leaves people ticketless overnight. Sweeping it here
+     * costs nothing when there is nothing to do.
+     */
+    const mail = await sendUndeliveredTickets().catch((error) => {
+      console.error('[cron] email retry failed:', error instanceof Error ? error.message : error);
+      return { attempted: 0, sent: 0, failed: [] as Array<{ reference: string; error: string }> };
+    });
 
     if (paid.length > 0) {
       console.error(
@@ -91,11 +108,17 @@ export async function GET(request: NextRequest) {
     // takes no login and renders the customer's name and QR passes — and this
     // response is read by schedulers that log it, some of them publicly. The
     // references go to the server log above, which is private, and nowhere else.
+    if (mail.sent > 0) {
+      console.error(`[cron] sent ${mail.sent} ticket email(s) that had previously failed`);
+    }
+
     return NextResponse.json({
       ok: true,
       hours,
       checked: results.length,
       recovered: paid.length,
+      emailsRetried: mail.attempted,
+      emailsSent: mail.sent,
     });
   } catch (error) {
     console.error('[cron] sweep failed:', error instanceof Error ? error.message : error);

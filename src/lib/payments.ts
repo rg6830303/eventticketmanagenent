@@ -3,7 +3,6 @@ import crypto from 'node:crypto';
 import Razorpay from 'razorpay';
 import { query, queryOne } from './db';
 import { env } from './env';
-import { markEmailSent } from './bookings';
 import { sendTicketEmail } from './mailer';
 import type { BookingDetail, BookingRow, PaymentRow } from './types';
 
@@ -239,24 +238,63 @@ export function verifyWebhookSignature(rawBody: string, signature: string | null
 export async function deliverTickets(detail: BookingDetail): Promise<boolean> {
   if (detail.booking.email_sent_at) return true;
 
+  /**
+   * Claim the send before making it, in one statement.
+   *
+   * The guard above reads a snapshot taken before the confirm committed, so on
+   * its own it is a check-then-act with the entire SMTP conversation sitting in
+   * the gap — and that conversation is budgeted at up to thirty seconds. Two
+   * paths arriving together both saw no timestamp, both sent, and the customer
+   * got two identical ticket emails, which reads as a double charge to whoever
+   * receives it.
+   *
+   * That used to be a rare collision between a webhook and a browser callback.
+   * It is much likelier now: the pay page reconciles on load, the checkout
+   * polls, and a sweep runs every couple of minutes, so several paths can
+   * genuinely confirm the same booking at once. Postgres decides the winner —
+   * exactly one caller gets a row back, and only that caller sends.
+   */
+  const claimed = await queryOne<{ id: string }>(
+    `UPDATE bookings SET email_sent_at = now()
+      WHERE id = $1 AND email_sent_at IS NULL
+      RETURNING id`,
+    [detail.booking.id],
+  );
+  // Somebody else is already sending this, or already has.
+  if (!claimed) return true;
+
   try {
     const sent = await sendTicketEmail(detail);
     if (sent.ok) {
-      await markEmailSent(detail.booking.id);
       return true;
     }
+    // Hand the claim back so the retry paths can pick this up again — a
+    // timestamp left behind after a failed send is a customer who silently
+    // never gets their pass and no longer shows up as owed one.
+    await releaseEmailClaim(detail.booking.id);
     console.error('[payments] ticket email failed', {
       reference: detail.booking.reference,
       error: sent.error,
     });
     return false;
   } catch (error) {
+    await releaseEmailClaim(detail.booking.id);
     console.error('[payments] ticket email threw', {
       reference: detail.booking.reference,
       error: error instanceof Error ? error.message : error,
     });
     return false;
   }
+}
+
+/** Undo a claim whose send did not happen, so recovery can try again. */
+async function releaseEmailClaim(bookingId: string): Promise<void> {
+  await query('UPDATE bookings SET email_sent_at = NULL WHERE id = $1', [bookingId]).catch(
+    (error) => {
+      // Worth shouting about: the booking now looks delivered and is not.
+      console.error('[payments] could not release the email claim', { bookingId, error });
+    },
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -349,9 +387,38 @@ export async function reconcileBooking(booking: BookingRow): Promise<ReconcileRe
   if (!booking.payment_order_id) {
     return { reference: booking.reference, outcome: 'no_order', message: 'No order was created' };
   }
+  /**
+   * Ask about every order this booking has ever had, not just the latest.
+   *
+   * `bookings.payment_order_id` holds only the most recent order, and
+   * `startPayment` overwrites it on every press of Pay. This audience presses
+   * Pay more than once as a matter of course: the webview is evicted during the
+   * trip to their UPI app, they come back to a reloaded page, and they press it
+   * again. There are bookings here carrying six separate orders.
+   *
+   * If the money landed on an earlier attempt, that order id is no longer in
+   * the column and asking only about the column returns "unpaid" forever. Every
+   * other gap in this system delays a ticket; this one loses the payment
+   * outright, because nothing else ever looks there again.
+   *
+   * The ledger has kept every order id all along — one row per creation — so
+   * the fix is to read them back rather than to store anything new.
+   */
+  const ledger = await query<{ order_id: string }>(
+    `SELECT DISTINCT order_id FROM payments
+      WHERE booking_id = $1 AND order_id LIKE 'order\_%'`,
+    [booking.id],
+  ).catch(() => [] as Array<{ order_id: string }>);
+
+  // Newest first: the most recent attempt is much the likeliest to be the paid
+  // one, so the common case still costs a single call.
+  const orderIds = [
+    ...new Set([booking.payment_order_id, ...ledger.map((row) => row.order_id)]),
+  ].filter((id) => id.startsWith('order_'));
+
   // An id from a previous gateway cannot be looked up here, and trying turns
   // every page view of an old abandoned booking into a failed API call.
-  if (!booking.payment_order_id.startsWith('order_')) {
+  if (orderIds.length === 0) {
     return {
       reference: booking.reference,
       outcome: 'no_order',
@@ -360,25 +427,48 @@ export async function reconcileBooking(booking: BookingRow): Promise<ReconcileRe
   }
 
   let captured: { id: string; amount: number; method?: string } | null = null;
+  let capturedOrderId = booking.payment_order_id;
+  let lastError: string | null = null;
+  // "We asked and were told no" and "we could not ask" are different answers,
+  // and only the first one means the customer has not paid.
+  let answered = 0;
 
-  try {
-    const result = (await client().orders.fetchPayments(booking.payment_order_id)) as {
-      items?: Array<{ id: string; status: string; amount: number; method?: string }>;
-    };
-    captured = result.items?.find((p) => p.status === 'captured') ?? null;
-  } catch (error) {
-    const message = error instanceof Error ? error.message : 'lookup failed';
-    await recordPayment({
-      bookingId: booking.id,
-      orderId: booking.payment_order_id,
-      status: 'LOOKUP_FAILED',
-      source: 'poll',
-      message,
-    });
-    return { reference: booking.reference, outcome: 'error', message };
+  for (const orderId of orderIds) {
+    try {
+      const result = (await client().orders.fetchPayments(orderId)) as {
+        items?: Array<{ id: string; status: string; amount: number; method?: string }>;
+      };
+      answered += 1;
+      const hit = result.items?.find((p) => p.status === 'captured') ?? null;
+      if (hit) {
+        captured = hit;
+        capturedOrderId = orderId;
+        break;
+      }
+    } catch (error) {
+      lastError = error instanceof Error ? error.message : 'lookup failed';
+      await recordPayment({
+        bookingId: booking.id,
+        orderId,
+        status: 'LOOKUP_FAILED',
+        source: 'poll',
+        message: lastError,
+      });
+    }
   }
 
   if (!captured) {
+    // Nothing was successfully looked up, so we do not actually know. Reporting
+    // that as 'unpaid' would let a Razorpay outage read as a hundred customers
+    // who never paid, which is the wrong thing to believe and the wrong thing
+    // to show an operator.
+    if (answered === 0) {
+      return {
+        reference: booking.reference,
+        outcome: 'error',
+        message: lastError ?? 'Could not reach the gateway',
+      };
+    }
     return { reference: booking.reference, outcome: 'unpaid', message: 'No captured payment' };
   }
 
@@ -387,7 +477,7 @@ export async function reconcileBooking(booking: BookingRow): Promise<ReconcileRe
   if (captured.amount + 100 < booking.amount_paise) {
     await recordPayment({
       bookingId: booking.id,
-      orderId: booking.payment_order_id,
+      orderId: capturedOrderId,
       paymentId: captured.id,
       status: 'SHORT_PAYMENT',
       amountPaise: captured.amount,
@@ -404,7 +494,7 @@ export async function reconcileBooking(booking: BookingRow): Promise<ReconcileRe
   const { confirmPendingBooking } = await import('./bookings');
   const detail = await confirmPendingBooking(booking.id, {
     paymentId: captured.id,
-    orderId: booking.payment_order_id,
+    orderId: capturedOrderId,
     // No signature exists on this path; the authority is Razorpay's own API
     // saying the payment is captured, which is at least as strong.
     signature: 'reconciled-via-api',
@@ -413,7 +503,7 @@ export async function reconcileBooking(booking: BookingRow): Promise<ReconcileRe
 
   await recordPayment({
     bookingId: detail.booking.id,
-    orderId: booking.payment_order_id,
+    orderId: capturedOrderId,
     paymentId: captured.id,
     status: 'PAID',
     amountPaise: captured.amount,
