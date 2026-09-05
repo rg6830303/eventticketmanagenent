@@ -4,6 +4,7 @@ import { fail, handleError, ok, readJson } from '@/lib/api';
 import { requireSession, verifyOrigin } from '@/lib/auth';
 import { recordAudit } from '@/lib/audit';
 import { query, queryOne } from '@/lib/db';
+import { repricePendingBookings } from '@/lib/reprice';
 import { clientIp } from '@/lib/validation.server';
 import type { TicketTierRow } from '@/lib/types';
 
@@ -147,6 +148,29 @@ export async function PATCH(request: NextRequest) {
 
     const tier = rows[0];
 
+    /**
+     * Carry the new price into every unpaid booking.
+     *
+     * A booking snapshots its price, which is right once it has been paid and
+     * wrong while it has not: somebody who filled a cart last week would come
+     * back and still be charged last week's figure. Repricing here means the
+     * number on the storefront is the number every customer pays, whichever
+     * page they started from and however long ago.
+     *
+     * Confirmed bookings are untouched — their receipts keep what was actually
+     * charged — and any payment order already raised is still honoured at the
+     * amount it was raised for, so nobody mid-payment is left short.
+     */
+    const repriced = await repricePendingBookings(code).catch((error) => {
+      // The price change itself has committed and is the important half. Log
+      // loudly and carry on rather than failing the request after the fact.
+      console.error('[prices] could not reprice pending bookings', {
+        code,
+        error: error instanceof Error ? error.message : error,
+      });
+      return { bookings: 0, items: 0 };
+    });
+
     await recordAudit({
       actor: session,
       action: 'price.update',
@@ -167,6 +191,7 @@ export async function PATCH(request: NextRequest) {
           admits: tier.admits,
           active: tier.active,
         },
+        repricedPendingBookings: repriced.bookings,
       },
       ipAddress: clientIp(request.headers),
     });
@@ -179,7 +204,7 @@ export async function PATCH(request: NextRequest) {
       revalidatePath(path);
     }
 
-    return ok({ tier });
+    return ok({ tier, repriced });
   } catch (error) {
     return handleError(error, 'admin.prices.update');
   }

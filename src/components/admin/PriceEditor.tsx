@@ -89,14 +89,27 @@ export function PriceEditor({ initialTiers }: { initialTiers: PriceTier[] }) {
           priceUnit: draft.priceUnit,
         }),
       });
-      const body = (await response.json()) as { error?: string; data?: unknown };
+      const body = (await response.json()) as {
+        error?: string;
+        data?: { repriced?: { bookings: number } };
+      };
 
       if (!response.ok) {
         setError(body.error ?? 'Could not save that.');
         return;
       }
 
-      setNotice(`${draft.name} updated — live on the site now.`);
+      // Worth saying out loud. Repricing other people's unpaid carts is a real
+      // consequence of pressing Save, and the operator should see the number
+      // rather than discover it later.
+      const moved = body.data?.repriced?.bookings ?? 0;
+      setNotice(
+        moved > 0
+          ? `${draft.name} updated — live on the site now, and ${moved} unpaid ${
+              moved === 1 ? 'booking' : 'bookings'
+            } moved to the new price.`
+          : `${draft.name} updated — live on the site now.`,
+      );
       setEditing(null);
       setDraft(null);
       await refresh();

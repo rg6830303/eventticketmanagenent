@@ -223,7 +223,7 @@ export default async function OffCampusPage() {
         <div className="shell">
           <div className="edit-head">
             <h2 id="event-tickets" className="h-section">
-              {soldOut ? 'Sold out.' : 'Phase 2 pass pricing.'}
+              {soldOut ? 'Sold out.' : 'Phase 3 pass pricing.'}
             </h2>
             <span className="edit-index">03 — Tickets</span>
           </div>

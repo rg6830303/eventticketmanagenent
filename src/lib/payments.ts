@@ -472,9 +472,33 @@ export async function reconcileBooking(booking: BookingRow): Promise<ReconcileRe
     return { reference: booking.reference, outcome: 'unpaid', message: 'No captured payment' };
   }
 
+  /**
+   * Judge the payment against what this customer was actually asked for.
+   *
+   * The order carries its own amount, recorded when it was created, and that
+   * is the figure the customer saw and agreed to. `booking.amount_paise` is the
+   * price *now*, which is not the same thing once prices can move underneath a
+   * pending booking: raise a tier while somebody is in their UPI app and their
+   * correct, full payment would come back as short, and they would be left
+   * having paid with no ticket and no explanation.
+   *
+   * Nobody is short-changed by this. A payment is only honoured against the
+   * quote it was raised for, and a repriced booking that has not been paid yet
+   * simply gets a new order at the new price the next time Pay is pressed.
+   * Asking someone for more after they have already paid what you asked is not
+   * a thing this should ever do.
+   */
+  const quoted = await queryOne<{ amount_paise: number }>(
+    `SELECT amount_paise FROM payments
+      WHERE order_id = $1 AND status = 'CREATED' AND amount_paise > 0
+      ORDER BY created_at DESC LIMIT 1`,
+    [capturedOrderId],
+  ).catch(() => null);
+  const expectedPaise = quoted?.amount_paise ?? booking.amount_paise;
+
   // Short payment is left alone for a human. Handing over passes for less than
   // the price is the one mistake here that cannot be undone at the door.
-  if (captured.amount + 100 < booking.amount_paise) {
+  if (captured.amount + 100 < expectedPaise) {
     await recordPayment({
       bookingId: booking.id,
       orderId: capturedOrderId,
@@ -482,7 +506,7 @@ export async function reconcileBooking(booking: BookingRow): Promise<ReconcileRe
       status: 'SHORT_PAYMENT',
       amountPaise: captured.amount,
       source: 'poll',
-      message: `Captured ${captured.amount} against ${booking.amount_paise}`,
+      message: `Captured ${captured.amount} against a quote of ${expectedPaise}`,
     });
     return {
       reference: booking.reference,

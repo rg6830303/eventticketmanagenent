@@ -3,6 +3,7 @@ import { notFound, redirect } from 'next/navigation';
 import type { Metadata } from 'next';
 import { getBookingByReference } from '@/lib/bookings';
 import { reconcileBooking } from '@/lib/payments';
+import { repriceBooking } from '@/lib/reprice';
 import { env } from '@/lib/env';
 import { BRAND, EVENT } from '@/content/site';
 import { formatEventDate, formatEventTime, formatInr } from '@/lib/utils';
@@ -60,6 +61,20 @@ export default async function PayPage({
    * a Pay button to somebody who has already paid, and some of them pay twice.
    * Asking Razorpay costs one call and turns that into a ticket.
    */
+  /**
+   * Charge today's price, not the price when the cart was filled.
+   *
+   * A booking keeps the price it was made at, which is right once paid and
+   * wrong while unpaid — somebody who filled a cart last week would otherwise
+   * come back to last week's figure. The admin screen carries a price change
+   * into unpaid bookings when it happens; this is the belt to that braces,
+   * immediately before the Pay button is drawn.
+   */
+  if (detail.booking.status === 'pending') {
+    const moved = await repriceBooking(detail.booking.id).catch(() => false);
+    if (moved) detail = (await getBookingByReference(reference).catch(() => null)) ?? detail;
+  }
+
   if (detail.booking.status === 'pending' && detail.booking.payment_order_id) {
     // Bounded, because this sits between the customer and the Pay button. If
     // the gateway is slow we would rather show a checkout that works than hold
