@@ -525,7 +525,10 @@ export async function reconcileBooking(booking: BookingRow): Promise<ReconcileRe
  * one that slipped through a week ago — and a customer who paid and never got
  * their ticket does not stop being owed it after 72 hours.
  */
-export async function reconcilePending(withinHours = 720): Promise<ReconcileResult[]> {
+export async function reconcilePending(
+  withinHours = 720,
+  budgetMs = Number.POSITIVE_INFINITY,
+): Promise<ReconcileResult[]> {
   const pending = await query<BookingRow>(
     `SELECT * FROM bookings
       WHERE status = 'pending'
@@ -542,7 +545,20 @@ export async function reconcilePending(withinHours = 720): Promise<ReconcileResu
   );
 
   const results: ReconcileResult[] = [];
+  const deadline = Date.now() + budgetMs;
+
   for (const booking of pending) {
+    // Stop cleanly rather than be killed partway. When this runs as background
+    // work behind a page render it lives inside that function's time budget,
+    // and a sweep that is cut off mid-flight loses whatever it had not written
+    // yet. Bookings it does not reach are still pending, so the next sweep —
+    // ninety seconds later — picks them up exactly where this one stopped.
+    if (Date.now() > deadline) {
+      console.error(
+        `[payments] sweep stopped on budget after ${results.length}/${pending.length} bookings`,
+      );
+      break;
+    }
     // Sequential on purpose: this runs against a live payment API and a burst of
     // parallel lookups is how a rate limit turns a reconciliation into an outage.
     results.push(await reconcileBooking(booking));
@@ -555,6 +571,7 @@ export async function reconcilePending(withinHours = 720): Promise<ReconcileResu
 // ---------------------------------------------------------------------------
 
 export interface UndeliveredBooking {
+  id: string;
   reference: string;
   customer_name: string;
   customer_email: string;
@@ -573,7 +590,7 @@ export interface UndeliveredBooking {
  */
 export async function undeliveredTickets(): Promise<UndeliveredBooking[]> {
   return query<UndeliveredBooking>(
-    `SELECT b.reference, b.customer_name, b.customer_email, b.amount_paise, b.paid_at,
+    `SELECT b.id, b.reference, b.customer_name, b.customer_email, b.amount_paise, b.paid_at,
             (SELECT l.error FROM email_log l
               WHERE l.booking_id = b.id AND l.status = 'failed'
               ORDER BY l.created_at DESC LIMIT 1) AS last_error
@@ -596,13 +613,24 @@ export async function sendUndeliveredTickets(): Promise<{
   sent: number;
   failed: Array<{ reference: string; error: string }>;
 }> {
-  const { getBookingByReference } = await import('./bookings');
+  const { getBookingByReference, ensureTicketsMinted } = await import('./bookings');
   const outstanding = await undeliveredTickets();
 
   let sent = 0;
   const failed: Array<{ reference: string; error: string }> = [];
 
   for (const row of outstanding) {
+    // Repair before retrying. A confirmed booking with no passes cannot be
+    // emailed — the mailer refuses, rightly — so without this it would fail on
+    // every sweep forever while the customer, who has paid, holds nothing.
+    // Minting is idempotent, so in the normal case this is one count query.
+    await ensureTicketsMinted(row.id).catch((error) => {
+      console.error('[payments] could not mint passes for a confirmed booking', {
+        reference: row.reference,
+        error: error instanceof Error ? error.message : error,
+      });
+    });
+
     const detail = await getBookingByReference(row.reference);
     if (!detail) {
       failed.push({ reference: row.reference, error: 'Booking could not be read back' });
@@ -655,8 +683,47 @@ export async function maybeReconcile(everySeconds = 90): Promise<boolean> {
     return false;
   }
 
+  /**
+   * Confirming a payment is only half of delivering a ticket.
+   *
+   * A booking can be confirmed and still have no pass in the customer's inbox:
+   * the send is attempted inline, and a refused SMTP connection or a timeout
+   * leaves it confirmed with no timestamp. That customer has paid, has a valid
+   * ticket at the door, and has no way to know it.
+   *
+   * This used to be retried only by the twice-daily cron and by a button in the
+   * admin console that somebody had to remember to press — so a failed send at
+   * four in the afternoon sat there until three in the morning. Running it on
+   * the same ninety-second heartbeat as the confirmations means both halves of
+   * delivery recover at the same speed, which is the only version of this that
+   * is actually true to "the ticket goes out when the payment lands".
+   *
+   * Separate try/catch on purpose: a failing mail server must not stop the next
+   * sweep from confirming payments, and a failing gateway must not stop the
+   * mail from going out.
+   */
   try {
-    const results = await reconcilePending();
+    const mail = await sendUndeliveredTickets();
+    if (mail.sent > 0) {
+      console.error(`[payments] automatic sweep sent ${mail.sent} outstanding ticket email(s)`);
+    }
+    if (mail.failed.length > 0) {
+      console.error(
+        `[payments] ${mail.failed.length} ticket email(s) still failing: ` +
+          mail.failed.map((f) => f.reference).join(', '),
+      );
+    }
+  } catch (error) {
+    console.error('[payments] email retry failed:', error instanceof Error ? error.message : error);
+  }
+
+  // Confirmations second, on a budget. Somebody already confirmed and waiting
+  // on an email has paid and is owed a ticket right now; finding a new payment
+  // can wait the ninety seconds until the next sweep. Doing it the other way
+  // round meant the mail retry sat behind a full gateway pass — measured at
+  // twenty-seven seconds — and would be the half that got cut off first.
+  try {
+    const results = await reconcilePending(720, 20_000);
     const paid = results.filter((r) => r.outcome === 'paid');
     if (paid.length > 0) {
       console.error(
@@ -664,9 +731,9 @@ export async function maybeReconcile(everySeconds = 90): Promise<boolean> {
           paid.map((r) => r.reference).join(', '),
       );
     }
-    return true;
   } catch (error) {
     console.error('[payments] automatic sweep failed:', error instanceof Error ? error.message : error);
-    return false;
   }
+
+  return true;
 }

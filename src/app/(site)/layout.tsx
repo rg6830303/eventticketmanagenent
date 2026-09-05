@@ -30,6 +30,17 @@ import { maybeReconcile } from '@/lib/payments';
  * and on serverless the function can be torn down the moment the response is
  * sent, which would kill the work halfway through.
  */
+/**
+ * Headroom for the sweep above, not for the page.
+ *
+ * after() work runs once the response is already sent, but it still lives
+ * inside this function's budget — so the default would cut the sweep off
+ * partway through. Raising it does not make a single page slower; it only stops
+ * the background half being killed. The sweep also stops itself on its own
+ * clock, so this is a ceiling rather than a target.
+ */
+export const maxDuration = 60;
+
 export default function SiteLayout({ children }: { children: React.ReactNode }) {
   after(async () => {
     try {

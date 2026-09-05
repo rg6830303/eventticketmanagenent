@@ -541,6 +541,25 @@ export async function confirmPendingBooking(
   return detail;
 }
 
+/**
+ * Make sure a confirmed booking actually has passes.
+ *
+ * Confirming mints in the same transaction, so this should never find anything
+ * missing. If it ever does, the customer has paid and holds nothing, and the
+ * email retry cannot help them: the mailer refuses to send a ticket email for a
+ * booking with no passes, quite rightly, so it fails on every sweep forever and
+ * the person stays stuck.
+ *
+ * Minting is idempotent — it returns early when passes already exist — so
+ * calling this before a retry costs one count query in the normal case and
+ * repairs the booking in the abnormal one.
+ */
+export async function ensureTicketsMinted(bookingId: string): Promise<void> {
+  await transaction(async (client) => {
+    await mintTickets(client, bookingId);
+  });
+}
+
 export async function markEmailSent(bookingId: string): Promise<void> {
   await query('UPDATE bookings SET email_sent_at = now() WHERE id = $1', [bookingId]);
 }
