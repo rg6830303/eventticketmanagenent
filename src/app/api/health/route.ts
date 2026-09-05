@@ -96,6 +96,16 @@ export async function GET(request: NextRequest) {
         ),
       },
       upi: { enabled: env.upi.enabled },
+      /**
+       * Whether the payment sweep is running authenticated.
+       *
+       * The sweep is what confirms payments whose browser never reported back,
+       * so "is the heartbeat wired up" is an operational question worth being
+       * able to answer without guessing. Presence only — the value never leaves
+       * the server. False means the endpoint is open to anyone: still correct,
+       * still metered and capped to a narrow window, but not what we want.
+       */
+      cron: { secretConfigured: Boolean(process.env.CRON_SECRET?.trim()) },
       ...(probe ? { gateway: probe } : {}),
       ...(smtpProbe ? { smtpAuth: smtpProbe } : {}),
     },
