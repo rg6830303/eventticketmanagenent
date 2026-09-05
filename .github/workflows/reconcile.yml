@@ -1,83 +1,121 @@
-# BACKUP heartbeat for confirming payments the customer's browser never
-# reported. This is the SECOND line of defence, not the first — see below.
+# Confirm payments the customer's browser never reported.
 #
-# Why a heartbeat exists at all: delivery normally happens the moment Razorpay's
-# checkout reports success. On a phone that report is not guaranteed to arrive.
-# Paying by UPI sends the browser to another app, and an in-app webview —
-# Instagram's above all, which is where most of this traffic comes from — is
-# often killed while it waits there. The money is taken and nothing gets back to
-# us to say so. Razorpay webhooks would close that gap and are not available on
-# this account; Vercel cron would too, and the Hobby plan allows only one run a
-# day.
+# Delivery normally happens the moment Razorpay's checkout reports success. On a
+# phone that report is not guaranteed to arrive: paying by UPI sends the browser
+# to another app, and an in-app webview — Instagram's above all, which is where
+# most of this traffic comes from — is often killed while it waits there. The
+# money is taken and nothing gets back to us to say so.
 #
-# Why this is only the backup: GitHub schedules are explicitly best-effort, and
-# the drift is bad enough to disqualify them as the primary path — GitHub staff
-# acknowledged in June 2026 that scheduled-run drops had grown by more than 30%,
-# with real jobs starting hours late. A customer waiting hours for a pass they
-# paid for is the exact problem this is meant to solve. Public repositories also
-# have their scheduled workflows auto-disabled after 60 days without a commit.
+# Razorpay webhooks would close that gap and are not available on this account.
+# Vercel cron would too, and the Hobby plan allows exactly one run a day. So the
+# heartbeat lives here, where a public repository gets unlimited free minutes.
 #
-# THE PRIMARY heartbeat is an external scheduler (cron-job.org, every 2 minutes)
-# hitting the same endpoint. This job is deliberately kept as a free,fully
-# independent second provider, so one vendor going quiet does not stop tickets
-# going out. It runs less often because it is not carrying the load.
+# WHAT THIS IS AND IS NOT
+#
+# It is the backstop for the customer who pays and never comes back to the site.
+# It is not the fast path, and it does not need to be: the pay page asks the
+# gateway before it renders, and the checkout polls while the customer is away,
+# so anyone who returns is confirmed in seconds without this job running at all.
+#
+# ON TIMING. GitHub's floor is one run per five minutes, and scheduled runs are
+# best-effort — GitHub staff acknowledged in June 2026 that drift had grown past
+# 30%, with runs starting well late. Two things make that survivable here.
+# First, each run sweeps three times across its window rather than once, so
+# on-time runs give roughly 100-second coverage. Second, and more important, the
+# sweep looks back a full 24 hours: a late run still recovers everyone a punctual
+# one would have. Drift costs a customer waiting time. It cannot cost them a
+# ticket.
+#
+# The daily Vercel cron still runs the wide 30-day pass underneath this.
 #
 # ONE-TIME SETUP: add CRON_SECRET under
 #   Settings -> Secrets and variables -> Actions -> New repository secret
-# using the same value set in Vercel's environment variables.
+# with the SAME value set in Vercel's environment variables. Without it every
+# run fails loudly, which is the intended behaviour — a heartbeat that silently
+# does nothing is worse than no heartbeat.
+#
+# NOTE: GitHub disables scheduled workflows on a public repository after 60 days
+# with no commits. Any push resets that clock.
 
 name: Reconcile payments
 
 on:
   schedule:
-    - cron: '*/10 * * * *'
-  workflow_dispatch: # lets you run it by hand from the Actions tab
+    - cron: '*/5 * * * *'
+  workflow_dispatch: # run it by hand from the Actions tab
 
-# A slow sweep must never have a second one pile up behind it.
+# If a run is still going when the next is due, the newer one wins. The sweep is
+# idempotent, so abandoning a run midway is safe, and this stops delayed runs
+# queueing into a backlog.
 concurrency:
   group: reconcile
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   sweep:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 8
     steps:
-      - name: Ask the site to check recent payments
+      - name: Sweep for payments that were never confirmed
         env:
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
         run: |
           set -uo pipefail
 
-          # A short window on purpose: each booking in it costs one live
-          # Razorpay lookup, and a booking abandoned days ago is never going to
-          # become a payment. The daily Vercel cron sweeps wider.
-          URL="https://www.houzofvybe.com/api/cron/reconcile?hours=24"
-
-          BODY=$(curl -sS --max-time 120 --retry 2 --retry-delay 5 \
-            -w '\n%{http_code}' \
-            -H "Authorization: Bearer ${CRON_SECRET}" \
-            "$URL")
-
-          CODE=$(printf '%s' "$BODY" | tail -n1)
-          JSON=$(printf '%s' "$BODY" | sed '$d')
-
-          # Never print the response body. Action logs on a public repository
-          # are world-readable, and a booking reference is a bearer credential:
-          # /booking/<reference> needs no login and renders the customer's name
-          # and their QR passes. Echoing the sweep's output would publish working
-          # tickets for precisely the people it had just rescued. Only the
-          # HTTP status and a count leave this job.
-          echo "HTTP $CODE"
-
-          if [ "$CODE" != "200" ]; then
-            echo "::error::Reconcile sweep failed with HTTP $CODE"
+          if [ -z "${CRON_SECRET}" ]; then
+            echo "::error::CRON_SECRET is not set. Add it under Settings -> Secrets and variables -> Actions, matching the value in Vercel."
             exit 1
           fi
 
-          # Surface recoveries in the run list, so a spike in customers who
-          # needed rescuing is visible without anyone going looking for it.
-          RECOVERED=$(printf '%s' "$JSON" | sed -n 's/.*"recovered":\([0-9]*\).*/\1/p')
-          if [ -n "$RECOVERED" ] && [ "$RECOVERED" != "0" ]; then
-            echo "::warning::Recovered $RECOVERED paid booking(s) whose browser never confirmed"
+          # A short window on purpose: each booking in it costs one live Razorpay
+          # lookup, and a booking abandoned days ago is never going to become a
+          # payment. The daily Vercel cron sweeps wider.
+          URL="https://www.houzofvybe.com/api/cron/reconcile?hours=24"
+
+          sweep() {
+            BODY=$(curl -sS --max-time 90 --retry 2 --retry-delay 5 \
+              -w '\n%{http_code}' \
+              -H "Authorization: Bearer ${CRON_SECRET}" \
+              "$URL")
+
+            CODE=$(printf '%s' "$BODY" | tail -n1)
+            JSON=$(printf '%s' "$BODY" | sed '$d')
+
+            # NEVER print the response body. Action logs on a public repository
+            # are world-readable, and a booking reference is a bearer credential:
+            # /booking/<reference> needs no login and renders the customer's name
+            # and their QR passes. Only the status and counts leave this job.
+            if [ "$CODE" != "200" ]; then
+              echo "  HTTP $CODE"
+              return 1
+            fi
+
+            RECOVERED=$(printf '%s' "$JSON" | sed -n 's/.*"recovered":\([0-9]*\).*/\1/p')
+            MAILED=$(printf '%s' "$JSON" | sed -n 's/.*"emailsSent":\([0-9]*\).*/\1/p')
+            echo "  HTTP 200  recovered=${RECOVERED:-0}  emails_resent=${MAILED:-0}"
+
+            if [ -n "${RECOVERED:-}" ] && [ "$RECOVERED" != "0" ]; then
+              echo "::warning::Recovered $RECOVERED paid booking(s) whose browser never confirmed"
+            fi
+            if [ -n "${MAILED:-}" ] && [ "$MAILED" != "0" ]; then
+              echo "::warning::Re-sent $MAILED ticket email(s) that had previously failed"
+            fi
+            return 0
+          }
+
+          # Three passes across the five-minute window. GitHub will not schedule
+          # us more often than that, so the density has to come from inside the
+          # run: on-time runs end up checking roughly every 100 seconds.
+          FAILURES=0
+          for ATTEMPT in 1 2 3; do
+            echo "sweep $ATTEMPT/3"
+            sweep || FAILURES=$((FAILURES + 1))
+            if [ "$ATTEMPT" != "3" ]; then sleep 100; fi
+          done
+
+          # One transient blip is not worth a red run; losing every sweep means
+          # the heartbeat is genuinely down and somebody should know.
+          if [ "$FAILURES" = "3" ]; then
+            echo "::error::All three sweeps failed - payment confirmation is not running"
+            exit 1
           fi
