@@ -29,7 +29,7 @@
   },
   "crons": [
     {
-      "path": "/api/cron/reconcile",
+      "path": "/api/cron/reconcile?hours=720",
       "schedule": "0 3 * * *"
     }
   ]

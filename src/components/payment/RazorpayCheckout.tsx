@@ -154,6 +154,25 @@ export function RazorpayCheckout({
     };
   }, [stopWatching]);
 
+  /**
+   * Watch from the moment this page exists, not from the moment Pay is pressed.
+   *
+   * Someone can arrive here having *already* paid: their webview was evicted
+   * while they were in their UPI app, and coming back reloaded the page with a
+   * fresh, un-clicked Pay button. The server checks the gateway before
+   * rendering, which catches almost all of these, but the payment can also land
+   * in the seconds after that check — while this page sits open in front of
+   * them. So the tab regaining focus is always worth a question, for the whole
+   * time the page is open.
+   */
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') void checkPaid();
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+  }, [checkPaid]);
+
   const verify = useCallback(
     async (payload: {
       razorpay_order_id: string;

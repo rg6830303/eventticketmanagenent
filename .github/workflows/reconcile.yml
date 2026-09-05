@@ -1,0 +1,78 @@
+# BACKUP heartbeat for confirming payments the customer's browser never
+# reported. This is the SECOND line of defence, not the first — see below.
+#
+# Why a heartbeat exists at all: delivery normally happens the moment Razorpay's
+# checkout reports success. On a phone that report is not guaranteed to arrive.
+# Paying by UPI sends the browser to another app, and an in-app webview —
+# Instagram's above all, which is where most of this traffic comes from — is
+# often killed while it waits there. The money is taken and nothing gets back to
+# us to say so. Razorpay webhooks would close that gap and are not available on
+# this account; Vercel cron would too, and the Hobby plan allows only one run a
+# day.
+#
+# Why this is only the backup: GitHub schedules are explicitly best-effort, and
+# the drift is bad enough to disqualify them as the primary path — GitHub staff
+# acknowledged in June 2026 that scheduled-run drops had grown by more than 30%,
+# with real jobs starting hours late. A customer waiting hours for a pass they
+# paid for is the exact problem this is meant to solve. Public repositories also
+# have their scheduled workflows auto-disabled after 60 days without a commit.
+#
+# THE PRIMARY heartbeat is an external scheduler (cron-job.org, every 2 minutes)
+# hitting the same endpoint. This job is deliberately kept as a free,fully
+# independent second provider, so one vendor going quiet does not stop tickets
+# going out. It runs less often because it is not carrying the load.
+#
+# ONE-TIME SETUP: add CRON_SECRET under
+#   Settings -> Secrets and variables -> Actions -> New repository secret
+# using the same value set in Vercel's environment variables.
+
+name: Reconcile payments
+
+on:
+  schedule:
+    - cron: '*/10 * * * *'
+  workflow_dispatch: # lets you run it by hand from the Actions tab
+
+# A slow sweep must never have a second one pile up behind it.
+concurrency:
+  group: reconcile
+  cancel-in-progress: false
+
+jobs:
+  sweep:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Ask the site to check recent payments
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          set -uo pipefail
+
+          # A short window on purpose: each booking in it costs one live
+          # Razorpay lookup, and a booking abandoned days ago is never going to
+          # become a payment. The daily Vercel cron sweeps wider.
+          URL="https://www.houzofvybe.com/api/cron/reconcile?hours=24"
+
+          BODY=$(curl -sS --max-time 120 --retry 2 --retry-delay 5 \
+            -w '\n%{http_code}' \
+            -H "Authorization: Bearer ${CRON_SECRET}" \
+            "$URL")
+
+          CODE=$(printf '%s' "$BODY" | tail -n1)
+          JSON=$(printf '%s' "$BODY" | sed '$d')
+
+          echo "HTTP $CODE"
+          echo "$JSON"
+
+          if [ "$CODE" != "200" ]; then
+            echo "::error::Reconcile sweep failed with HTTP $CODE"
+            exit 1
+          fi
+
+          # Surface recoveries in the run list, so a spike in customers who
+          # needed rescuing is visible without anyone going looking for it.
+          RECOVERED=$(printf '%s' "$JSON" | sed -n 's/.*"recovered":\([0-9]*\).*/\1/p')
+          if [ -n "$RECOVERED" ] && [ "$RECOVERED" != "0" ]; then
+            echo "::warning::Recovered $RECOVERED paid booking(s) whose browser never confirmed"
+          fi

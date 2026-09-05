@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import type { Metadata } from 'next';
 import { getBookingByReference } from '@/lib/bookings';
+import { reconcileBooking } from '@/lib/payments';
 import { env } from '@/lib/env';
 import { BRAND, EVENT } from '@/content/site';
 import { formatEventDate, formatEventTime, formatInr } from '@/lib/utils';
@@ -38,9 +39,29 @@ export default async function PayPage({
 }) {
   const { reference } = await params;
   const { status, via } = await searchParams;
-  const detail = await getBookingByReference(reference).catch(() => null);
+  let detail = await getBookingByReference(reference).catch(() => null);
 
   if (!detail) notFound();
+
+  /**
+   * Before rendering a Pay button, ask the gateway whether this is already paid.
+   *
+   * This is the page a customer comes back to after paying in a UPI app, and on
+   * a phone they frequently come back to a *reloaded* page — an in-app webview,
+   * Instagram's especially, is routinely evicted while it sits in the
+   * background. The browser-side callback that would have confirmed the payment
+   * died with it, so our own record still says pending.
+   *
+   * Trusting that record here is the worst mistake this page can make: it shows
+   * a Pay button to somebody who has already paid, and some of them pay twice.
+   * Asking Razorpay costs one call and turns that into a ticket.
+   */
+  if (detail.booking.status === 'pending' && detail.booking.payment_order_id) {
+    const settled = await reconcileBooking(detail.booking).catch(() => null);
+    if (settled?.outcome === 'paid') {
+      detail = (await getBookingByReference(reference).catch(() => null)) ?? detail;
+    }
+  }
 
   const { booking, event, tier } = detail;
 
