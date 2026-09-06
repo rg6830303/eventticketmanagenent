@@ -34,6 +34,102 @@ const ADMIN_HOSTNAMES = (process.env.ADMIN_HOSTNAMES ?? 'hovadmin.vercel.app')
   .map((host) => host.trim().toLowerCase())
   .filter(Boolean);
 
+/* ===========================================================================
+   Maintenance pause
+   ---------------------------------------------------------------------------
+   The public site is closed to new business while the checkout is being fixed.
+   The console is not: it is a different hostname and is left entirely alone,
+   so the door scanner, the bookings list and the payment sweep all keep
+   working exactly as before.
+
+   This lives here rather than in Vercel because Vercel pauses a *project*.
+   Both hostnames are one project, so pausing there would take the console down
+   with the site.
+
+   DEFAULT IS PAUSED. Landing this commit is what closes the site. To reopen:
+   set SITE_PAUSED=false in the deployment, or revert the commit — either one
+   restores normal service, and nothing else in the app knows this exists.
+   =========================================================================== */
+const SITE_PAUSED = (process.env.SITE_PAUSED ?? 'true').trim().toLowerCase() !== 'false';
+
+/**
+ * Paths that stay open while the site is paused.
+ *
+ * Pausing must not strand anybody who has already paid. A closed shop still
+ * honours the tickets it sold, so everything that serves an existing booking
+ * keeps working: the QR a customer shows at the door, the page they got it
+ * from, and the whole set of endpoints that finish a payment already in
+ * flight — the webhook Razorpay calls, the browser callback, the poll the pay
+ * page runs, and the sweep that rescues the ones nobody reported.
+ *
+ * What is closed is the front of the shop: browsing, the cart, the checkout,
+ * and every endpoint that could start a new payment.
+ */
+const OPEN_WHILE_PAUSED = [
+  // Somebody who already holds a pass.
+  '/t/', // the QR ticket view — this is what gets scanned at the door
+  '/booking/', // their confirmation page and passes
+  '/api/bookings/', // resend + claim, both scoped to one existing reference
+  // Money already in motion. Blocking any of these takes a payment and never
+  // issues the ticket it paid for.
+  '/api/payments/razorpay/webhook',
+  '/api/payments/razorpay/verify',
+  '/api/cron/',
+  // Ours to look at, and a way for a stranded customer to reach a human.
+  '/api/health',
+  '/contact',
+  '/api/contact',
+  '/legal/',
+];
+
+function isOpenWhilePaused(pathname: string): boolean {
+  return OPEN_WHILE_PAUSED.some((prefix) =>
+    prefix.endsWith('/') ? pathname.startsWith(prefix) : pathname === prefix,
+  );
+}
+
+/**
+ * Served from the Edge as one self-contained document.
+ *
+ * Deliberately not a page in the app: the reason the site is paused is that
+ * pages were rendering blank, so a maintenance notice that depends on the same
+ * rendering, the same stylesheet and the same hydration is the one page that
+ * must not. No JavaScript, no external CSS, nothing to fail.
+ */
+function maintenanceHtml(): string {
+  return `<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Back shortly — Houz of Vybe</title>
+<style>
+  :root{color-scheme:light}
+  body{margin:0;min-height:100dvh;display:grid;place-items:center;padding:24px;
+       background:#e8f0fb;color:#0a2138;
+       font:16px/1.6 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+  .card{max-width:33rem;background:#fff;border:1.5px solid #0a2138;border-radius:18px;
+        box-shadow:6px 6px 0 0 #0a2138;padding:34px 30px}
+  h1{margin:0 0 12px;font-size:1.6rem;line-height:1.25;letter-spacing:-.02em}
+  p{margin:0 0 12px;color:#3d5773}
+  .tag{display:inline-block;margin-bottom:18px;padding:5px 11px;border:1px solid #0a2138;
+       border-radius:999px;font-size:.7rem;letter-spacing:.16em;text-transform:uppercase}
+  a{color:#1f6fd0;font-weight:600}
+  .foot{margin:22px 0 0;padding-top:16px;border-top:1.5px solid #0a2138;font-size:.82rem;color:#5a7391}
+</style></head>
+<body><main class="card">
+  <span class="tag">Back shortly</span>
+  <h1>Ticket sales are paused for maintenance.</h1>
+  <p>We are fixing a problem with the checkout. Nothing has been charged, and no
+     new bookings are being taken until it is sorted.</p>
+  <p><strong>If you have already booked, your passes are safe.</strong> Your QR
+     still works and will scan at the door — the link in your confirmation email
+     is unaffected.</p>
+  <p class="foot">Paid but never received your passes? Email
+     <a href="mailto:hello@houzofvybe.com">hello@houzofvybe.com</a> with your booking
+     reference and we will sort it out.</p>
+</main></body></html>`;
+}
+
 function hostOf(request: NextRequest): string {
   // x-forwarded-host is what Vercel sets when a request arrives via an alias.
   const raw = request.headers.get('x-forwarded-host') ?? request.headers.get('host') ?? '';
@@ -70,6 +166,36 @@ export async function middleware(request: NextRequest) {
     // gets the real 404 rather than a blank screen.
     if (isApi) return new NextResponse(null, { status: 404 });
     return NextResponse.rewrite(new URL('/_not-found', request.url), { status: 404 });
+  }
+
+  /*
+   * The pause, applied to the public site only.
+   *
+   * Placed after the console check above so it can never touch the admin host:
+   * an operator still needs the door scanner, the bookings list and the
+   * payment sweep while the shop out front is shut.
+   *
+   * 503 with Retry-After rather than a redirect or a 200. It is the honest
+   * status for a deliberate outage, and it is what stops Google treating a
+   * temporary maintenance page as the site's new permanent content.
+   */
+  if (SITE_PAUSED && !isAdminHost && !wantsConsole && !isOpenWhilePaused(pathname)) {
+    const headers = { 'Cache-Control': 'no-store', 'Retry-After': '3600' };
+    if (isApi) {
+      return NextResponse.json(
+        {
+          error:
+            'Ticket sales are paused for maintenance. Nothing has been charged. ' +
+            'If you have already booked, your passes are unaffected.',
+          code: 'site_paused',
+        },
+        { status: 503, headers },
+      );
+    }
+    return new NextResponse(maintenanceHtml(), {
+      status: 503,
+      headers: { ...headers, 'Content-Type': 'text/html; charset=utf-8' },
+    });
   }
 
   // Marketing shorthand, scoped to the marketing host. On the console host
