@@ -1,7 +1,7 @@
 'use client';
 
-import { motion, useReducedMotion } from 'framer-motion';
 import { usePathname } from 'next/navigation';
+import { useEffect } from 'react';
 import type { ReactNode } from 'react';
 
 /**
@@ -16,21 +16,33 @@ import type { ReactNode } from 'react';
  * The key is the pathname, not the full URL: re-running the animation when only
  * a query string changes (a referral code landing on /book, say) would look
  * like the page had reloaded.
+ *
+ * The animation is CSS, not JavaScript, and that is the important part. This
+ * div wraps every public page, so when it was a `motion.div` its server-
+ * rendered `opacity: 0` was the whole site's visibility — and the only thing
+ * that ever turned it back on was framer-motion hydrating. Any hydration
+ * failure (a chunk 404 after a redeploy, an in-app webview, a dropped
+ * connection) left a complete, correct, entirely invisible page. A CSS
+ * animation runs without JavaScript, so the content cannot get stuck hidden.
  */
 export function PageTransition({ children }: { children: ReactNode }) {
   const pathname = usePathname();
-  const reduce = useReducedMotion();
 
-  if (reduce) return <>{children}</>;
+  /*
+   * Tell the stylesheet that JavaScript is alive.
+   *
+   * `Reveal` still needs JS — it fires on scroll position, which CSS cannot
+   * ask about — so it keeps its hidden initial state. The failsafe in
+   * globals.css reveals those elements if this flag never appears, which is
+   * precisely the case where nobody is coming to animate them.
+   */
+  useEffect(() => {
+    document.documentElement.dataset.hydrated = '1';
+  }, []);
 
   return (
-    <motion.div
-      key={pathname}
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
-    >
+    <div key={pathname} className="page-enter">
       {children}
-    </motion.div>
+    </div>
   );
 }

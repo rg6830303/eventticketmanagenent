@@ -485,3 +485,61 @@ html[data-intro-seen='1'] #poster-intro {
     display: none !important;
   }
 }
+
+/* ===========================================================================
+   Never serve an invisible page
+   ---------------------------------------------------------------------------
+   Every entrance on this site starts at opacity 0. That is fine while the
+   JavaScript that finishes the animation actually arrives, and catastrophic
+   when it does not: the markup is complete and correct, and the customer sees
+   a blank screen. On a checkout page that is a lost sale, and most of this
+   traffic arrives inside Instagram's in-app browser, which is exactly where
+   scripts fail to run.
+
+   Two rules, covering the two ways it happens.
+   =========================================================================== */
+
+/* 1. The route entrance, in CSS rather than JavaScript.
+      This wraps every public page, so it is the one that decides whether the
+      site is visible at all. CSS animations do not need hydration. */
+@keyframes page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.page-enter {
+  animation: page-enter 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-enter {
+    animation: none;
+  }
+}
+
+/* 2. Failsafe for the scroll reveals.
+      `Reveal` genuinely needs JavaScript — it triggers on scroll position, and
+      CSS cannot ask where the viewport is — so it still server-renders hidden.
+      PageTransition sets data-hydrated the moment React mounts; if that never
+      happens, nothing is coming to reveal these, so show them anyway.
+
+      An animation rather than a plain rule because animations outrank inline
+      styles in the cascade, and the hidden state is an inline style written by
+      framer-motion. The delay is long enough that a healthy page has hydrated
+      and dropped out of this selector well before it fires. */
+@keyframes reveal-failsafe {
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+html:not([data-hydrated]) [data-reveal] {
+  animation: reveal-failsafe 0.4s linear 2.5s forwards;
+}
