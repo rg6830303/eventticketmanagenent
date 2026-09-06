@@ -19,10 +19,21 @@ declare global {
 
 const CHECKOUT_SRC = 'https://checkout.razorpay.com/v1/checkout.js';
 
+/** Long enough for a bad 3G handshake, short enough to still be a checkout. */
+const LOAD_TIMEOUT_MS = 12_000;
+
 /**
- * Loads checkout.js once per page, no matter how many times the customer
- * retries. A second <script> tag for the same src re-registers the global and
- * has been known to leave two modals stacked on top of each other.
+ * Load checkout.js, and always settle.
+ *
+ * One in-flight load is shared, so retrying does not stack script tags — two
+ * copies of the SDK re-register the global and can leave two modals on top of
+ * each other.
+ *
+ * Every path here settles the promise, which is the part that matters. The
+ * caller disables the Pay button while this is pending, so a promise that never
+ * resolves is not a slow checkout, it is a dead one: the button sits on
+ * "Opening secure checkout…" forever, disabled, with nothing said to the
+ * customer and no way to pay.
  */
 let checkoutPromise: Promise<void> | null = null;
 
@@ -32,18 +43,57 @@ function loadCheckout(): Promise<void> {
   if (checkoutPromise) return checkoutPromise;
 
   checkoutPromise = new Promise<void>((resolve, reject) => {
-    const existing = document.querySelector<HTMLScriptElement>(`script[src="${CHECKOUT_SRC}"]`);
-    const script = existing ?? document.createElement('script');
+    /*
+     * Always a fresh element, never the one a failed attempt left behind.
+     *
+     * A script that has already errored cannot be revived: assigning the same
+     * src does not restart the fetch, so no further load or error event will
+     * ever fire on it. Reusing it meant the second attempt — the one the
+     * customer makes by pressing Pay, after the quiet prefetch on mount has
+     * already failed — waited on events that were never coming.
+     */
+    document.querySelectorAll(`script[src="${CHECKOUT_SRC}"]`).forEach((stale) => stale.remove());
+
+    const script = document.createElement('script');
     script.src = CHECKOUT_SRC;
     script.async = true;
-    script.addEventListener('load', () => resolve());
-    script.addEventListener('error', () => {
-      // Let a later attempt try again rather than caching the failure forever —
-      // this fails on flaky mobile data far more often than for any real reason.
+
+    let settled = false;
+    const finish = (error?: Error) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      if (!error) {
+        resolve();
+        return;
+      }
+      // Do not cache the failure: this fails on flaky mobile data far more
+      // often than for any real reason, and the next press should try again.
       checkoutPromise = null;
-      reject(new Error('Could not load the payment window'));
+      reject(error);
+    };
+
+    /*
+     * A deadline, because "no event ever arrives" is a real outcome. An in-app
+     * browser or a captive portal can hold the request open indefinitely, and
+     * without this the Pay button waits with it for as long as the customer is
+     * willing to.
+     */
+    const timer = setTimeout(
+      () => finish(new Error('Timed out loading the payment window')),
+      LOAD_TIMEOUT_MS,
+    );
+
+    script.addEventListener('load', () => {
+      // A load event is not proof. A captive portal or an injecting proxy can
+      // answer 200 with something that is not the SDK, and the global stays
+      // undefined — which would otherwise surface later as a bare crash.
+      if (window.Razorpay) finish();
+      else finish(new Error('The payment window loaded but did not start'));
     });
-    if (!existing) document.body.appendChild(script);
+    script.addEventListener('error', () => finish(new Error('Could not load the payment window')));
+
+    document.body.appendChild(script);
   });
 
   return checkoutPromise;
@@ -298,7 +348,21 @@ export function RazorpayCheckout({
       startWatching();
     } catch {
       setPhase('error');
-      setError('We could not open the payment window. Check your connection and try again.');
+      /*
+       * Name the fix that actually works.
+       *
+       * Most of this traffic arrives inside Instagram's in-app browser, and
+       * that is the single most common reason the payment window will not
+       * open — it is not a connection problem, so telling somebody to check
+       * their connection sends them to retry the one thing that cannot work.
+       * Opening the link in Chrome or Safari does work, and the booking is
+       * still held when they get there.
+       */
+      setError(
+        'We could not open the payment window. If you are inside Instagram or another app, ' +
+          'tap the ⋯ menu and choose "Open in browser", then press Pay again — your booking is ' +
+          'still held. Otherwise check your connection and retry.',
+      );
     }
   }, [reference, eventName, tierName, quantity, customer, verify, startWatching]);
 

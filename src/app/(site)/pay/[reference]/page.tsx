@@ -274,13 +274,32 @@ export default async function PayPage({
                 />
               )}
 
+              {/*
+                * No rail is live. This is ours to fix, not the customer's, and
+                * they are the wrong audience for the fix: this used to tell
+                * whoever reached it to set RAZORPAY_KEY_ID and
+                * RAZORPAY_KEY_SECRET in the deployment, which is a deployment
+                * instruction printed on a checkout page. Anyone who arrives
+                * here has already filled a cart and is trying to pay.
+                *
+                * They get the two things that are actually true and useful —
+                * their booking is held, and here is how to reach a human. The
+                * operator gets the diagnosis from /api/health, which names
+                * exactly which variables are missing.
+                */}
               {!env.paymentsEnabled && !upiEnabled && (
-                <div className="card-print border-flare-500 p-4 text-[0.8125rem] leading-relaxed text-flare-600">
-                  <p className="font-semibold">Online payment is switched off</p>
+                <div className="card-print border-flare-500 p-5 text-[0.8125rem] leading-relaxed text-flare-600">
+                  <p className="font-semibold">Payment is temporarily unavailable</p>
                   <p className="mt-1.5">
-                    This booking is held but cannot be paid for yet. Set RAZORPAY_KEY_ID and
-                    RAZORPAY_KEY_SECRET in the deployment (or UPI_ENABLED with UPI_VPA), then
-                    reload this page.
+                    This is a problem at our end, not yours. Nothing has been charged and your
+                    passes are still held against {booking.reference}.
+                  </p>
+                  <p className="mt-2">
+                    Email{' '}
+                    <a href={`mailto:${BRAND.supportEmail}`} className="link-swipe font-medium">
+                      {BRAND.supportEmail}
+                    </a>{' '}
+                    with that reference and we will get you your ticket, or try again shortly.
                   </p>
                 </div>
               )}
