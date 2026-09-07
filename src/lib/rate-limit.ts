@@ -73,7 +73,16 @@ export async function pruneRateLimits(): Promise<number> {
 /** Preset windows used across the API. */
 export const LIMITS = {
   booking: { limit: 5, window: 600 },       // 5 bookings / 10 min per IP
-  bookingEmail: { limit: 4, window: 3600 }, // 4 bookings / hour per email
+  // Bookings per hour from one address. This was four, and four is what a
+  // customer reaches by fumbling: a wrong card, a back button, a cart edited
+  // and resubmitted. Two addresses hit exactly four, and one of them went on to
+  // pay for nothing at all — the guard turned a hesitant buyer into no buyer,
+  // and told them to contact us while they were holding a filled-in form.
+  //
+  // A pending booking costs a row and an inventory hold, and sends no email, so
+  // the harm it guards against is small. Fifteen leaves the door open for
+  // somebody having a bad time with their bank and still stops a script.
+  bookingEmail: { limit: 15, window: 3600 },
   contact: { limit: 3, window: 900 },
   adminLogin: { limit: 8, window: 900 },
   scan: { limit: 600, window: 60 },         // a busy gate is fast; humans aren't 10/s

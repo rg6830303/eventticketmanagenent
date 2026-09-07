@@ -62,7 +62,9 @@ export async function POST(request: NextRequest) {
     if (!byIp.allowed) return tooManyRequests(byIp.retryAfterSeconds);
     if (!byEmail.allowed) {
       return fail(
-        'This email already has several recent bookings. Contact us if you need more tickets.',
+        'That is a lot of orders from this address in a short time. Nothing has been ' +
+          'charged — wait a few minutes and try again, or message @houzofvybe on Instagram ' +
+          'and we will sort it out.',
         'rate_limited',
         429,
       );

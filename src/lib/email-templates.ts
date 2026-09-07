@@ -139,7 +139,8 @@ export function ticketEmailHtml(data: TicketEmailData): string {
                   </a>
                 </p>
                 <p style="margin:10px 0 0 0;font:400 12px/1.6 Arial,Helvetica,sans-serif;color:${MUTED};">
-                  No QR above? Some mail apps hide images. Tap <strong style="color:${TEXT};">Open this pass</strong>
+                  No QR above? Some mail apps hide images. The pass is also attached to this
+                  email as a picture you can open, or tap <strong style="color:${TEXT};">Open this pass</strong>
                   for a full-screen version, or just read the code out at the door.
                 </p>
               </td>

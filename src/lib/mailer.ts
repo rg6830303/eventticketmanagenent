@@ -91,7 +91,13 @@ interface SendArgs {
   subject: string;
   html: string;
   text: string;
-  attachments?: Array<{ filename: string; content: Buffer; cid?: string; contentType?: string }>;
+  attachments?: Array<{
+    filename: string;
+    content: Buffer;
+    cid?: string;
+    contentType?: string;
+    contentDisposition?: 'inline' | 'attachment';
+  }>;
   bookingId?: string | null;
   template: string;
 }
@@ -242,17 +248,73 @@ export async function sendTicketEmail(detail: BookingDetail): Promise<SendResult
     for (const row of current) liveNames.set(row.id, row.name);
   }
 
-  const qrAttachments = await Promise.all(
-    tickets.map(async (ticket, index) => ({
-      filename: `${ticket.code}.png`,
-      content: await qrPngBuffer(
+  /**
+   * Each QR goes out twice: once inline for the body, once as a plain file.
+   *
+   * The inline copy is the one that should be seen. It is a correctly formed
+   * multipart/related part with a Content-ID and an inline disposition, and
+   * most clients render it — but some simply will not, and then the customer
+   * gets a sized, empty box where their pass should be. That has happened to
+   * real people here, on mail that this system logged as sent, because whether
+   * an inline image is drawn is the client's decision and not ours.
+   *
+   * The second copy is an ordinary attachment, so a client that refuses to draw
+   * the image still hands over a file the customer can open and show at the
+   * door. It costs about two kilobytes a pass, which is nothing next to
+   * somebody arriving with no scannable pass.
+   */
+  const qrPngs = await Promise.all(
+    tickets.map(async (ticket) =>
+      qrPngBuffer(
         await buildQrPayload(ticket.code, (ticket.redeemable_paise ?? 0) === 0),
         460,
       ),
-      cid: `ticket-qr-${index}`,
-      contentType: 'image/png',
-    })),
+    ),
   );
+
+  /**
+   * Refuse to send a pass with no QR in it.
+   *
+   * A ticket email whose image is missing is worse than no email: it looks
+   * delivered, it clears the outstanding list, and the customer only finds out
+   * at the door. If the encoder gave back nothing, or something too small to be
+   * a real PNG, that is a fault at our end and the send stops here — the
+   * booking stays flagged as undelivered and the sweep tries again in ninety
+   * seconds, by which time it has usually fixed itself.
+   *
+   * Eight bytes is the PNG signature alone, so anything at or under it cannot
+   * be an image. A genuine 460px QR runs to roughly three kilobytes.
+   */
+  const brokenQr = qrPngs.findIndex((png) => !png || png.length <= 8);
+  if (brokenQr !== -1) {
+    const error = `QR generation produced no image for ticket ${tickets[brokenQr]?.code ?? '?'}`;
+    console.error('[mailer] refusing to send a pass with no QR', {
+      reference: booking.reference,
+      error,
+    });
+    await logEmail(
+      { to: booking.customer_email, subject: '', html: '', text: '', bookingId: booking.id, template: 'ticket-confirmation' },
+      'failed',
+      null,
+      error,
+    );
+    return { ok: false, error };
+  }
+
+  const qrAttachments = tickets.map((ticket, index) => ({
+    filename: `${ticket.code}.png`,
+    content: qrPngs[index],
+    cid: `ticket-qr-${index}`,
+    contentType: 'image/png',
+  }));
+
+  const qrDownloads = tickets.map((ticket, index) => ({
+    // Named so it is obvious in an attachment list what it is and whose it is.
+    filename: `Entry pass ${ticket.code}.png`,
+    content: qrPngs[index],
+    contentType: 'image/png',
+    contentDisposition: 'attachment' as const,
+  }));
 
   // The mark leads, so it is the first inline part a client encounters.
   const attachments = [
@@ -263,6 +325,7 @@ export async function sendTicketEmail(detail: BookingDetail): Promise<SendResult
       contentType: 'image/png',
     },
     ...qrAttachments,
+    ...qrDownloads,
   ];
 
   const data: TicketEmailData = {
