@@ -127,6 +127,7 @@ export function CustomersTable({ initialRows, initialTotal }: Props) {
               <Th>Phone</Th>
               <Th className="text-right">Orders</Th>
               <Th className="text-right">Passes</Th>
+              <Th>Admitted</Th>
               <Th className="text-right">Spend</Th>
               <Th>Last seen</Th>
               <Th>Updates</Th>
@@ -165,14 +166,25 @@ export function CustomersTable({ initialRows, initialTotal }: Props) {
                     )}
                   </Td>
                   <Td className="tnum text-right">{customer.bookings_count}</Td>
-                  <Td className="tnum text-right">
-                    {customer.tickets_count}
-                    {customer.checked_in_count > 0 && (
-                      <span className="ml-1 text-[11px] text-leaf-600">
-                        ({customer.checked_in_count} in)
-                      </span>
-                    )}
+                  <Td className="tnum text-right">{customer.tickets_count}</Td>
+
+                  {/*
+                    Whether this person is actually inside.
+
+                    Its own column rather than a note beside the pass count,
+                    because on the night this is the question being asked — of a
+                    guest at the door, of a name on a list, of a booking somebody
+                    is claiming twice. The partial case is the one that matters:
+                    three passes with two scanned means one of the group is still
+                    outside, which reads very differently from "not admitted".
+                  */}
+                  <Td>
+                    <AdmittedCell
+                      admitted={customer.checked_in_count}
+                      total={customer.tickets_count}
+                    />
                   </Td>
+
                   <Td className="tnum text-right">{formatInr(customer.lifetime_paise)}</Td>
                   <Td className="whitespace-nowrap text-muted">
                     {new Date(customer.last_seen_at).toLocaleDateString('en-IN', {
@@ -241,4 +253,38 @@ function Th({ children, className }: { children: React.ReactNode; className?: st
 
 function Td({ children, className }: { children: React.ReactNode; className?: string }) {
   return <td className={cn('px-3 py-2.5 align-top text-slate', className)}>{children}</td>;
+}
+
+/**
+ * Admitted / partly / not, at a glance.
+ *
+ * Colour carries the same meaning as the door scanner: green is in, amber is
+ * something to look at, grey is simply not yet. Nobody should have to learn two
+ * colour schemes between the phone at the gate and the screen in the office.
+ */
+function AdmittedCell({ admitted, total }: { admitted: number; total: number }) {
+  if (total === 0) return <span className="text-muted">&mdash;</span>;
+
+  const all = admitted >= total;
+  const none = admitted === 0;
+
+  return (
+    <span
+      className={cn(
+        'inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] font-semibold',
+        all && 'bg-leaf-100 text-leaf-600',
+        !all && !none && 'bg-flare-200/50 text-flare-600',
+        none && 'bg-frost text-muted',
+      )}
+    >
+      <span
+        aria-hidden
+        className={cn(
+          'h-1.5 w-1.5 rounded-full',
+          all ? 'bg-leaf-600' : none ? 'bg-muted' : 'bg-flare-600',
+        )}
+      />
+      {none ? 'Not admitted' : all ? 'Admitted' : `${admitted} of ${total} in`}
+    </span>
+  );
 }

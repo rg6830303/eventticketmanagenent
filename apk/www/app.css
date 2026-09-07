@@ -1,0 +1,98 @@
+/* Houz Ticket — door scanner.
+   Built for one job in bad conditions: a phone held at arm's length, at night,
+   in a queue. Everything is sized to be read at a glance and tapped without
+   looking, and the verdict fills the screen because that is the only thing
+   anyone is looking at. */
+:root {
+  --ink: #0a2138; --slate: #46617f; --muted: #7c93ab;
+  --edge: #d9e4f0; --canvas: #f4f8fd; --panel: #ffffff;
+  --blue: #2586ef; --green: #067647; --green-bg: #e6f6ee;
+  --amber: #b25e02; --amber-bg: #fdf3e2; --red: #b42318; --red-bg: #fdeceb;
+  color-scheme: light;
+}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { margin: 0; height: 100%; overscroll-behavior: none; }
+body {
+  background: var(--canvas); color: var(--ink);
+  font: 400 16px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom);
+  user-select: none;
+}
+.hidden { display: none !important; }
+
+/* --- Sign in ---------------------------------------------------------- */
+#login { display: flex; flex-direction: column; align-items: center; justify-content: center;
+  min-height: 100dvh; padding: 24px; gap: 18px; }
+#login img { width: 92px; height: 92px; border-radius: 22px; }
+#login h1 { margin: 0; font-size: 26px; font-weight: 800; letter-spacing: -0.4px; }
+#login p { margin: 0; color: var(--slate); font-size: 14px; text-align: center; max-width: 30ch; }
+.field { width: 100%; max-width: 340px; padding: 16px; font-size: 18px; text-align: center;
+  border: 2px solid var(--edge); border-radius: 14px; background: var(--panel); color: var(--ink); }
+.field:focus { outline: none; border-color: var(--blue); }
+.btn { width: 100%; max-width: 340px; padding: 16px; font-size: 17px; font-weight: 700;
+  border: 0; border-radius: 14px; background: var(--blue); color: #fff; }
+.btn:disabled { opacity: 0.5; }
+#loginError { color: var(--red); font-size: 14px; min-height: 20px; text-align: center; }
+
+/* --- Scanner ---------------------------------------------------------- */
+#scanner { display: flex; flex-direction: column; height: 100dvh; }
+header { display: flex; align-items: center; gap: 10px; padding: 12px 14px;
+  border-bottom: 1px solid var(--edge); background: var(--panel); }
+header .brand { font-weight: 800; letter-spacing: -0.2px; flex: 1; }
+header button { padding: 8px 12px; font-size: 13px; font-weight: 600; border-radius: 10px;
+  border: 1px solid var(--edge); background: var(--panel); color: var(--slate); }
+
+/* The mode switch is the most consequential control in the app: one side looks
+   at a pass, the other spends it. It is deliberately large, always visible, and
+   colour-coded so nobody admits a queue by accident. */
+.modes { display: flex; gap: 8px; padding: 10px 14px; background: var(--panel);
+  border-bottom: 1px solid var(--edge); }
+.mode { flex: 1; padding: 14px 8px; border-radius: 12px; border: 2px solid var(--edge);
+  background: var(--canvas); font-size: 15px; font-weight: 700; color: var(--slate); }
+.mode small { display: block; font-size: 11px; font-weight: 500; opacity: 0.75; margin-top: 2px; }
+.mode[aria-pressed="true"] { border-color: var(--blue); background: #e8f2fe; color: var(--ink); }
+.mode.admit[aria-pressed="true"] { border-color: var(--green); background: var(--green-bg); color: var(--green); }
+
+#video { flex: 1; width: 100%; object-fit: cover; background: #000; }
+#hint { padding: 10px 14px; font-size: 13px; color: var(--slate); text-align: center;
+  background: var(--panel); border-top: 1px solid var(--edge); }
+
+/* --- Verdict ---------------------------------------------------------- */
+#verdict { position: fixed; inset: 0; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 14px; padding: 28px; text-align: center;
+  animation: rise 180ms ease-out; z-index: 10; }
+#verdict.go   { background: var(--green-bg); }
+#verdict.hold { background: var(--amber-bg); }
+#verdict.stop { background: var(--red-bg); }
+@keyframes rise { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+
+.glyph { width: 116px; height: 116px; }
+.glyph circle, .glyph path, .glyph line { fill: none; stroke-width: 7; stroke-linecap: round; stroke-linejoin: round; }
+#verdict.go   .glyph * { stroke: var(--green); }
+#verdict.hold .glyph * { stroke: var(--amber); }
+#verdict.stop .glyph * { stroke: var(--red); }
+
+/* Each glyph draws itself. A tick that sweeps on reads as approval in a way a
+   static tick does not, and the cross shakes because a refusal has to feel
+   different from an admit even when nobody is reading the words. */
+.ring { stroke-dasharray: 314; stroke-dashoffset: 314; animation: draw 340ms ease-out forwards; }
+.mark { stroke-dasharray: 120; stroke-dashoffset: 120; animation: draw 300ms 200ms ease-out forwards; }
+@keyframes draw { to { stroke-dashoffset: 0; } }
+#verdict.stop .glyph { animation: shake 380ms ease-out 120ms; }
+@keyframes shake { 0%,100% { transform: none; } 20% { transform: translateX(-9px); }
+  45% { transform: translateX(8px); } 70% { transform: translateX(-4px); } }
+#verdict.hold .glyph { animation: pulse 900ms ease-in-out 2; }
+@keyframes pulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.06); } }
+
+#vTitle { margin: 0; font-size: 34px; font-weight: 800; letter-spacing: -0.6px; }
+#verdict.go #vTitle { color: var(--green); }
+#verdict.hold #vTitle { color: var(--amber); }
+#verdict.stop #vTitle { color: var(--red); }
+#vName { margin: 0; font-size: 26px; font-weight: 800; }
+#vMeta { margin: 0; font-size: 15px; color: var(--slate); }
+#vCover { display: inline-flex; align-items: center; gap: 8px; padding: 8px 14px;
+  border-radius: 999px; font-size: 15px; font-weight: 800; }
+#vCover.zero { background: #fde7e6; color: var(--red); }
+#vCover.some { background: var(--green-bg); color: var(--green); }
+#vMsg { margin: 0; font-size: 14px; color: var(--slate); max-width: 34ch; }
+#verdict .btn { margin-top: 6px; background: var(--ink); }

@@ -29,3 +29,16 @@ coverage/
 
 # Local scratch space — never committed.
 .scratch/
+
+# --- Houz Ticket (Android door scanner) ------------------------------------
+# The APK itself is committed, at public/houz-ticket.apk, because that is how
+# it reaches a bouncer's phone: Vercel serves it and they tap a link. Its build
+# tree is not — Gradle output and node_modules run to hundreds of megabytes and
+# regenerate from apk/www and capacitor.config.json.
+apk/node_modules/
+apk/android/build/
+apk/android/.gradle/
+apk/android/app/build/
+apk/android/capacitor-cordova-android-plugins/build/
+apk/android/local.properties
+apk/icon-1024.png

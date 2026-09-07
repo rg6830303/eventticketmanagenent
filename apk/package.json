@@ -1,0 +1,11 @@
+{
+  "name": "houz-ticket",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Houz Ticket — door scanner for Houz of Vybe",
+  "dependencies": {
+    "@capacitor/android": "^6.2.2",
+    "@capacitor/cli": "^6.2.2",
+    "@capacitor/core": "^6.2.2"
+  }
+}

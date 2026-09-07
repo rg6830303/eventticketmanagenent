@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
+<title>Houz Ticket</title>
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+
+<section id="login">
+  <img src="icon.png" alt="Houz of Vybe">
+  <h1>Houz Ticket</h1>
+  <p>Door scanner. Enter the access code to start checking passes.</p>
+  <input id="code" class="field" type="password" inputmode="text" autocomplete="off"
+         autocapitalize="off" autocorrect="off" placeholder="Access code" enterkeyhint="go">
+  <button id="signIn" class="btn">Sign in</button>
+  <p id="loginError" role="alert"></p>
+</section>
+
+<section id="scanner" class="hidden">
+  <header>
+    <span class="brand">Houz Ticket</span>
+    <button id="signOut">Sign out</button>
+  </header>
+
+  <div class="modes">
+    <button class="mode" id="modeCheck" aria-pressed="true">Check<small>Look, don't admit</small></button>
+    <button class="mode admit" id="modeAdmit" aria-pressed="false">Admit<small>Uses the pass</small></button>
+  </div>
+
+  <video id="video" playsinline muted autoplay></video>
+  <p id="hint">Point the camera at the QR on the customer's pass.</p>
+</section>
+
+<section id="verdict" class="hidden" role="status" aria-live="assertive">
+  <svg class="glyph" id="vGlyph" viewBox="0 0 120 120" aria-hidden="true"></svg>
+  <h2 id="vTitle"></h2>
+  <p id="vName"></p>
+  <p id="vMeta"></p>
+  <span id="vCover"></span>
+  <p id="vMsg"></p>
+  <button class="btn" id="vNext">Scan next</button>
+</section>
+
+<script src="jsQR.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,11 @@
+{
+  "appId": "com.houzofvybe.ticket",
+  "appName": "Houz Ticket",
+  "webDir": "www",
+  "android": {
+    "allowMixedContent": false
+  },
+  "server": {
+    "androidScheme": "https"
+  }
+}
