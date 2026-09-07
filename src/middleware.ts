@@ -37,20 +37,26 @@ const ADMIN_HOSTNAMES = (process.env.ADMIN_HOSTNAMES ?? 'hovadmin.vercel.app')
 /* ===========================================================================
    Maintenance pause
    ---------------------------------------------------------------------------
-   The public site is closed to new business while the checkout is being fixed.
-   The console is not: it is a different hostname and is left entirely alone,
-   so the door scanner, the bookings list and the payment sweep all keep
-   working exactly as before.
+   A switch for closing the public site to new business without touching the
+   console. The console is a different hostname and is left entirely alone, so
+   the door scanner, the bookings list and the payment sweep keep working while
+   the shop is shut.
 
    This lives here rather than in Vercel because Vercel pauses a *project*.
    Both hostnames are one project, so pausing there would take the console down
    with the site.
 
-   DEFAULT IS PAUSED. Landing this commit is what closes the site. To reopen:
-   set SITE_PAUSED=false in the deployment, or revert the commit — either one
-   restores normal service, and nothing else in the app knows this exists.
+   DEFAULT IS OPEN. The pause was landed as a default while the checkout was
+   broken, which was right at the time and is a hazard to leave in place: a
+   deployment that closes the shop unless told otherwise will close it again
+   the next time somebody forgets. The reason for the pause — checkout going to
+   about:blank in an in-app browser — is fixed, so the default goes back to
+   serving customers and the pause becomes something you ask for.
+
+   To close the site: set SITE_PAUSED=true in the deployment. Everything
+   serving a customer who has already paid stays open either way.
    =========================================================================== */
-const SITE_PAUSED = (process.env.SITE_PAUSED ?? 'true').trim().toLowerCase() !== 'false';
+const SITE_PAUSED = (process.env.SITE_PAUSED ?? 'false').trim().toLowerCase() === 'true';
 
 /**
  * Paths that stay open while the site is paused.
