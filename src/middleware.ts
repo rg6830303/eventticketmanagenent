@@ -85,6 +85,9 @@ const OPEN_WHILE_PAUSED = [
   // door need to admit the people who already bought passes — closing this
   // would turn a sales pause into a queue nobody can get through.
   '/api/door/',
+  // The scanner's own installer. Handing door staff a download that 503s
+  // because sales are shut is the same mistake as closing the scan endpoint.
+  '/houz-ticket.apk',
   // Ours to look at, and a way for a stranded customer to reach a human.
   '/api/health',
   '/contact',
