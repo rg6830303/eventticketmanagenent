@@ -537,3 +537,16 @@ ALTER TABLE ticket_tiers ADD COLUMN IF NOT EXISTS price_unit TEXT NOT NULL DEFAU
 -- answer: Final Phase passes carry no cover at all, and the door is shown that
 -- as loudly as it is shown a balance.
 ALTER TABLE tickets ADD COLUMN IF NOT EXISTS redeemable_paise INTEGER NOT NULL DEFAULT 0;
+
+-- Passes per booking and per line.
+--
+-- These were 20 and 50, which is what actually stopped a group booking however
+-- high MAX_TICKETS_PER_BOOKING was set — a limit in the database is invisible
+-- to anyone reading the application code for one. Bounded rather than removed
+-- because minting writes a row per pass inside one transaction holding a lock
+-- on the tier, so an unbounded quantity lets one mistyped order block everyone
+-- else buying that tier while it runs.
+ALTER TABLE bookings      DROP CONSTRAINT IF EXISTS bookings_quantity_check;
+ALTER TABLE bookings      ADD  CONSTRAINT bookings_quantity_check      CHECK (quantity >= 1 AND quantity <= 500);
+ALTER TABLE booking_items DROP CONSTRAINT IF EXISTS booking_items_quantity_check;
+ALTER TABLE booking_items ADD  CONSTRAINT booking_items_quantity_check CHECK (quantity >= 1 AND quantity <= 500);

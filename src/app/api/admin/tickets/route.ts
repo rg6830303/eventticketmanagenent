@@ -58,9 +58,12 @@ export async function POST(request: NextRequest) {
     const phone = phoneSchema.safeParse(body.phone);
     if (!phone.success) return fail(phone.error.issues[0].message, 'invalid_phone', 422);
 
+    // Matches what a customer may buy in one order. Bounded only because the
+    // mint writes a row per pass inside one transaction holding a lock on the
+    // tier — not because passes are scarce.
     const quantity = Math.round(Number(body.quantity) || 1);
-    if (quantity < 1 || quantity > 50) {
-      return fail('Issue between 1 and 50 passes at a time', 'invalid_quantity', 422);
+    if (quantity < 1 || quantity > 500) {
+      return fail('Issue between 1 and 500 passes at a time', 'invalid_quantity', 422);
     }
 
     const detail = await issueBookingManually({

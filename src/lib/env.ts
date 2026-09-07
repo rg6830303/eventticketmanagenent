@@ -136,8 +136,22 @@ export const env = {
   get ticketSecret(): string {
     return secret('TICKET_SIGNING_SECRET');
   },
+  /**
+   * Passes one booking may contain.
+   *
+   * Effectively no limit: six was turning away the group bookings this event
+   * exists to sell, and the old hard ceiling of twenty meant raising the
+   * environment variable did nothing past that.
+   *
+   * It is bounded rather than infinite, and the bound is not about scarcity —
+   * every tier holds a hundred thousand. Minting writes one row per pass inside
+   * a single transaction that holds a lock on the tier, so an unbounded number
+   * here means one mistyped quantity can hang a checkout and block every other
+   * customer buying that tier while it runs. Five hundred passes in one order
+   * is far past anything real and still commits in well under a second.
+   */
   get maxTicketsPerBooking(): number {
-    return Math.min(Math.max(int('MAX_TICKETS_PER_BOOKING', 6), 1), 20);
+    return Math.min(Math.max(int('MAX_TICKETS_PER_BOOKING', 500), 1), 1000);
   },
   get verifyEmailMx(): boolean {
     return bool('VERIFY_EMAIL_MX', true);

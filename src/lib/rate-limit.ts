@@ -72,7 +72,13 @@ export async function pruneRateLimits(): Promise<number> {
 
 /** Preset windows used across the API. */
 export const LIMITS = {
-  booking: { limit: 5, window: 600 },       // 5 bookings / 10 min per IP
+  // Bookings per IP. Five was dangerous for this audience specifically: a
+  // campus, a hostel or a phone network puts hundreds of people behind one
+  // public address, so five of them buying passes locked out everyone else on
+  // the same wifi for ten minutes — and the sixth person sees a message about
+  // too many requests they had no part in. The per-email limit is the one that
+  // actually identifies a person; this one exists only to blunt a script.
+  booking: { limit: 120, window: 600 },
   // Bookings per hour from one address. This was four, and four is what a
   // customer reaches by fumbling: a wrong card, a back button, a cart edited
   // and resubmitted. Two addresses hit exactly four, and one of them went on to

@@ -148,7 +148,7 @@ export const cartItemSchema = z.object({
     .number({ invalid_type_error: 'Choose how many passes you need' })
     .int('Quantity must be a whole number')
     .min(1, 'At least 1 pass')
-    .max(20, 'Too many passes in one line'),
+    .max(500, 'Too many passes in one line'),
 });
 
 export type CartItemInput = z.infer<typeof cartItemSchema>;
@@ -170,7 +170,7 @@ export const createBookingSchema = z
     phone: phoneSchema,
 
     // Cart form.
-    items: z.array(cartItemSchema).min(1).max(10, 'Too many pass types in one order').optional(),
+    items: z.array(cartItemSchema).min(1).max(20, 'Too many pass types in one order').optional(),
 
     // Single-tier form, kept working.
     tierCode: z.string().trim().min(1).max(40).optional(),
@@ -178,7 +178,7 @@ export const createBookingSchema = z
       .number({ invalid_type_error: 'Choose how many tickets you need' })
       .int('Quantity must be a whole number')
       .min(1, 'At least 1 ticket')
-      .max(20, 'Too many tickets in one booking')
+      .max(500, 'Too many tickets in one booking')
       .optional(),
 
     // Optional. A wrong code costs the discount, never the booking, so it is
