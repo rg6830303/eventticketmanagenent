@@ -1,4 +1,5 @@
 import type { NextRequest } from 'next/server';
+import { corsPreflight, withCors } from '@/lib/cors';
 import { fail, handleError, ok, readJson, tooManyRequests } from '@/lib/api';
 import { checkInTicket, logRejectedScan, resolveScanInput } from '@/lib/bookings';
 import { bearerFrom, verifyDoorToken } from '@/lib/door-auth';
@@ -11,6 +12,14 @@ import type { ScanOutcome } from '@/lib/types';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 export const maxDuration = 20;
+
+/**
+ * Preflight. The scanner sends an Authorization header, which is a non-simple
+ * header, so the WebView asks permission before every scan call.
+ */
+export async function OPTIONS(request: NextRequest) {
+  return corsPreflight(request);
+}
 
 const REJECTION_COPY: Record<'malformed' | 'version' | 'signature', { title: string; message: string }> = {
   malformed: {
@@ -43,20 +52,20 @@ export async function POST(request: NextRequest) {
   try {
     const auth = await verifyDoorToken(bearerFrom(request.headers));
     if (!auth.valid) {
-      return fail(
+      return withCors(fail(
         auth.reason === 'expired' ? 'Session expired — sign in again' : 'Not signed in',
         auth.reason === 'expired' ? 'token_expired' : 'unauthorised',
         401,
-      );
+      ), request);
     }
 
     const parsed = scanSchema.safeParse(await readJson(request));
-    if (!parsed.success) return fail('Nothing usable was scanned', 'validation_error', 422);
+    if (!parsed.success) return withCors(fail('Nothing usable was scanned', 'validation_error', 422), request);
     const { payload, eventSlug, gate, mode } = parsed.data;
 
     const ip = clientIp(request.headers);
     const limit = await rateLimit(`door-scan:${ip ?? 'unknown'}`, LIMITS.scan.limit, LIMITS.scan.window);
-    if (!limit.allowed) return tooManyRequests(limit.retryAfterSeconds);
+    if (!limit.allowed) return withCors(tooManyRequests(limit.retryAfterSeconds), request);
 
     const verified = await parseQrPayload(payload);
 
@@ -87,7 +96,7 @@ export async function POST(request: NextRequest) {
         title: copy.title,
         message: copy.message,
       };
-      return ok(outcome);
+      return withCors(ok(outcome), request);
     }
 
     const outcome = await checkInTicket({
@@ -103,14 +112,14 @@ export async function POST(request: NextRequest) {
         manual.via === 'booking_reference' && manual.position
           ? ` Pass ${manual.position.index} of ${manual.position.total} on this booking.`
           : '';
-      return ok({
+      return withCors(ok({
         ...outcome,
         message: `${outcome.message}${where} Entered by hand, not scanned.`,
-      } satisfies ScanOutcome);
+      } satisfies ScanOutcome), request);
     }
 
-    return ok(outcome);
+    return withCors(ok(outcome), request);
   } catch (error) {
-    return handleError(error, 'door.scan');
+    return withCors(handleError(error, 'door.scan'), request);
   }
 }

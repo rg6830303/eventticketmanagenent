@@ -1,4 +1,5 @@
 import type { NextRequest } from 'next/server';
+import { corsPreflight, withCors } from '@/lib/cors';
 import { fail, handleError, ok, readJson, tooManyRequests } from '@/lib/api';
 import { issueDoorToken, verifyDoorPassword } from '@/lib/door-auth';
 import { LIMITS, rateLimit } from '@/lib/rate-limit';
@@ -6,6 +7,15 @@ import { clientIp } from '@/lib/validation.server';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
+
+/**
+ * The app's page is bundled into the APK and served from the WebView's own
+ * origin, so this call is cross-origin and the browser asks permission before
+ * making it. Without an answer here the real request is never sent.
+ */
+export async function OPTIONS(request: NextRequest) {
+  return corsPreflight(request);
+}
 
 /**
  * Door scanner sign-in. One password, no username.
@@ -24,19 +34,19 @@ export async function POST(request: NextRequest) {
       LIMITS.adminLogin.limit,
       LIMITS.adminLogin.window,
     );
-    if (!limit.allowed) return tooManyRequests(limit.retryAfterSeconds);
+    if (!limit.allowed) return withCors(tooManyRequests(limit.retryAfterSeconds), request);
 
     const body = (await readJson(request)) as { password?: string };
     const password = typeof body.password === 'string' ? body.password : '';
-    if (!password) return fail('Enter the access code', 'missing_password', 422);
+    if (!password) return withCors(fail('Enter the access code', 'missing_password', 422), request);
 
     if (!(await verifyDoorPassword(password))) {
-      return fail('That access code is not right', 'bad_password', 401);
+      return withCors(fail('That access code is not right', 'bad_password', 401), request);
     }
 
     const { token, expiresAt } = await issueDoorToken();
-    return ok({ token, expiresAt });
+    return withCors(ok({ token, expiresAt }), request);
   } catch (error) {
-    return handleError(error, 'door.login');
+    return withCors(handleError(error, 'door.login'), request);
   }
 }

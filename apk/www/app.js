@@ -9,9 +9,62 @@
  */
 'use strict';
 
-var API = 'https://www.houzofvybe.com';
+/*
+ * Which host to talk to.
+ *
+ * Both are tried because only one of them is canonical and the other redirects
+ * to it, and a redirect is fatal here in a way that is easy to miss: a CORS
+ * preflight does NOT follow redirects. The browser sends OPTIONS, gets a 308,
+ * and fails the check without ever trying the real request — which surfaces in
+ * the app as a rejected fetch, identical to being offline.
+ *
+ * The apex is first because it is what NEXT_PUBLIC_SITE_URL is set to. Whichever
+ * answers is remembered, so this costs one extra request once per install and
+ * nothing afterwards.
+ */
+var API_HOSTS = ['https://houzofvybe.com', 'https://www.houzofvybe.com'];
+var HOST_KEY = 'houz-door-api';
 var TOKEN_KEY = 'houz-door-token';
 var EXPIRY_KEY = 'houz-door-expires';
+
+function apiHosts() {
+  var remembered = null;
+  try { remembered = localStorage.getItem(HOST_KEY); } catch (e) { /* private mode */ }
+  if (!remembered) return API_HOSTS.slice();
+  // The remembered one first, the rest still behind it: a domain can change.
+  return [remembered].concat(API_HOSTS.filter(function (h) { return h !== remembered; }));
+}
+
+function rememberHost(host) {
+  try { localStorage.setItem(HOST_KEY, host); } catch (e) { /* fine without it */ }
+}
+
+/**
+ * fetch, against whichever host answers.
+ *
+ * Only a *network-level* rejection moves on to the next host. An HTTP error is
+ * a real answer from a reachable server — a wrong access code must not send us
+ * hunting for a different domain.
+ */
+function apiFetch(path, options) {
+  var hosts = apiHosts();
+
+  function attempt(i) {
+    if (i >= hosts.length) return Promise.reject(new Error('unreachable'));
+    return fetch(hosts[i] + path, options).then(
+      function (response) {
+        rememberHost(hosts[i]);
+        return response;
+      },
+      function (error) {
+        if (i + 1 < hosts.length) return attempt(i + 1);
+        throw error;
+      },
+    );
+  }
+
+  return attempt(0);
+}
 
 var el = function (id) { return document.getElementById(id); };
 var mode = 'check';
@@ -57,7 +110,7 @@ function signIn() {
   el('signIn').disabled = true;
   el('loginError').textContent = '';
 
-  fetch(API + '/api/door/login', {
+  apiFetch('/api/door/login', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ password: code })
@@ -142,7 +195,7 @@ function handleScan(payload) {
   busy = true;
   if (navigator.vibrate) navigator.vibrate(30);
 
-  fetch(API + '/api/door/scan', {
+  apiFetch('/api/door/scan', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
     body: JSON.stringify({ payload: payload, mode: mode, gate: 'Door app' })

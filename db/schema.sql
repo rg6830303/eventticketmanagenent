@@ -550,3 +550,29 @@ ALTER TABLE bookings      DROP CONSTRAINT IF EXISTS bookings_quantity_check;
 ALTER TABLE bookings      ADD  CONSTRAINT bookings_quantity_check      CHECK (quantity >= 1 AND quantity <= 500);
 ALTER TABLE booking_items DROP CONSTRAINT IF EXISTS booking_items_quantity_check;
 ALTER TABLE booking_items ADD  CONSTRAINT booking_items_quantity_check CHECK (quantity >= 1 AND quantity <= 500);
+
+-- --------------------------------------------------------------------------
+-- door_access — the scanner's shared access code
+--
+-- A single row. The door scanner authenticates with one password and no
+-- username, deliberately: a queue is not the place to type an email address.
+-- It is a different credential from the admin console because it grants a
+-- different thing — the console shows every buyer's email, phone and spend,
+-- while the scanner shows one pass at a time and can only mark it used.
+--
+-- Stored as a bcrypt hash so the code can be rotated in the database without a
+-- deploy. To set or change it:
+--   UPDATE door_access SET password_hash = '<bcrypt hash>', updated_at = now()
+--    WHERE id = 1;
+-- Generate the hash with:
+--   node -e "console.log(require('bcryptjs').hashSync('the-code', 10))"
+--
+-- The single-row shape is enforced rather than assumed: door-auth.ts reads
+-- WHERE id = 1, so a second row would be silently ignored and look like the
+-- password had stopped working.
+-- --------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS door_access (
+  id             INTEGER PRIMARY KEY DEFAULT 1 CHECK (id = 1),
+  password_hash  TEXT NOT NULL,
+  updated_at     TIMESTAMPTZ NOT NULL DEFAULT now()
+);

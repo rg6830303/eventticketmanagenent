@@ -81,6 +81,10 @@ const OPEN_WHILE_PAUSED = [
   '/api/payments/razorpay/webhook',
   '/api/payments/razorpay/verify',
   '/api/cron/',
+  // The door scanner. A paused shop still runs its event, and staff on the
+  // door need to admit the people who already bought passes — closing this
+  // would turn a sales pause into a queue nobody can get through.
+  '/api/door/',
   // Ours to look at, and a way for a stranded customer to reach a human.
   '/api/health',
   '/contact',
