@@ -178,8 +178,10 @@ export function CartClient({
             <div className="panel p-8">
               <p className="h-card">Your cart is empty</p>
               <p className="mt-2 text-[0.9375rem] text-slate">
-                Add a Normal Pass, Couple Pass or VIP Table from the ticket section to start your
-                order.
+                {/* Deliberately not a list of pass names. Naming them here meant
+                    an empty cart went on advertising Couple and VIP long after
+                    they stopped being sold. */}
+                Pick a pass from the ticket section to start your order.
               </p>
               <div className="mt-6 flex flex-wrap gap-3">
                 <Link href={`/events/${eventSlug}`} className="btn-primary">
