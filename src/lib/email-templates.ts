@@ -1,4 +1,4 @@
-import { formatEventDate, formatEventTime } from './utils';
+import { formatEventDate, formatEventTime, formatInr } from './utils';
 
 /**
  * Email markup.
@@ -41,6 +41,11 @@ export interface TicketEmailData {
     /** Heads this one QR lets through. A couple pass is 2, a VIP table is 5. */
     admits: number;
     tierName: string;
+    /**
+     * What the pass is worth at the bar. Zero for Final Phase passes, and said
+     * plainly on the ticket so nobody arrives expecting a tab they never bought.
+     */
+    redeemablePaise: number;
   }>;
   manageUrl: string;
   supportEmail: string;
@@ -95,8 +100,21 @@ export function ticketEmailHtml(data: TicketEmailData): string {
                 <p style="margin:0 0 4px 0;font:700 18px/1.3 Arial,Helvetica,sans-serif;color:${TEXT};">
                   ${esc(ticket.holderName)}
                 </p>
-                <p style="margin:0 0 18px 0;font:600 13px/1.4 Arial,Helvetica,sans-serif;color:${BLUE};">
+                <p style="margin:0 0 10px 0;font:600 13px/1.4 Arial,Helvetica,sans-serif;color:${BLUE};">
                   ${esc(ticket.tierName)}${ticket.admits > 1 ? ` &middot; admits ${ticket.admits}` : ''}
+                </p>
+
+                <!-- Said on the pass itself. A guest who thinks they have a bar
+                     tab and does not is an argument at the counter, and the
+                     staff member having it has no way to check. -->
+                <p style="margin:0 0 18px 0;font:700 12px/1.4 Arial,Helvetica,sans-serif;letter-spacing:1px;text-transform:uppercase;color:${
+                  ticket.redeemablePaise === 0 ? '#b42318' : '#067647'
+                };">
+                  ${
+                    ticket.redeemablePaise === 0
+                      ? 'Zero redeemable &middot; entry only'
+                      : `${formatInr(ticket.redeemablePaise)} redeemable at the bar`
+                  }
                 </p>
                 <img src="cid:${ticket.cid}" width="220" height="220" alt="QR code for ticket ${esc(ticket.code)}"
                      style="display:block;margin:0 auto;border-radius:12px;background:#ffffff;padding:12px;" />
@@ -281,9 +299,17 @@ export function ticketEmailText(data: TicketEmailData): string {
     `Reference:  ${data.bookingReference}`,
     '',
     'YOUR PASSES',
+    // The plain-text half has to carry the same facts as the HTML. A client
+    // showing only this one must not leave someone believing they have a bar
+    // tab that does not exist.
     ...data.tickets.flatMap((t, i) => [
       `  ${i + 1}. ${t.holderName} — ${t.code}` +
         `${t.admits > 1 ? ` (${t.tierName}, admits ${t.admits})` : ` (${t.tierName})`}`,
+      `     ${
+        t.redeemablePaise === 0
+          ? 'ZERO REDEEMABLE — entry only'
+          : `${formatInr(t.redeemablePaise)} redeemable at the bar`
+      }`,
       `     ${t.url}`,
     ]),
     '',

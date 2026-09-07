@@ -4,8 +4,17 @@
 // app genuinely needs: Razorpay Checkout, blob: workers for the QR scanner,
 // and data:/blob: images for generated QRs.
 //
-// Razorpay opens in an iframe rather than by navigating away, which is why it
-// needs frame-src and connect-src but not form-action.
+// Razorpay usually opens in an iframe, but not always, and the exception is the
+// one that matters here. Inside an in-app browser — Instagram's, which is where
+// most of this traffic arrives from — checkout falls back to submitting a form
+// to Razorpay in a new context instead of framing itself. `form-action 'self'`
+// blocked exactly that navigation, and a navigation blocked before it starts
+// leaves the window it was opened into sitting at about:blank: a white screen
+// with no error, which is precisely what customers were reporting.
+//
+// So form-action lists Razorpay. It stays otherwise closed, which is what the
+// directive is actually for — stopping a form on our pages from posting
+// somewhere we did not choose.
 const csp = [
   "default-src 'self'",
   "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://checkout.razorpay.com https://*.razorpay.com",
@@ -15,10 +24,13 @@ const csp = [
   "media-src 'self' blob: data:",
   "connect-src 'self' https://*.razorpay.com https://lumberjack.razorpay.com",
   "frame-src 'self' https://*.razorpay.com https://www.google.com",
+  // Razorpay's checkout opens a payment window in some flows. Without this the
+  // popup is created and then refused a document, which reads as about:blank.
+  "child-src 'self' https://*.razorpay.com",
   "worker-src 'self' blob:",
   "object-src 'none'",
   "base-uri 'self'",
-  "form-action 'self'",
+  "form-action 'self' https://api.razorpay.com https://*.razorpay.com",
   "frame-ancestors 'none'",
   'upgrade-insecure-requests',
 ].join('; ');

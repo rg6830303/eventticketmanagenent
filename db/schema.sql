@@ -529,3 +529,11 @@ ALTER TABLE ticket_tiers ADD CONSTRAINT ticket_tiers_redeemable_check CHECK (red
 -- price is denominated. It belongs with the price it qualifies.
 -- --------------------------------------------------------------------------
 ALTER TABLE ticket_tiers ADD COLUMN IF NOT EXISTS price_unit TEXT NOT NULL DEFAULT '/ pass';
+
+-- What a pass is worth at the bar, snapshotted when it was sold.
+--
+-- On the ticket rather than read from its tier, because repricing a tier must
+-- never change what somebody already holding a pass can redeem. Zero is a real
+-- answer: Final Phase passes carry no cover at all, and the door is shown that
+-- as loudly as it is shown a balance.
+ALTER TABLE tickets ADD COLUMN IF NOT EXISTS redeemable_paise INTEGER NOT NULL DEFAULT 0;

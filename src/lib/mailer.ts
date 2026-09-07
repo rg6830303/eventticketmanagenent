@@ -245,7 +245,10 @@ export async function sendTicketEmail(detail: BookingDetail): Promise<SendResult
   const qrAttachments = await Promise.all(
     tickets.map(async (ticket, index) => ({
       filename: `${ticket.code}.png`,
-      content: await qrPngBuffer(await buildQrPayload(ticket.code), 460),
+      content: await qrPngBuffer(
+        await buildQrPayload(ticket.code, (ticket.redeemable_paise ?? 0) === 0),
+        460,
+      ),
       cid: `ticket-qr-${index}`,
       contentType: 'image/png',
     })),
@@ -285,7 +288,8 @@ export async function sendTicketEmail(detail: BookingDetail): Promise<SendResult
           code: ticket.code,
           holderName: ticket.holder_name,
           cid: `ticket-qr-${index}`,
-          url: await ticketUrl(ticket.code),
+          url: await ticketUrl(ticket.code, (ticket.redeemable_paise ?? 0) === 0),
+          redeemablePaise: ticket.redeemable_paise ?? 0,
           admits: ticket.admits ?? item?.admits_each ?? 1,
           tierName:
           (item?.tier_id ? liveNames.get(item.tier_id) : undefined) ??

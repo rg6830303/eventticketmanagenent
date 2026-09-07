@@ -205,9 +205,18 @@ export function CartClient({
                       </p>
                     </div>
                     <p className="mt-1 text-[0.8125rem] text-slate">{tier.description}</p>
-                    <p className="mt-2 font-mono text-[0.6875rem] uppercase tracking-[0.12em] text-leaf-600">
+                    {/* "₹0 redeemable" reads like a rendering fault. Say it in
+                        words, and in the colour that stops rather than reassures. */}
+                    <p
+                      className={cn(
+                        'mt-2 font-mono text-[0.6875rem] uppercase tracking-[0.12em]',
+                        (tier.redeemablePaise ?? 0) === 0 ? 'text-flare-600' : 'text-leaf-600',
+                      )}
+                    >
                       {tier.pax ?? 1} {(tier.pax ?? 1) === 1 ? 'guest' : 'guests'} ·{' '}
-                      {formatInr(tier.redeemablePaise ?? 0)} redeemable
+                      {(tier.redeemablePaise ?? 0) === 0
+                        ? 'Zero redeemable'
+                        : `${formatInr(tier.redeemablePaise ?? 0)} redeemable`}
                     </p>
                   </div>
 
@@ -286,7 +295,12 @@ export function CartClient({
             <Row label="Pass types" value={`${cartRows.length}`} />
             <Row label="Passes" value={`${totalPasses}`} />
             <Row label="Guests covered" value={`${totalGuests}`} />
-            <Row label="Redeemable value" value={formatInr(totalRedeemable)} />
+            {/* A summary line reading "₹0" invites a second look at the price.
+                Spell out what it means, once, where the total is being read. */}
+            <Row
+              label="Redeemable value"
+              value={totalRedeemable === 0 ? 'Zero — entry only' : formatInr(totalRedeemable)}
+            />
             <Row label="Bill amount" value={formatInr(subtotal)} />
 
             <div className="rule-receipt my-4" />

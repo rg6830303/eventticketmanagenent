@@ -248,13 +248,14 @@ export default async function HomePage() {
         <Reveal>
           <div className="edit-head">
             <h2 id="tickets-heading" className="h-section">
-              Phase 3 pass pricing.
+              Final Phase pass pricing.
             </h2>
             <span className="edit-index">03 — Tickets</span>
           </div>
           <p className="lede mt-4 max-w-2xl">
-            Choose a solo pass, come as a couple, or reserve a VIP table for five. Every pass
-            includes a clearly marked redeemable value at the venue.
+            Choose a solo pass, come as a group of five, or bring ten. Every Final Phase pass is
+            <strong className="text-ink"> zero redeemable</strong> — the price buys entry, and
+            nothing is credited at the bar.
           </p>
         </Reveal>
 

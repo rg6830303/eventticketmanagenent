@@ -436,7 +436,18 @@ async function mintTickets(client: MintClient, bookingId: string): Promise<void>
   );
 
   // Bookings written before booking_items existed still have to be mintable.
-  const lines: Array<Pick<BookingItemRow, 'id' | 'tier_id' | 'tier_code' | 'quantity' | 'admits_each'>> =
+  const { rows: fallbackTier } = await client.query<{ redeemable_paise: number }>(
+    'SELECT redeemable_paise FROM ticket_tiers WHERE id = $1',
+    [booking.tier_id],
+  );
+  const fallbackRedeemablePaise = fallbackTier[0]?.redeemable_paise ?? 0;
+
+  const lines: Array<
+    Pick<
+      BookingItemRow,
+      'id' | 'tier_id' | 'tier_code' | 'quantity' | 'admits_each' | 'redeemable_paise'
+    >
+  > =
     items.length > 0
       ? items
       : [
@@ -446,6 +457,10 @@ async function mintTickets(client: MintClient, bookingId: string): Promise<void>
             tier_code: 'GA',
             quantity: booking.quantity,
             admits_each: 1,
+            // A booking too old to have line items predates the zero-cover
+            // passes entirely, so read the cover off its tier rather than
+            // assuming either answer.
+            redeemable_paise: fallbackRedeemablePaise,
           },
         ];
 
@@ -466,10 +481,14 @@ async function mintTickets(client: MintClient, bookingId: string): Promise<void>
       for (let attempt = 0; attempt < 5 && !inserted; attempt += 1) {
         try {
           await client.query(
+            // The cover is snapshotted onto the pass, not looked up later. What
+            // this ticket is worth at the bar is a property of the sale, and
+            // repricing a tier afterwards must not silently change what someone
+            // already holding a pass can redeem — in either direction.
             `INSERT INTO tickets (
                booking_id, event_id, tier_id, booking_item_id, code,
-               holder_name, seat_label, admits
-             ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
+               holder_name, seat_label, admits, redeemable_paise
+             ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
             [
               booking.id,
               booking.event_id,
@@ -479,6 +498,7 @@ async function mintTickets(client: MintClient, bookingId: string): Promise<void>
               holder,
               seatLabel,
               line.admits_each,
+              line.redeemable_paise ?? 0,
             ],
           );
           inserted = true;
@@ -676,6 +696,7 @@ export async function checkInTicket(args: CheckInArgs): Promise<ScanOutcome> {
       quantity: ticket.booking_quantity,
       checkedInAt: ticket.checked_in_at,
       admits: ticket.admits ?? 1,
+      redeemablePaise: ticket.redeemable_paise ?? 0,
     },
     event: { name: ticket.event_name, slug: ticket.event_slug },
   };

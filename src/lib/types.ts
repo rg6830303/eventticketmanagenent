@@ -97,6 +97,14 @@ export interface TicketRow {
   checked_in_gate: string | null;
   /** How many heads this one QR admits. 1 for a solo pass, 2 for a couple. */
   admits: number;
+  /**
+   * What this pass is worth at the bar, snapshotted when it was sold.
+   *
+   * On the pass rather than read from the tier, because repricing a tier must
+   * never change what somebody already holding a ticket can redeem. Zero is a
+   * real answer, not a missing one — the Final Phase passes carry no cover.
+   */
+  redeemable_paise: number;
   booking_item_id: string | null;
   created_at: string;
 }
@@ -144,6 +152,12 @@ export interface ScanOutcome {
     checkedInAt: string | null;
     /** Heads this one QR lets through. */
     admits: number;
+    /**
+     * What this pass is worth at the bar, as it was sold. The door needs it in
+     * front of them: a guest presenting a Final Phase pass has no cover, and
+     * the person on the counter has no other way to know that.
+     */
+    redeemablePaise: number;
   };
   event?: { name: string; slug: string };
 }

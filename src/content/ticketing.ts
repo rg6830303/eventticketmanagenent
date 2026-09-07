@@ -1,78 +1,50 @@
+/**
+ * Last-resort pass list.
+ *
+ * The database is the source of truth for what a pass costs and what it is
+ * worth at the bar; this exists only so a deployment whose database is
+ * unreachable renders last-known prices instead of an empty page.
+ *
+ * Every figure here is a Final Phase figure, and every cover is zero. A stale
+ * fallback that promised a redeemable value would be worse than no page at all
+ * — somebody would buy on the strength of it and be turned away at the counter.
+ */
 export const FALLBACK_TICKET_TIERS = [
   {
     code: 'NORMAL',
-    name: 'Normal Pass',
+    name: 'General Access',
     description:
-      'Solo entry to the complete non-alcoholic party, with part of the pass value redeemable at the venue.',
-    pricePaise: 130_000,
-    redeemablePaise: 50_000,
+      'Solo entry to the complete non-alcoholic party. Zero redeemable — this pass buys entry, nothing at the bar.',
+    pricePaise: 111_100,
+    redeemablePaise: 0,
     pax: 1,
     priceUnit: '/ pass',
     remaining: 100_000,
     total: 100_000,
-    perks: ['Admits 1 guest', '₹500 cover redeemable', 'Full party access'],
-  },
-  {
-    code: 'COUPLE',
-    name: 'Couple Pass',
-    description:
-      'A two-person pass designed for pairs, with a shared redeemable value at the venue.',
-    pricePaise: 250_000,
-    redeemablePaise: 100_000,
-    pax: 2,
-    priceUnit: '/ couple',
-    remaining: 100_000,
-    total: 100_000,
-    perks: ['Admits 2 guests', '₹1,000 cover redeemable', 'Best for pairs'],
+    perks: ['Admits 1 guest', 'Zero redeemable · entry only', 'Full party access'],
   },
   {
     code: 'GROUP',
-    name: 'Group Pass',
-    description:
-      'Entry for five, with half the cover value of a VIP table. The cheapest way in for a group.',
-    pricePaise: 555_500,
-    redeemablePaise: 250_000,
+    name: 'Group of 5',
+    description: 'Entry for five. Zero redeemable — this pass buys entry, nothing at the bar.',
+    pricePaise: 444_400,
+    redeemablePaise: 0,
     pax: 5,
     priceUnit: '/ group',
     remaining: 100_000,
     total: 100_000,
-    perks: ['Admits 5 guests', '₹2,500 cover redeemable', 'Best value for a group'],
+    perks: ['Admits 5 guests', 'Zero redeemable · entry only', 'Best value for a group'],
   },
   {
-    code: 'VIPTABLE',
-    name: 'VIP Pass',
-    description:
-      'A reserved VIP table for five guests, with a generous cover value redeemable at the venue.',
-    pricePaise: 1_000_000,
-    redeemablePaise: 500_000,
-    pax: 5,
-    priceUnit: '/ table',
+    code: 'EARLY',
+    name: 'Group of 10',
+    description: 'Entry for ten. Zero redeemable — this pass buys entry, nothing at the bar.',
+    pricePaise: 888_800,
+    redeemablePaise: 0,
+    pax: 10,
+    priceUnit: '/ group',
     remaining: 100_000,
     total: 100_000,
-    perks: ['Admits 5 guests', '₹5,000 cover redeemable', 'Reserved VIP table'],
+    perks: ['Admits 10 guests', 'Zero redeemable · entry only', 'Full party access'],
   },
 ] as const;
-
-export function getTicketTierMeta(code: string) {
-  return FALLBACK_TICKET_TIERS.find((tier) => tier.code === code.toUpperCase());
-}
-
-export const REFERRAL_CODES = [
-  { code: 'KRISH100', label: 'Krish' },
-  { code: 'SID100', label: 'Sid' },
-  { code: 'RAHUL100', label: 'Rahul' },
-  { code: 'SAMARTH100', label: 'Samarth' },
-  { code: 'NEEL100', label: 'Neel' },
-  { code: 'KRISHA100', label: 'Krisha' },
-  { code: 'ARPITA100', label: 'Arpita' },
-  { code: 'RISHITA100', label: 'Rishita' },
-  { code: 'RITIK100', label: 'Ritik' },
-  { code: 'VIHAAN100', label: 'Vihaan' },
-  { code: 'RAJ100', label: 'Raj' },
-  { code: 'RAUNAK100', label: 'Raunak' },
-  { code: 'YASHASWINI100', label: 'Yashaswini' },
-  { code: 'KAVYANSH100', label: 'Kavyansh' },
-  { code: 'ANTRA100', label: 'Antra' },
-] as const;
-
-export const REFERRAL_DISCOUNT_PAISE = 10_000;

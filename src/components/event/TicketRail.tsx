@@ -120,8 +120,27 @@ export function TicketRail({
                     {tier.priceUnit}
                   </span>
                 </p>
-                <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-leaf-500/40 bg-leaf-100 px-3 py-1.5 text-[0.8125rem] font-semibold text-leaf-600">
-                  <span>{formatInr(tier.redeemablePaise)} redeemable</span>
+                {/*
+                  The cover sits on the price, at the price's size.
+
+                  Rendering a zero as "₹0 redeemable" in the same reassuring
+                  green as a real balance is how somebody buys a pass believing
+                  they have a tab. Zero gets its own words and its own colour, so
+                  the difference is read rather than inferred.
+                */}
+                <div
+                  className={cn(
+                    'mt-4 inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-[0.8125rem] font-semibold',
+                    tier.redeemablePaise === 0
+                      ? 'border-flare-500/50 bg-flare-100 text-flare-600'
+                      : 'border-leaf-500/40 bg-leaf-100 text-leaf-600',
+                  )}
+                >
+                  <span>
+                    {tier.redeemablePaise === 0
+                      ? 'Zero redeemable'
+                      : `${formatInr(tier.redeemablePaise)} redeemable`}
+                  </span>
                   <span aria-hidden>·</span>
                   <span>{tier.pax} {tier.pax === 1 ? 'guest' : 'guests'}</span>
                 </div>

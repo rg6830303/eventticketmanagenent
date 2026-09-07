@@ -9,7 +9,7 @@ import {
   type Transition,
 } from 'framer-motion';
 import { Globe } from '@/components/brand/Globe';
-import { cn, formatDateTime } from '@/lib/utils';
+import { cn, formatInr, formatDateTime } from '@/lib/utils';
 import type { ScanOutcome, ScanResult as ScanResultCode } from '@/lib/types';
 
 type Tone = 'go' | 'hold' | 'stop';
@@ -173,6 +173,43 @@ export function ScanResult({ outcome, mode }: { outcome: ScanOutcome | null; mod
                 <p className="font-display text-2xl font-bold leading-tight text-ink sm:text-3xl">
                   {ticket.holderName}
                 </p>
+
+                {/*
+                  What this pass is worth at the bar, at the size the rest of the
+                  verdict is read at.
+                  
+                  It sits directly under the name because it is decided in the
+                  same two seconds as the admit, by someone holding a phone in a
+                  queue. Buried in the detail grid it would be read after the
+                  guest had already walked past. Zero is stated as loudly as a
+                  balance is: a Final Phase pass buys entry and nothing else,
+                  and the counter has no other way to know that.
+                */}
+                <div
+                  className={cn(
+                    'flex items-center gap-2 rounded-xl border-2 px-3 py-2',
+                    ticket.redeemablePaise === 0
+                      ? 'border-flare-400 bg-flare-200/40'
+                      : 'border-leaf-400 bg-leaf-200/40',
+                  )}
+                >
+                  <span
+                    className={cn(
+                      'font-display text-xl font-bold leading-none sm:text-2xl',
+                      ticket.redeemablePaise === 0 ? 'text-flare-600' : 'text-leaf-600',
+                    )}
+                  >
+                    {ticket.redeemablePaise === 0 ? '₹0' : formatInr(ticket.redeemablePaise)}
+                  </span>
+                  <span
+                    className={cn(
+                      'text-[11px] font-semibold uppercase tracking-[0.14em]',
+                      ticket.redeemablePaise === 0 ? 'text-flare-600' : 'text-leaf-600',
+                    )}
+                  >
+                    {ticket.redeemablePaise === 0 ? 'Zero redeemable · entry only' : 'redeemable'}
+                  </span>
+                </div>
 
                 <dl className="grid grid-cols-2 gap-x-4 gap-y-2.5 text-[13px]">
                   <Row label="Ticket" value={ticket.code} mono />
