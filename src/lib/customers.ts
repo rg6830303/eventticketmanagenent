@@ -89,6 +89,8 @@ export interface ListCustomersArgs {
   offset?: number;
   /** Only customers who have at least one confirmed booking. */
   buyersOnly?: boolean;
+  /** Pending/failed bookings with no ticket issued for that booking. */
+  withoutTicketsOnly?: boolean;
 }
 
 export interface ListCustomersResult {
@@ -119,11 +121,30 @@ export async function listCustomers(args: ListCustomersArgs = {}): Promise<ListC
   if (args.buyersOnly) {
     conditions.push('c.bookings_count > 0');
   }
+  if (args.withoutTicketsOnly) {
+    conditions.push(`EXISTS (
+      SELECT 1 FROM bookings unresolved
+      WHERE unresolved.customer_id = c.id
+        AND unresolved.status IN ('pending', 'failed')
+        AND NOT EXISTS (SELECT 1 FROM tickets issued WHERE issued.booking_id = unresolved.id)
+    )`);
+  }
+
+  // Only this opt-in view needs the matching booking detail. Other callers,
+  // including exports and dashboard reads, keep their existing selection.
+  const matchingBooking = args.withoutTicketsOnly
+    ? `(SELECT json_build_object('reference', b.reference, 'status', b.status)
+          FROM bookings b
+         WHERE b.customer_id = c.id AND b.status IN ('pending', 'failed')
+           AND NOT EXISTS (SELECT 1 FROM tickets t WHERE t.booking_id = b.id)
+         ORDER BY b.created_at DESC, b.id DESC LIMIT 1)`
+    : 'NULL';
 
   const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
 
   const rows = await query<CustomerWithBookings & { total_count: string }>(
     `SELECT c.*,
+            ${matchingBooking} AS unresolved_booking,
             COUNT(*) OVER()::text AS total_count,
             (SELECT b.reference FROM bookings b
               WHERE b.customer_id = c.id AND b.status = 'confirmed'

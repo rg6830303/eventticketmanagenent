@@ -30,7 +30,7 @@ export function CustomersTable({ initialRows, initialTotal }: Props) {
   const [total, setTotal] = useState(initialTotal);
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
-  const [buyersOnly, setBuyersOnly] = useState(false);
+  const [filter, setFilter] = useState<'all' | 'buyers' | 'due'>('all');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -38,7 +38,7 @@ export function CustomersTable({ initialRows, initialTotal }: Props) {
   // repainting the table with stale results.
   const requestSeq = useRef(0);
 
-  const load = useCallback(async (nextPage: number, q: string, buyers: boolean) => {
+  const load = useCallback(async (nextPage: number, q: string, selection: 'all' | 'buyers' | 'due') => {
     const seq = ++requestSeq.current;
     setLoading(true);
     setError(null);
@@ -49,7 +49,8 @@ export function CustomersTable({ initialRows, initialTotal }: Props) {
         limit: String(PAGE_SIZE),
       });
       if (q) params.set('q', q);
-      if (buyers) params.set('buyers', '1');
+      if (selection === 'buyers') params.set('buyers', '1');
+      if (selection === 'due') params.set('tickets', 'none');
 
       const response = await fetch(`/api/admin/customers?${params.toString()}`);
       const body = (await response.json()) as {
@@ -76,9 +77,13 @@ export function CustomersTable({ initialRows, initialTotal }: Props) {
 
   // Debounced so typing a ten-character email is one query, not ten.
   useEffect(() => {
-    const id = window.setTimeout(() => void load(1, search, buyersOnly), 300);
-    return () => window.clearTimeout(id);
-  }, [search, buyersOnly, load]);
+    setPage(1);
+    const id = window.setTimeout(() => void load(1, search, filter), 300);
+    return () => {
+      window.clearTimeout(id);
+      ++requestSeq.current;
+    };
+  }, [search, filter, load]);
 
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
@@ -99,18 +104,29 @@ export function CustomersTable({ initialRows, initialTotal }: Props) {
           />
         </div>
 
-        <label className="flex cursor-pointer items-center gap-2 whitespace-nowrap text-[13px] text-slate">
-          <input
-            type="checkbox"
-            checked={buyersOnly}
-            onChange={(event) => setBuyersOnly(event.target.checked)}
-            className="h-4 w-4 accent-vybe-600"
-          />
-          Buyers only
-        </label>
+        <div>
+          <label htmlFor="customer-filter" className="sr-only">Customer filter</label>
+          <select
+            id="customer-filter"
+            value={filter}
+            onChange={(event) => setFilter(event.target.value as 'all' | 'buyers' | 'due')}
+            className="field"
+          >
+            <option value="all">All customers</option>
+            <option value="buyers">Buyers only</option>
+            <option value="due">Due customers</option>
+          </select>
+        </div>
 
         <ExcelButton sheet="customers" label="Customers (Excel)" />
       </div>
+
+      {filter === 'due' && (
+        <p className="text-[12px] text-muted">
+          Customers with a pending or failed booking and no ticket issued for that booking.
+          The latest matching booking is shown. Excel export includes all customers.
+        </p>
+      )}
 
       {error && (
         <p role="alert" className="text-[13px] font-medium text-flare-600">
@@ -136,7 +152,7 @@ export function CustomersTable({ initialRows, initialTotal }: Props) {
           <tbody>
             {rows.length === 0 ? (
               <tr>
-                <td colSpan={8} className="px-3 py-8 text-center text-muted">
+                <td colSpan={9} className="px-3 py-8 text-center text-muted">
                   {loading ? 'Loading…' : 'No customers match that search.'}
                 </td>
               </tr>
@@ -148,6 +164,12 @@ export function CustomersTable({ initialRows, initialTotal }: Props) {
                     {customer.pending_count > 0 && (
                       <span className="ml-2 rounded-md bg-flare-200/40 px-1.5 py-0.5 text-[11px] font-medium text-flare-600">
                         {customer.pending_count} unpaid
+                      </span>
+                    )}
+                    {customer.unresolved_booking && (
+                      <span className="mt-1 block text-[11px] text-flare-600">
+                        {customer.unresolved_booking.status === 'failed' ? 'Failed' : 'Pending'}
+                        {' · '}{customer.unresolved_booking.reference}{' · No ticket issued'}
                       </span>
                     )}
                   </Td>
@@ -216,7 +238,7 @@ export function CustomersTable({ initialRows, initialTotal }: Props) {
           <button
             type="button"
             disabled={page <= 1 || loading}
-            onClick={() => void load(page - 1, search, buyersOnly)}
+            onClick={() => void load(page - 1, search, filter)}
             className="btn-outline btn-sm px-3 py-1.5 text-[12px] disabled:opacity-40"
           >
             Previous
@@ -227,7 +249,7 @@ export function CustomersTable({ initialRows, initialTotal }: Props) {
           <button
             type="button"
             disabled={page >= pages || loading}
-            onClick={() => void load(page + 1, search, buyersOnly)}
+            onClick={() => void load(page + 1, search, filter)}
             className="btn-outline btn-sm px-3 py-1.5 text-[12px] disabled:opacity-40"
           >
             Next

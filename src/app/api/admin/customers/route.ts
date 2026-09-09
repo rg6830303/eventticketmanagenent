@@ -1,5 +1,5 @@
 import type { NextRequest } from 'next/server';
-import { handleError, ok } from '@/lib/api';
+import { fail, handleError, ok } from '@/lib/api';
 import { requireSession } from '@/lib/auth';
 import { listCustomers, customerStats } from '@/lib/customers';
 
@@ -21,6 +21,14 @@ export async function GET(request: NextRequest) {
     const url = new URL(request.url);
     const q = (url.searchParams.get('q') ?? '').trim();
     const buyersOnly = url.searchParams.get('buyers') === '1';
+    const ticketFilter = url.searchParams.get('tickets');
+    if (ticketFilter !== null && ticketFilter !== 'none') {
+      return fail('Invalid ticket filter.', 'invalid_filter');
+    }
+    const withoutTicketsOnly = ticketFilter === 'none';
+    if (buyersOnly && withoutTicketsOnly) {
+      return fail('Choose one customer filter.', 'invalid_filter');
+    }
     const page = Math.max(1, Number.parseInt(url.searchParams.get('page') ?? '1', 10) || 1);
     const limit = Math.min(
       500,
@@ -28,7 +36,7 @@ export async function GET(request: NextRequest) {
     );
 
     const [{ customers, total }, stats] = await Promise.all([
-      listCustomers({ search: q, buyersOnly, limit, offset: (page - 1) * limit }),
+      listCustomers({ search: q, buyersOnly, withoutTicketsOnly, limit, offset: (page - 1) * limit }),
       customerStats(),
     ]);
 

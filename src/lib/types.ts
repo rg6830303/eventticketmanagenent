@@ -194,6 +194,7 @@ export interface CustomerRow {
 
 /** A customer row plus the derived columns the admin list shows. */
 export interface CustomerWithBookings extends CustomerRow {
+  unresolved_booking: { reference: string; status: 'pending' | 'failed' } | null;
   last_reference: string | null;
   pending_count: number;
   checked_in_count: number;
