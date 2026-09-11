@@ -105,6 +105,7 @@ export function ReferralCodes({ initialCodes, initialTotals }: Props) {
               <Th className="text-right">Sold</Th>
               <Th className="text-right">Claimed</Th>
               <Th className="text-right">Revenue</Th>
+              <Th>By pass type</Th>
               <Th>Limit</Th>
               <Th className="text-right">Status</Th>
             </tr>
@@ -112,7 +113,7 @@ export function ReferralCodes({ initialCodes, initialTotals }: Props) {
           <tbody>
             {codes.length === 0 ? (
               <tr>
-                <td colSpan={8} className="px-3 py-8 text-center text-muted">
+                <td colSpan={9} className="px-3 py-8 text-center text-muted">
                   No referral codes yet. Create one above.
                 </td>
               </tr>
@@ -139,6 +140,9 @@ export function ReferralCodes({ initialCodes, initialTotals }: Props) {
                     )}
                   </Td>
                   <Td className="tnum text-right">{formatInr(Number(code.revenue_paise))}</Td>
+                  <Td>
+                    <TierSplit tiers={code.tiers} total={code.passes} />
+                  </Td>
                   <Td className="text-muted">
                     {code.max_uses === null ? 'Unlimited' : `${code.uses} / ${code.max_uses}`}
                   </Td>
@@ -460,5 +464,56 @@ function Td({
     <td title={title} className={cn('px-3 py-2.5 align-top text-slate', className)}>
       {children}
     </td>
+  );
+}
+
+/**
+ * What a code actually sold, split by pass type.
+ *
+ * Every type on sale is listed whether it sold any or not, because a row that
+ * shows only what moved cannot answer "did this code shift any group passes" —
+ * an absent row and a zero look the same, and only one of them is an answer.
+ * Zeros are dimmed so the eye still lands on what did sell.
+ *
+ * A retired type appears only when it has real sales behind it, so the split
+ * continues to add up to the sales figure beside it rather than quietly
+ * disagreeing with it.
+ */
+function TierSplit({
+  tiers,
+  total,
+}: {
+  tiers: ReferralCodeStats['tiers'];
+  total: number;
+}) {
+  if (!tiers || tiers.length === 0) return <span className="text-muted">&mdash;</span>;
+
+  return (
+    <div className="flex flex-col gap-1">
+      {/*
+        The total is stated here, and it is not the "Sold" figure beside it.
+        Sold counts bookings; this counts passes, and one booking can carry
+        several. Without saying so, a code reading 33 sold and 35 in the split
+        looks like an error in one of them — so the column carries its own
+        total and the two never appear to disagree.
+      */}
+      <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted">
+        {total} {total === 1 ? 'pass' : 'passes'}
+      </span>
+      {tiers.map((tier) => (
+        <span
+          key={tier.tierCode}
+          className={cn(
+            'whitespace-nowrap text-[12px]',
+            tier.passes === 0 ? 'text-muted/60' : 'text-ink',
+          )}
+          title={tier.onSale ? undefined : 'No longer sold'}
+        >
+          <span className="tnum font-semibold">{tier.passes}</span>{' '}
+          <span className={cn(tier.passes === 0 && 'font-normal')}>{tier.tierName}</span>
+          {!tier.onSale && <span className="ml-1 text-[10px] text-muted">retired</span>}
+        </span>
+      ))}
+    </div>
   );
 }

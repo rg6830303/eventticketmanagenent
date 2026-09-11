@@ -186,12 +186,61 @@ export interface ReferralCodeStats extends ReferralCodeRow {
   discount_given_paise: number;
   /** Passes sold through this code. */
   passes: number;
+  /** What those passes actually were, split by pass type. */
+  tiers: ReferralTierSplit[];
+}
+
+export interface ReferralTierSplit {
+  tierCode: string;
+  tierName: string;
+  passes: number;
+  /** False for a pass type no longer sold, kept because it has real sales. */
+  onSale: boolean;
 }
 
 /** Every code, newest first, with the numbers that matter to an operator. */
 export async function listReferralCodesWithStats(): Promise<ReferralCodeStats[]> {
+  const [rows, live] = await Promise.all([
+    referralRowsWithTierSales(),
+    query<{ code: string; name: string }>(
+      'SELECT code, name FROM ticket_tiers WHERE active = true ORDER BY sort_order ASC',
+    ).catch(() => []),
+  ]);
+
+  /*
+   * Every pass type on sale appears against every code, sold or not.
+   *
+   * A promoter's row that lists only what they happened to sell reads as though
+   * the others were never available to them. Showing all three with a zero is
+   * the answer to "did this code shift any group passes" — the query alone
+   * cannot say zero, because a row that does not exist looks identical to a
+   * question nobody asked.
+   *
+   * Retired types keep their place when they have real sales, so the split
+   * still adds up to the total beside it.
+   */
+  return rows.map((row) => {
+    const sold = new Map(row.tiers.map((t) => [t.tierCode, t]));
+    const padded: ReferralTierSplit[] = live.map(
+      (tier) =>
+        sold.get(tier.code) ?? {
+          tierCode: tier.code,
+          tierName: tier.name,
+          passes: 0,
+          onSale: true,
+        },
+    );
+    const retiredWithSales = row.tiers.filter(
+      (t) => !live.some((tier) => tier.code === t.tierCode) && t.passes > 0,
+    );
+    return { ...row, tiers: [...padded, ...retiredWithSales] };
+  });
+}
+
+async function referralRowsWithTierSales(): Promise<ReferralCodeStats[]> {
   return query<ReferralCodeStats>(
     `SELECT r.*,
+            COALESCE(tb.tiers, '[]'::jsonb)            AS tiers,
             COALESCE(s.sales, 0)::int                  AS sales,
             COALESCE(s.passes, 0)::int                 AS passes,
             COALESCE(s.revenue_paise, 0)::bigint       AS revenue_paise,
@@ -211,6 +260,36 @@ export async function listReferralCodesWithStats(): Promise<ReferralCodeStats[]>
            FROM bookings b
           WHERE upper(b.referral_code) = r.code AND b.status = 'pending'
        ) p ON true
+       /*
+        * What the code actually sold, by pass type.
+        *
+        * Grouped by tier_code and named from ticket_tiers, NOT from
+        * booking_items.tier_name. The line item snapshots the name at purchase,
+        * which is correct for a receipt and wrong here: the same tier has been
+        * sold as both "Normal Pass" and "General Access", and grouping by name
+        * splits one pass type across two rows that each look like half the
+        * truth. The code is the stable identity; the current name is the one
+        * the operator is thinking in.
+        */
+       LEFT JOIN LATERAL (
+         SELECT jsonb_agg(jsonb_build_object(
+                  'tierCode', x.tier_code,
+                  'tierName', x.tier_name,
+                  'passes',   x.passes,
+                  'onSale',   x.on_sale
+                ) ORDER BY x.on_sale DESC, x.passes DESC) AS tiers
+           FROM (
+             SELECT bi.tier_code,
+                    COALESCE(max(t.name), max(bi.tier_name)) AS tier_name,
+                    sum(bi.quantity)::int                    AS passes,
+                    COALESCE(bool_or(t.active), false)       AS on_sale
+               FROM bookings b
+               JOIN booking_items bi ON bi.booking_id = b.id
+               LEFT JOIN ticket_tiers t ON t.code = bi.tier_code
+              WHERE upper(b.referral_code) = r.code AND b.status = 'confirmed'
+              GROUP BY bi.tier_code
+           ) x
+       ) tb ON true
       ORDER BY COALESCE(s.sales, 0) DESC, r.created_at DESC`,
   );
 }
