@@ -1,6 +1,7 @@
 import { requireSession } from '@/lib/auth';
 import { listPublishedEvents } from '@/lib/bookings';
 import { QrScanner } from '@/components/admin/QrScanner';
+import { TicketLookup } from '@/components/admin/TicketLookup';
 
 export const dynamic = 'force-dynamic';
 
@@ -25,6 +26,13 @@ export default async function ScanPage() {
       </div>
 
       <QrScanner events={options} />
+
+      {/*
+        Below the scanner, not above it: the QR is the way in, and this is the
+        fallback for a customer who cannot show one. Putting it second keeps the
+        camera the obvious first move.
+      */}
+      <TicketLookup />
     </div>
   );
 }
