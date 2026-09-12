@@ -526,13 +526,30 @@ html[data-intro-seen='1'] #poster-intro {
 /* 2. Failsafe for the scroll reveals.
       `Reveal` genuinely needs JavaScript — it triggers on scroll position, and
       CSS cannot ask where the viewport is — so it still server-renders hidden.
-      PageTransition sets data-hydrated the moment React mounts; if that never
-      happens, nothing is coming to reveal these, so show them anyway.
+      That makes an invisible page the failure mode, and this is what stops it
+      being a permanent one.
 
       An animation rather than a plain rule because animations outrank inline
       styles in the cascade, and the hidden state is an inline style written by
-      framer-motion. The delay is long enough that a healthy page has hydrated
-      and dropped out of this selector well before it fires. */
+      framer-motion.
+
+      TWO rules, because there are two distinct ways this fails.
+
+      The first is the obvious one: the bundle never runs, nothing hydrates, and
+      nothing is ever coming to reveal anything.
+
+      The second is the one that actually reached customers. React mounted
+      perfectly — the menu worked — but the viewport observer never fired, so
+      every section sat at zero opacity with its content right there in the
+      HTML. The old failsafe keyed off hydration having happened, which that
+      page had done, so it stood down and left the site blank. Hydration is not
+      evidence that a reveal will happen; the only honest evidence is the reveal
+      itself, which is what data-shown records.
+
+      The second rule is slower on purpose. It has to outlast somebody reading
+      the top of the page before scrolling, or it would strip the animation off
+      content they were about to reach anyway. Four seconds of a section being
+      invisible is survivable; permanently invisible is not. */
 @keyframes reveal-failsafe {
   to {
     opacity: 1;
@@ -540,6 +557,12 @@ html[data-intro-seen='1'] #poster-intro {
   }
 }
 
+/* Nothing hydrated at all. */
 html:not([data-hydrated]) [data-reveal] {
-  animation: reveal-failsafe 0.4s linear 2.5s forwards;
+  animation: reveal-failsafe 0.4s linear 1.5s forwards;
+}
+
+/* Hydrated, but this particular section never revealed itself. */
+[data-reveal]:not([data-shown]) {
+  animation: reveal-failsafe 0.4s linear 4s forwards;
 }

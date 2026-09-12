@@ -1,6 +1,7 @@
 'use client';
 
 import { motion, useReducedMotion, type Variants } from 'framer-motion';
+import { useState } from 'react';
 import type { ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 
@@ -47,6 +48,20 @@ export function Reveal({
   const offset = OFFSETS[direction];
   const Component = motion[as];
 
+  /*
+   * Marks itself the moment it is actually revealed.
+   *
+   * The CSS failsafe below this component keys off the absence of this
+   * attribute, which is the only honest signal that a reveal happened. The
+   * previous version keyed off React having mounted, and those are not the same
+   * thing: on a browser where the component mounted but the viewport observer
+   * never fired — Brave with shields up being the case that surfaced it — the
+   * page hydrated, the failsafe saw a hydrated page, stood down, and every
+   * section stayed at zero opacity with the content sitting right there in the
+   * HTML. Hydration disarmed the guard that existed for exactly that failure.
+   */
+  const [shown, setShown] = useState(false);
+
   if (reduce) {
     return <div className={className}>{children}</div>;
   }
@@ -54,10 +69,12 @@ export function Reveal({
   return (
     <Component
       data-reveal=""
+      {...(shown ? { 'data-shown': '' } : {})}
       className={cn(className)}
       initial={{ opacity: 0, x: offset.x * distance, y: offset.y * distance }}
       whileInView={{ opacity: 1, x: 0, y: 0 }}
       viewport={{ once: !repeat, margin: '-80px 0px -80px 0px' }}
+      onViewportEnter={() => setShown(true)}
       transition={{
         duration: 0.7,
         delay,
