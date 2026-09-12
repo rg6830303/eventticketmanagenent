@@ -190,6 +190,22 @@ export async function createBooking(args: CreateBookingArgs): Promise<CreateBook
     if (event.status === 'draft' || event.status === 'archived') {
       throw new BookingError('Tickets are not on sale for this event', 'event_unavailable', 409);
     }
+    /*
+     * Sold out closes the shop without touching stock.
+     *
+     * Zeroing a tier's quantity would do it too and would also break the one
+     * thing that has to keep working — issuing a pass by hand from the console
+     * refuses when remaining stock is short of the quantity asked for. Stock is
+     * about inventory; this is about whether we are selling. Keeping them
+     * separate is what lets the door still issue a pass to somebody paying cash
+     * at the gate while the website turns everyone else away.
+     *
+     * issueBookingManually deliberately does not consult event status at all,
+     * so it is unaffected by this.
+     */
+    if (event.status === 'sold_out') {
+      throw new BookingError('Tickets are sold out', 'event_sold_out', 409);
+    }
     if (new Date(event.starts_at).getTime() < Date.now()) {
       throw new BookingError('This event has already happened', 'event_past', 409);
     }

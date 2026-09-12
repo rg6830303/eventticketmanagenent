@@ -31,7 +31,14 @@ export default async function OffCampusPage() {
   const onSale = tiers.filter((tier) => tier.remaining > 0);
   const fromPaise = onSale.length ? Math.min(...onSale.map((tier) => tier.pricePaise)) : null;
   const remaining = tiers.reduce((sum, tier) => sum + tier.remaining, 0);
-  const soldOut = tiers.length > 0 && remaining === 0;
+  /*
+   * Sold out is either answer: nothing left, or sales deliberately closed.
+   *
+   * The status is what closes the shop on the night, and it does so without
+   * zeroing any stock — the console still has to be able to issue a pass by
+   * hand, and that path refuses when a tier has no remaining quantity.
+   */
+  const soldOut = event?.status === 'sold_out' || (tiers.length > 0 && remaining === 0);
 
   /**
    * Structured data. Search results for a one-off event are the difference
