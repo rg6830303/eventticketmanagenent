@@ -1,8 +1,8 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
 import { listStorefrontTiers } from '@/lib/storefront-tiers';
-import { getEventBySlug, listTiers } from '@/lib/bookings';
-import { BRAND, EVENT, FEATURED_EVENT_SLUG, PARTNER, REFERRAL, TICKETING_FACTS } from '@/content/site';
+import { getFeaturedEvent, listUpcomingEvents } from '@/lib/events';
+import { BRAND, REFERRAL, TICKETING_FACTS } from '@/content/site';
 import { formatEventDate, formatEventTime, formatInr } from '@/lib/utils';
 import { Reveal } from '@/components/ui/Reveal';
 import { Marquee } from '@/components/ui/Marquee';
@@ -11,34 +11,48 @@ import { Countdown } from '@/components/ui/Countdown';
 import { PosterCard } from '@/components/event/PosterCard';
 import { ActivityGrid } from '@/components/event/ActivityGrid';
 import { Runsheet } from '@/components/event/Runsheet';
-import { TicketRail, type RailTier } from '@/components/event/TicketRail';
+import { TicketRail } from '@/components/event/TicketRail';
 import { StickyBuyBar } from '@/components/event/StickyBuyBar';
 import { PosterIntro } from '@/components/site/PosterIntro';
 import { HowItWorks } from '@/components/home/HowItWorks';
 import { Accordion } from '@/components/events/Accordion';
+import { NoEventYet } from '@/components/home/NoEventYet';
 
 export const dynamic = 'force-dynamic';
 
-export const metadata: Metadata = {
-  title: `${EVENT.name} ${EVENT.edition} — ${EVENT.dateLabel}, ${EVENT.venue.name}`,
-  description: BRAND.description,
-  alternates: { canonical: '/' },
-};
-
-const TICKER = [
-  'OFF CAMPUS',
-  "FRESHERS '26",
-  'KINGDOME KLUB',
-  '12.09.2026',
-  'NON-STOP DJ',
-  'FINANCIAL DISTRICT',
-  '12PM — 4PM',
-];
+export async function generateMetadata(): Promise<Metadata> {
+  const featured = await getFeaturedEvent().catch(() => null);
+  if (!featured) {
+    return { title: BRAND.name, description: BRAND.description, alternates: { canonical: '/' } };
+  }
+  const { row, dateLabel, edition } = featured;
+  const title = edition ? `${row.name} ${edition}` : row.name;
+  return {
+    title: `${title} — ${dateLabel}, ${row.venue_name}`,
+    description: row.description ?? BRAND.description,
+    alternates: { canonical: '/' },
+  };
+}
 
 export default async function HomePage() {
-  const event = await getEventBySlug(FEATURED_EVENT_SLUG).catch(() => null);
-  const tierRows = event ? await listTiers(event.id).catch(() => []) : [];
-  const tiers = await listStorefrontTiers(event?.id ?? null);
+  /*
+   * Whatever event the site is currently about.
+   *
+   * This used to be `getEventBySlug(FEATURED_EVENT_SLUG)` against a constant,
+   * which meant the home page went on selling a party after it had happened
+   * until somebody shipped a release. The rule is now a query: the next
+   * published date that has not finished, with a manual pin available. See
+   * lib/events.ts.
+   */
+  const featured = await getFeaturedEvent().catch(() => null);
+
+  // Nothing published at all — a fresh deployment, or every date archived.
+  // Better an honest "nothing announced" than a page describing an event that
+  // does not exist.
+  if (!featured) return <NoEventYet />;
+
+  const { row: event, content, dateLabel, dateShort, timeLabel, edition, isPast } = featured;
+  const tiers = await listStorefrontTiers(event.id);
 
   const onSale = tiers.filter((tier) => tier.remaining > 0);
   // Math.min() with no arguments is Infinity, so an all-sold-out event has to
@@ -52,10 +66,46 @@ export default async function HomePage() {
    * zeroing any stock — the console still has to be able to issue a pass by
    * hand, and that path refuses when a tier has no remaining quantity.
    */
-  const soldOut = event?.status === 'sold_out' || (tiers.length > 0 && remaining === 0);
+  const soldOut = event.status === 'sold_out' || (tiers.length > 0 && remaining === 0);
 
-  const dateLabel = event ? formatEventDate(event.starts_at) : EVENT.dateLabel;
-  const doorsLabel = event ? formatEventTime(event.doors_at ?? event.starts_at) : '12:00 PM';
+  /*
+   * A finished event is shown, never sold.
+   *
+   * The featured event falls back to the most recent past date when nothing is
+   * upcoming, so the site still has something to be about while the next one
+   * is being put together. Every buy affordance below is gated on this.
+   */
+  const sellable = !isPast && event.status !== 'cancelled';
+
+  const doorsLabel = formatEventTime(event.doors_at ?? event.starts_at);
+  const weekday = new Intl.DateTimeFormat('en-IN', {
+    weekday: 'long',
+    timeZone: 'Asia/Kolkata',
+  }).format(new Date(event.starts_at));
+
+  // The venue's address, from the editorial layer if it has one and from the
+  // row's own single-line address if not, so a freshly created event still
+  // prints somewhere to go.
+  const addressLines =
+    content.venue.addressLines.length > 0
+      ? content.venue.addressLines
+      : [event.venue_address, event.city].filter((line): line is string => Boolean(line));
+  const bookHref = `/book?event=${event.slug}`;
+  const eventHref = `/events/${event.slug}`;
+
+  const ticker =
+    content.ticker.length > 0
+      ? content.ticker
+      : [
+          event.name,
+          edition,
+          dateShort,
+          event.venue_name,
+          timeLabel,
+          event.city,
+        ]
+          .filter((line): line is string => Boolean(line && line.trim()))
+          .map((line) => line.toUpperCase());
 
   return (
     <>
@@ -78,7 +128,7 @@ export default async function HomePage() {
           <div className="grid items-center gap-14 lg:grid-cols-[1.05fr_0.95fr] lg:gap-12">
             <div>
               <Reveal>
-                <p className="kicker">{EVENT.presentedBy}</p>
+                <p className="kicker">{content.presentedBy}</p>
               </Reveal>
 
               <Reveal delay={0.06}>
@@ -92,29 +142,41 @@ export default async function HomePage() {
               </Reveal>
 
               <Reveal delay={0.12}>
-                <p className="lede mt-6 max-w-lg">{EVENT.subhead}</p>
+                <p className="lede mt-6 max-w-lg">{content.subhead}</p>
               </Reveal>
 
               <Reveal delay={0.18}>
                 <dl className="card mt-9 grid max-w-xl grid-cols-2 gap-px overflow-hidden bg-ink/[0.06] sm:grid-cols-4">
-                  <HeroFact label="Date" value={EVENT.dateShort} sub="Saturday" />
+                  <HeroFact label="Date" value={dateShort} sub={weekday} />
                   <HeroFact label="Time" value="12—4" sub="PM, sharp" />
-                  <HeroFact label="Venue" value="Kingdome" sub={EVENT.venue.area} />
+                  <HeroFact
+                    label="Venue"
+                    value={event.venue_name}
+                    sub={content.venue.area || event.city}
+                  />
                   <HeroFact label="Bar" value="Zero proof" sub="Non-alcoholic" />
                 </dl>
               </Reveal>
 
               <Reveal delay={0.24}>
                 <div className="mt-9 flex flex-wrap items-center gap-3">
-                  <Magnetic>
-                    <Link href="/book" className="btn-primary text-base">
-                      {soldOut
-                        ? 'Join the waitlist'
-                        : fromPaise !== null
-                          ? `Buy tickets — from ${formatInr(fromPaise)}`
-                          : 'Buy tickets'}
-                    </Link>
-                  </Magnetic>
+                  {sellable ? (
+                    <Magnetic>
+                      <Link href={bookHref} className="btn-primary text-base">
+                        {soldOut
+                          ? 'Join the waitlist'
+                          : fromPaise !== null
+                            ? `Buy tickets — from ${formatInr(fromPaise)}`
+                            : 'Buy tickets'}
+                      </Link>
+                    </Magnetic>
+                  ) : (
+                    <Magnetic>
+                      <Link href="/events" className="btn-primary text-base">
+                        See upcoming dates
+                      </Link>
+                    </Magnetic>
+                  )}
                   <Link href="#lineup" className="btn-outline text-base">
                     See what&apos;s on
                   </Link>
@@ -135,7 +197,15 @@ export default async function HomePage() {
 
             <Reveal delay={0.16} direction="none">
               <div className="flex justify-center lg:justify-end">
-                <PosterCard />
+                <PosterCard
+                  title={event.name}
+                  subtitle={event.tagline ?? edition ?? undefined}
+                  edition={edition || undefined}
+                  venue={
+                    content.venue.area ? `${event.venue_name}, ${content.venue.area}` : event.venue_name
+                  }
+                  dateLine={`${dateShort} · ${timeLabel}`}
+                />
               </div>
             </Reveal>
           </div>
@@ -158,7 +228,7 @@ export default async function HomePage() {
 
       <div className="shell">
         <div className="overflow-hidden rounded-pill bg-aurora shadow-glow">
-          <Marquee items={TICKER} speedSeconds={44} />
+          <Marquee items={ticker} speedSeconds={44} />
         </div>
       </div>
 
@@ -177,18 +247,18 @@ export default async function HomePage() {
               </div>
             </Reveal>
             <Reveal delay={0.08}>
-              <p className="lede mt-6">{EVENT.standfirst}</p>
+              <p className="lede mt-6">{content.standfirst}</p>
             </Reveal>
             <Reveal delay={0.14}>
               <div className="mt-6 space-y-4 text-[0.9375rem] leading-relaxed text-slate">
-                {EVENT.body.map((paragraph) => (
+                {content.body.map((paragraph) => (
                   <p key={paragraph.slice(0, 24)}>{paragraph}</p>
                 ))}
               </div>
             </Reveal>
             <Reveal delay={0.2}>
               <div className="mt-8 flex flex-wrap gap-3">
-                <Link href="/events/offcampus" className="btn-outline btn-sm">
+                <Link href={eventHref} className="btn-outline btn-sm">
                   Full event details
                 </Link>
                 <Link href="#tickets" className="btn-quiet">
@@ -208,7 +278,7 @@ export default async function HomePage() {
               </div>
             </Reveal>
             <div className="mt-8">
-              <Runsheet />
+              <Runsheet slots={content.runsheet} />
             </div>
           </div>
         </div>
@@ -235,12 +305,12 @@ export default async function HomePage() {
                 <p className="lede max-w-xl">
                   All of it is included with entry. Nothing here costs extra at the door.
                 </p>
-                <p className="chip chip-quiet">With {PARTNER.name}</p>
+                {event.venue_name && <p className="chip chip-quiet">At {event.venue_name}</p>}
               </div>
             </Reveal>
 
             <div className="mt-10">
-              <ActivityGrid />
+              <ActivityGrid activities={content.activities} />
             </div>
           </div>
         </div>
@@ -249,23 +319,24 @@ export default async function HomePage() {
       {/* ================================================================== */}
       {/* Tickets                                                             */}
       {/* ================================================================== */}
+      {sellable && (
       <section id="tickets" className="section shell" aria-labelledby="tickets-heading">
         <Reveal>
           <div className="edit-head">
             <h2 id="tickets-heading" className="h-section">
-              Final Phase pass pricing.
+              {soldOut ? 'Sold out.' : 'Pass pricing.'}
             </h2>
             <span className="edit-index">03 — Tickets</span>
           </div>
           <p className="lede mt-4 max-w-2xl">
-            Choose a solo pass, come as a group of five, or bring ten. Every Final Phase pass is
-            <strong className="text-ink"> zero redeemable</strong> — the price buys entry, and
-            nothing is credited at the bar.
+            {soldOut
+              ? 'Every tier has gone. Returns are posted on Instagram before anywhere else.'
+              : `Choose the pass that fits your group. A referral code takes a flat ₹${REFERRAL.discountRupees} off your cart.`}
           </p>
         </Reveal>
 
         <div className="mt-12">
-          <TicketRail tiers={tiers} showReferralNote={false} />
+          <TicketRail tiers={tiers} eventSlug={event.slug} showReferralNote={false} />
         </div>
 
         {/* Referral programme */}
@@ -288,6 +359,7 @@ export default async function HomePage() {
           </div>
         </Reveal>
       </section>
+      )}
 
       {/* ================================================================== */}
       {/* How booking works                                                   */}
@@ -340,24 +412,26 @@ export default async function HomePage() {
             <div>
               <div className="edit-head">
                 <h2 id="venue" className="h-section">
-                  {EVENT.venue.name}, {EVENT.venue.area}.
+                  {event.venue_name}
+                  {content.venue.area ? `, ${content.venue.area}` : ''}.
                 </h2>
                 <span className="edit-index">05 — Getting there</span>
               </div>
               <address className="mt-5 not-italic text-[1.0625rem] leading-relaxed text-slate">
-                {EVENT.venue.addressLines.map((line) => (
+                {addressLines.map((line) => (
                   <span key={line} className="block">
                     {line}
                   </span>
                 ))}
               </address>
               <p className="mt-4 text-[0.9375rem] leading-relaxed text-slate">
-                {EVENT.venue.landmark}. Cabs drop right at the entrance. On-site parking is limited
-                on the day, so a cab is usually the faster call.
+                {content.venue.landmark ? `${content.venue.landmark}. ` : ''}Cabs drop right at
+                the entrance. On-site parking is limited on the day, so a cab is usually the faster
+                call.
               </p>
               <div className="mt-8 flex flex-wrap gap-3">
                 <a
-                  href={EVENT.venue.mapsUrl}
+                  href={content.venue.mapsUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="btn-outline btn-sm"
@@ -382,7 +456,7 @@ export default async function HomePage() {
                 </span>
               </div>
               <ol className="divide-y divide-ink/[0.07]">
-                {EVENT.entryRules.map((rule, index) => (
+                {content.entryRules.map((rule, index) => (
                   <li key={rule} className="flex gap-4 px-6 py-4 text-[0.9375rem] leading-relaxed text-slate">
                     <span className="tnum mt-px shrink-0 font-mono text-[0.75rem] font-semibold text-vybe-600">
                       {String(index + 1).padStart(2, '0')}
@@ -422,7 +496,7 @@ export default async function HomePage() {
           </Reveal>
 
           <Reveal delay={0.08} className="relative">
-            <Accordion items={EVENT.faqs.map((faq) => ({ question: faq.q, answer: faq.a }))} />
+            <Accordion items={content.faqs.map((faq) => ({ question: faq.q, answer: faq.a }))} />
           </Reveal>
         </div>
       </section>
@@ -445,24 +519,30 @@ export default async function HomePage() {
 
             <div className="relative mx-auto max-w-2xl">
               <p className="chip chip-invert mx-auto">
-                {EVENT.dateShort} · {EVENT.venue.name} · {EVENT.timeLabel}
+                {dateShort} · {event.venue_name} · {timeLabel}
               </p>
               <h2 className="mt-6 font-display text-[clamp(2.125rem,5.5vw,3.75rem)] font-bold leading-[1.04] tracking-[-0.035em] text-white">
-                {soldOut ? 'That was quick.' : 'The room holds 400 people.'}
+                {!sellable
+                  ? 'That one is done.'
+                  : soldOut
+                    ? 'That was quick.'
+                    : `The room holds ${event.capacity.toLocaleString('en-IN')} people.`}
               </h2>
               <p className="mx-auto mt-5 max-w-md text-[1.0625rem] leading-relaxed text-vybe-100/90">
-                {soldOut
-                  ? 'Every ticket has gone. Returns get posted on Instagram first, so keep an eye there.'
-                  : 'Sales close on their own when it is full. Grab yours while there is one left.'}
+                {!sellable
+                  ? 'The next date goes on sale here first. Follow along and you will not miss it.'
+                  : soldOut
+                    ? 'Every ticket has gone. Returns get posted on Instagram first, so keep an eye there.'
+                    : 'Sales close on their own when it is full. Grab yours while there is one left.'}
               </p>
 
               <div className="mt-9 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
                 <Magnetic>
                   <Link
-                    href={soldOut ? BRAND.instagram : '/book'}
+                    href={!sellable ? BRAND.instagram : soldOut ? BRAND.instagram : bookHref}
                     className="btn btn-lg bg-white text-ink shadow-raise transition-transform hover:-translate-y-[2px] hover:shadow-float active:translate-y-0"
                   >
-                    {soldOut ? 'Follow for returns' : 'Buy your ticket'}
+                    {sellable && !soldOut ? 'Buy your ticket' : 'Follow for the next one'}
                   </Link>
                 </Magnetic>
                 <Link
@@ -481,7 +561,14 @@ export default async function HomePage() {
         </Reveal>
       </section>
 
-      <StickyBuyBar fromPaise={fromPaise} soldOut={soldOut} />
+      {sellable && (
+        <StickyBuyBar
+          fromPaise={fromPaise}
+          soldOut={soldOut}
+          title={`${event.name} · ${dateShort}`}
+          href={`${bookHref}#tickets`}
+        />
+      )}
     </>
   );
 }

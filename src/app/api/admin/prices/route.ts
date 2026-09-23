@@ -200,9 +200,12 @@ export async function PATCH(request: NextRequest) {
     // belt and braces against a CDN holding a rendered copy — the requirement
     // is that no old figure survives anywhere, and a stale price on one page is
     // the kind of thing a customer finds before anybody else does.
-    for (const path of ['/', '/events/offcampus', '/events', '/cart', '/book']) {
+    for (const path of ['/', '/events', '/cart', '/book']) {
       revalidatePath(path);
     }
+    // Every event page at once — the slug is not known here, and naming one
+    // was how a retired slug ended up being the only page ever refreshed.
+    revalidatePath('/events/[slug]', 'page');
 
     return ok({ tier, repriced });
   } catch (error) {

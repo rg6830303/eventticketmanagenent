@@ -61,7 +61,15 @@ export default function AboutPage() {
 
           <Reveal delay={0.1} direction="none" className="lg:sticky lg:top-28 lg:self-start">
             <div className="flex justify-center lg:justify-end">
-              <PosterCard className="max-w-[380px]" />
+              {/* Brand artwork rather than a listing — the about page is not
+                  selling a date, so it carries the house mark, not an event. */}
+              <PosterCard
+                title={BRAND.shortName}
+                subtitle="Houz of Vybe"
+                edition={BRAND.tagline}
+                venue={BRAND.city}
+                className="max-w-[380px]"
+              />
             </div>
           </Reveal>
         </div>

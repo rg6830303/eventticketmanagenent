@@ -29,6 +29,16 @@ export interface EventRow {
   age_limit: number;
   hero_image: string | null;
   status: EventStatus;
+  /** The sub-title beside the name: "Freshers '26". */
+  edition: string | null;
+  /**
+   * Pins this event to the home page. Normally false everywhere — the featured
+   * event is otherwise the next published one that has not finished, which is
+   * what an operator means by "the event" without having to maintain a flag.
+   */
+  featured: boolean;
+  /** The editorial layer. Shape and defaults live in lib/event-content.ts. */
+  content: Record<string, unknown>;
   created_at: string;
   updated_at: string;
 }

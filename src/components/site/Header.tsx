@@ -131,7 +131,7 @@ export function Header() {
 
             <div className="flex items-center gap-2">
               <Link
-                href="/events/offcampus#tickets"
+                href="/book"
                 className="btn-primary hidden px-6 py-3 text-[0.875rem] sm:inline-flex"
               >
                 Buy tickets
@@ -254,7 +254,7 @@ export function Header() {
                   transition={{ delay: 0.3 }}
                   className="mt-6"
                 >
-                  <Link href="/events/offcampus#tickets" className="btn-primary btn-lg w-full">
+                  <Link href="/book" className="btn-primary btn-lg w-full">
                     Buy tickets
                   </Link>
                   <p className="mt-4 text-center text-[0.8125rem] leading-relaxed text-muted">

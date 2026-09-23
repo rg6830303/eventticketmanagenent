@@ -48,7 +48,7 @@ export function CartClient({
 
   useEffect(() => {
     setHydrated(true);
-    setItems(loadCart());
+    setItems(loadCart(eventSlug));
     setReferralInput(window.localStorage.getItem(REFERRAL_KEY) ?? '');
   }, []);
 
@@ -59,12 +59,12 @@ export function CartClient({
 
   useEffect(() => {
     function sync() {
-      setItems(loadCart());
+      setItems(loadCart(eventSlug));
     }
 
     window.addEventListener('storage', sync);
     return () => window.removeEventListener('storage', sync);
-  }, []);
+  }, [eventSlug]);
 
   const cartRows = items
     .map((item) => {
@@ -139,18 +139,21 @@ export function CartClient({
   }, [referralInput, subtotal]);
 
   function updateQuantity(code: string, quantity: number) {
-    const next = setCartQuantity(code, quantity);
+    const next = setCartQuantity(eventSlug, code, quantity);
     setItems(next);
   }
 
   function addOne(code: string) {
-    const next = addToCart(code, 1);
+    const next = addToCart(eventSlug, code, 1);
     setItems(next);
   }
 
   function removeOne(code: string, quantity: number) {
     const nextQuantity = quantity - 1;
-    const next = nextQuantity > 0 ? setCartQuantity(code, nextQuantity) : removeFromCart(code);
+    const next =
+      nextQuantity > 0
+        ? setCartQuantity(eventSlug, code, nextQuantity)
+        : removeFromCart(eventSlug, code);
     setItems(next);
   }
 

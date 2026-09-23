@@ -47,7 +47,7 @@ export default function GalleryPage() {
                 your photos end up here.
               </p>
             </div>
-            <Link href="/events/offcampus" className="btn-primary shrink-0">
+            <Link href="/book" className="btn-primary shrink-0">
               See the event
             </Link>
           </div>

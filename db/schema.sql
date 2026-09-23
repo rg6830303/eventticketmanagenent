@@ -576,3 +576,103 @@ CREATE TABLE IF NOT EXISTS door_access (
   password_hash  TEXT NOT NULL,
   updated_at     TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+-- ===========================================================================
+-- Multi-event identity and customer accounts.
+--
+-- Appended, like everything above, so `npm run db:push` stays one idempotent
+-- script replayed top to bottom.
+-- ===========================================================================
+
+-- --------------------------------------------------------------------------
+-- events.content — the editorial layer, per event
+--
+-- The site used to read its headline, activities, runsheet, entry rules and
+-- FAQs from a hard-coded constant in src/content/site.ts. That was honest
+-- while there was exactly one event and it was never going to change, and it
+-- became a wall the moment a second one had to exist: launching a new date
+-- meant editing TypeScript and redeploying, and archiving the old one meant
+-- the site still described it in the present tense.
+--
+-- Shape is documented in src/lib/event-content.ts. Anything absent falls back
+-- to the defaults there, so a half-filled draft still renders a coherent page
+-- rather than a wall of `undefined`.
+-- --------------------------------------------------------------------------
+ALTER TABLE events ADD COLUMN IF NOT EXISTS content JSONB NOT NULL DEFAULT '{}'::jsonb;
+
+-- "Freshers '26" — the sub-title beside the event name.
+ALTER TABLE events ADD COLUMN IF NOT EXISTS edition TEXT;
+
+-- --------------------------------------------------------------------------
+-- events.featured — which event the home page sells
+--
+-- Normally nothing needs to set this: the featured event is the next published
+-- one that has not finished, which is what an operator means by "the event"
+-- 99% of the time and needs no maintenance as dates pass. The flag exists for
+-- the other 1% — two dates on sale at once and the bigger one should lead.
+--
+-- The partial unique index makes "featured" singular in the database rather
+-- than by convention, so two rows can never both claim the home page.
+-- --------------------------------------------------------------------------
+ALTER TABLE events ADD COLUMN IF NOT EXISTS featured BOOLEAN NOT NULL DEFAULT false;
+
+CREATE UNIQUE INDEX IF NOT EXISTS events_one_featured_idx ON events (featured) WHERE featured;
+
+CREATE INDEX IF NOT EXISTS events_starts_idx ON events (starts_at DESC);
+CREATE INDEX IF NOT EXISTS events_status_starts_idx ON events (status, starts_at);
+
+-- --------------------------------------------------------------------------
+-- Customer accounts
+--
+-- Bolted onto `customers` rather than given a table of their own, because a
+-- customer row already exists for everyone who has ever checked out as a
+-- guest. Signing up is therefore usually a *claim* of an existing row, and
+-- that is the whole point: the account shows the passes they already bought.
+--
+-- password_hash NULL means "guest" — a real customer with booking history and
+-- no way to sign in. Every account path treats NULL as "no account here".
+--
+-- email_verified_at is load-bearing, not a nicety. Because signup claims a row
+-- keyed on email alone, an unverified account is only ever a claim to own an
+-- address; until the mailbox proves it, the account is not shown the bookings
+-- or the QR passes attached to that row. Getting this wrong hands a stranger
+-- working tickets.
+-- --------------------------------------------------------------------------
+ALTER TABLE customers ADD COLUMN IF NOT EXISTS password_hash     TEXT;
+ALTER TABLE customers ADD COLUMN IF NOT EXISTS email_verified_at TIMESTAMPTZ;
+ALTER TABLE customers ADD COLUMN IF NOT EXISTS last_login_at     TIMESTAMPTZ;
+ALTER TABLE customers ADD COLUMN IF NOT EXISTS failed_logins     INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE customers ADD COLUMN IF NOT EXISTS locked_until      TIMESTAMPTZ;
+ALTER TABLE customers ADD COLUMN IF NOT EXISTS signed_up_at      TIMESTAMPTZ;
+
+-- Accounts only. A partial index so the guest rows, which are the majority,
+-- cost nothing to carry.
+CREATE INDEX IF NOT EXISTS customers_account_idx ON customers (lower(email))
+  WHERE password_hash IS NOT NULL;
+
+-- --------------------------------------------------------------------------
+-- customer_tokens — email verification and password resets
+--
+-- One table for both because they have identical mechanics and identical
+-- risks: a single-use, short-lived secret mailed to an address, which proves
+-- control of that mailbox.
+--
+-- Only the SHA-256 of the token is stored. The plaintext exists in the
+-- customer's inbox and nowhere else, so a leaked database backup cannot be
+-- replayed into account takeovers. `used_at` makes it single-use, and is a
+-- timestamp rather than a boolean because "when was this consumed" is the
+-- question support actually asks.
+-- --------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS customer_tokens (
+  token_hash   TEXT PRIMARY KEY,
+  customer_id  UUID NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
+  purpose      TEXT NOT NULL CHECK (purpose IN ('verify_email', 'reset_password')),
+  expires_at   TIMESTAMPTZ NOT NULL,
+  used_at      TIMESTAMPTZ,
+  ip_address   INET,
+  created_at   TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS customer_tokens_customer_idx
+  ON customer_tokens (customer_id, purpose, created_at DESC);
+CREATE INDEX IF NOT EXISTS customer_tokens_expiry_idx ON customer_tokens (expires_at);

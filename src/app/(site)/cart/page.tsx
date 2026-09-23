@@ -1,8 +1,8 @@
 import type { Metadata } from 'next';
-import { getEventBySlug, listTiers } from '@/lib/bookings';
+import { redirect } from 'next/navigation';
 import { env } from '@/lib/env';
 import { listStorefrontTiers } from '@/lib/storefront-tiers';
-import { EVENT, FEATURED_EVENT_SLUG } from '@/content/site';
+import { getFeaturedEvent, getPublicEvent } from '@/lib/events';
 import { formatEventDate, formatEventTime } from '@/lib/utils';
 import { CartClient } from '@/components/cart/CartClient';
 
@@ -10,29 +10,49 @@ export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
   title: 'Cart',
-  description: `Your selected ${EVENT.name} tickets, bill amount and referral discount.`,
+  description: 'Your selected tickets, bill amount and referral discount.',
   alternates: { canonical: '/cart' },
 };
 
-export default async function CartPage() {
-  const event = await getEventBySlug(FEATURED_EVENT_SLUG).catch(() => null);
-  const tierRows = event ? await listTiers(event.id).catch(() => []) : [];
-  // `admits` and `redeemable_paise` now live on the tier row, so the database is
-  // the single source of truth for what a pass is worth and how many people it
-  // lets in. The content constants are only a fallback for a deployment whose
-  // database is unreachable — a cart that renders nothing is worse than one
-  // that renders last-known prices and fails at checkout with a real message.
-  const tiers = await listStorefrontTiers(event?.id ?? null);
+/**
+ * The cart, for one event at a time.
+ *
+ * Which event is the same question the home page asks, with `?event=<slug>`
+ * honoured so a customer who followed a link from a specific date lands on
+ * that date's cart rather than whichever one happens to be featured. The cart
+ * in localStorage records the slug it was filled for and reads as empty for
+ * any other, so the two can never disagree about what is being bought.
+ */
+export default async function CartPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ event?: string }>;
+}) {
+  const { event: slug } = await searchParams;
+
+  const target = slug
+    ? await getPublicEvent(slug).catch(() => null)
+    : await getFeaturedEvent().catch(() => null);
+
+  if (!target) redirect('/events');
+
+  const { row: event, edition, isPast } = target;
+
+  // A finished event cannot be checked out. Sending them to the page rather
+  // than showing an uncheckoutable cart keeps the dead end in one place.
+  if (isPast) redirect(`/events/${event.slug}`);
+
+  const tiers = await listStorefrontTiers(event.id);
 
   return (
     <div className="relative">
       <div className="shell relative pb-24 pt-32 sm:pt-36">
         <CartClient
-          eventName={event ? `${event.name} ${event.tagline ?? ''}`.trim() : `${EVENT.name} ${EVENT.edition}`}
-          eventSlug={event?.slug ?? EVENT.slug}
+          eventName={edition ? `${event.name} ${edition}` : event.name}
+          eventSlug={event.slug}
           tiers={tiers}
-          eventDate={event ? formatEventDate(event.starts_at) : EVENT.dateLabel}
-          doorsAt={event ? formatEventTime(event.doors_at ?? event.starts_at) : '12:00 PM'}
+          eventDate={formatEventDate(event.starts_at)}
+          doorsAt={formatEventTime(event.doors_at ?? event.starts_at)}
           maxPasses={env.maxTicketsPerBooking}
           checkoutEnabled={env.paymentsEnabled && env.paymentProvider !== 'none'}
         />

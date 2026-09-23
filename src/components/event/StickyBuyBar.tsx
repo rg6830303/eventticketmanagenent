@@ -16,9 +16,14 @@ import { formatInr } from '@/lib/utils';
 export function StickyBuyBar({
   fromPaise,
   soldOut,
+  title,
+  href = '/book',
 }: {
   fromPaise: number | null;
   soldOut: boolean;
+  /** "OFF Campus · 12 Sep" — the bar has one line and it has to say which. */
+  title: string;
+  href?: string;
 }) {
   const { scrollY, scrollYProgress } = useScroll();
   const [visible, setVisible] = useState(false);
@@ -40,7 +45,7 @@ export function StickyBuyBar({
           <div className="surface-glass flex items-center justify-between gap-4 rounded-pill py-2 pl-5 pr-2">
             <div className="min-w-0">
               <p className="truncate font-display text-[0.9375rem] font-semibold text-ink">
-                OFF Campus · 12 Sep
+                {title}
               </p>
               <p className="tnum text-[0.75rem] text-slate">
                 {soldOut
@@ -50,7 +55,7 @@ export function StickyBuyBar({
                     : 'Tickets on sale'}
               </p>
             </div>
-            <Link href="/events/offcampus#tickets" className="btn-primary shrink-0 px-6 py-3.5 text-[0.875rem]">
+            <Link href={href} className="btn-primary shrink-0 px-6 py-3.5 text-[0.875rem]">
               {soldOut ? 'Join waitlist' : 'Buy tickets'}
             </Link>
           </div>

@@ -37,7 +37,9 @@ export const PARTNER = {
 export const FEATURED_EVENT_SLUG = 'offcampus';
 
 export const NAV_LINKS = [
-  { href: '/events/offcampus', label: 'The party' },
+  // `/book` and `/events` resolve whichever date is current — a nav that named
+  // a slug went stale the day that event was archived.
+  { href: '/events', label: 'The party' },
   { href: '/#lineup', label: "What's on" },
   { href: '/#tickets', label: 'Tickets' },
   { href: '/cart', label: 'Cart' },
@@ -48,7 +50,7 @@ export const NAV_LINKS = [
 
 export const FOOTER_LINKS = {
   'The party': [
-    { href: '/events/offcampus', label: 'OFF Campus 2026' },
+    { href: '/events', label: 'All dates' },
     { href: '/book', label: 'Buy tickets' },
     { href: '/cart', label: 'Cart' },
     { href: '/gallery', label: 'Gallery' },

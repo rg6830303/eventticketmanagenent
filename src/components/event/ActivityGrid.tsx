@@ -1,8 +1,13 @@
 'use client';
 
 import { motion, useReducedMotion } from 'framer-motion';
-import { EVENT } from '@/content/site';
 import { ACTIVITY_ICONS } from './ActivityIcons';
+
+export interface Activity {
+  title: string;
+  note: string;
+  icon?: string;
+}
 
 const EASE = [0.16, 1, 0.3, 1] as const;
 
@@ -18,13 +23,17 @@ const EASE = [0.16, 1, 0.3, 1] as const;
  * the primary button sitting two sections below it, which is backwards: azure
  * at full strength belongs to the thing you press.
  */
-export function ActivityGrid() {
+export function ActivityGrid({ activities }: { activities: readonly Activity[] }) {
   const reduce = useReducedMotion();
+
+  // An event with nothing listed renders nothing, rather than an empty ruled
+  // box that reads as a loading failure.
+  if (activities.length === 0) return null;
 
   return (
     <ol className="-mx-3 divide-y divide-ink/[0.07]">
-      {EVENT.activities.map((activity, index) => {
-        const Icon = ACTIVITY_ICONS[activity.icon] ?? ACTIVITY_ICONS.gift;
+      {activities.map((activity, index) => {
+        const Icon = ACTIVITY_ICONS[activity.icon ?? ''] ?? ACTIVITY_ICONS.gift;
         return (
           <motion.li
             data-reveal=""

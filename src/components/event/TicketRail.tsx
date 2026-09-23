@@ -38,9 +38,12 @@ const EASE = [0.16, 1, 0.3, 1] as const;
  */
 export function TicketRail({
   tiers,
+  eventSlug,
   showReferralNote = true,
 }: {
   tiers: RailTier[];
+  /** Tier codes are unique per event, so the cart has to know which one. */
+  eventSlug: string;
   /** Off where the page already carries a full referral callout of its own. */
   showReferralNote?: boolean;
 }) {
@@ -186,7 +189,7 @@ export function TicketRail({
                   type="button"
                   disabled={soldOut}
                   onClick={() => {
-                    addToCart(tier.code, 1);
+                    addToCart(eventSlug, tier.code, 1);
                     setRecentlyAdded((current) => ({ ...current, [tier.code]: true }));
                   }}
                   className={cn(

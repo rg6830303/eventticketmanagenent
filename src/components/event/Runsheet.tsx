@@ -2,7 +2,12 @@
 
 import { motion, useReducedMotion, useScroll, useTransform } from 'framer-motion';
 import { useRef } from 'react';
-import { EVENT } from '@/content/site';
+
+export interface RunsheetSlot {
+  time: string;
+  title: string;
+  copy: string;
+}
 
 /**
  * The four hours, in order.
@@ -11,7 +16,7 @@ import { EVENT } from '@/content/site';
  * in the page and their position in the afternoon are the same thing. The fill
  * is scroll-linked rather than a looping animation: it means something.
  */
-export function Runsheet() {
+export function Runsheet({ slots }: { slots: readonly RunsheetSlot[] }) {
   const ref = useRef<HTMLOListElement>(null);
   const reduce = useReducedMotion();
   const { scrollYProgress } = useScroll({
@@ -19,6 +24,8 @@ export function Runsheet() {
     offset: ['start 75%', 'end 55%'],
   });
   const fill = useTransform(scrollYProgress, [0, 1], ['0%', '100%']);
+
+  if (slots.length === 0) return null;
 
   return (
     <ol ref={ref} className="relative ml-1 space-y-8 border-l border-edge pl-8 sm:pl-10">
@@ -30,7 +37,7 @@ export function Runsheet() {
         />
       )}
 
-      {EVENT.runsheet.map((slot, index) => (
+      {slots.map((slot, index) => (
         <motion.li
           data-reveal=""
           key={slot.time}

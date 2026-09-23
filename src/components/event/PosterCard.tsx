@@ -3,7 +3,6 @@
 import { motion, useMotionValue, useReducedMotion, useSpring, useTransform } from 'framer-motion';
 import { useRef, type PointerEvent as ReactPointerEvent } from 'react';
 import { cn } from '@/lib/utils';
-import { EVENT } from '@/content/site';
 
 const SPRING = { stiffness: 150, damping: 20, mass: 0.6 };
 const MAX_TILT = 11;
@@ -20,7 +19,26 @@ const MAX_TILT = 11;
  * any display. Under reduced motion it renders as a still card, which is
  * exactly as informative.
  */
-export function PosterCard({ className }: { className?: string }) {
+export interface PosterCardProps {
+  /** Two lines of display type inside the heart: "OFF" over "Campus". */
+  title: string;
+  /** Set in the script face under the title. */
+  subtitle?: string;
+  /** The line above the venue in the card's foot. */
+  edition?: string;
+  venue?: string;
+  dateLine?: string;
+  className?: string;
+}
+
+export function PosterCard({
+  title,
+  subtitle,
+  edition,
+  venue,
+  dateLine,
+  className,
+}: PosterCardProps) {
   const ref = useRef<HTMLDivElement>(null);
   const reduce = useReducedMotion();
 
@@ -103,11 +121,13 @@ export function PosterCard({ className }: { className?: string }) {
           className="absolute inset-x-0 top-[28%] text-center"
         >
           <p className="font-display text-[clamp(1.25rem,4.5vw,1.75rem)] font-bold uppercase leading-none tracking-[0.06em] text-ink">
-            OFF
+            {title}
           </p>
-          <p className="accent mt-0.5 text-[clamp(2rem,7vw,2.75rem)] leading-[0.95] text-vybe-600">
-            Campus
-          </p>
+          {subtitle && (
+            <p className="accent mt-0.5 text-[clamp(2rem,7vw,2.75rem)] leading-[0.95] text-vybe-600">
+              {subtitle}
+            </p>
+          )}
         </motion.div>
 
         {/* Cherries — the one warm note in an otherwise blue frame. */}
@@ -132,15 +152,17 @@ export function PosterCard({ className }: { className?: string }) {
 
         {/* Foot of the card: the details that actually sell the ticket. */}
         <div className="absolute inset-x-0 bottom-0 bg-white/85 px-6 py-5 backdrop-blur-md ring-1 ring-inset ring-vybe-100">
-          <p className="font-mono text-[0.6875rem] uppercase tracking-[0.2em] text-vybe-600">
-            {EVENT.edition}
-          </p>
-          <p className="mt-1.5 font-display text-[1.0625rem] font-semibold leading-snug tracking-[-0.02em] text-ink">
-            {EVENT.venue.name}, {EVENT.venue.area}
-          </p>
-          <p className="tnum mt-0.5 text-[0.875rem] text-slate">
-            {EVENT.dateShort} · {EVENT.timeLabel}
-          </p>
+          {edition && (
+            <p className="font-mono text-[0.6875rem] uppercase tracking-[0.2em] text-vybe-600">
+              {edition}
+            </p>
+          )}
+          {venue && (
+            <p className="mt-1.5 font-display text-[1.0625rem] font-semibold leading-snug tracking-[-0.02em] text-ink">
+              {venue}
+            </p>
+          )}
+          {dateLine && <p className="tnum mt-0.5 text-[0.875rem] text-slate">{dateLine}</p>}
         </div>
       </motion.div>
     </div>
