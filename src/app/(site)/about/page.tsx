@@ -35,7 +35,7 @@ export default function AboutPage() {
         </div>
       </section>
 
-      <section className="section shell border-t border-edge">
+      <section className="section shell">
         <div className="grid gap-14 lg:grid-cols-[1.15fr_1fr] lg:gap-20">
           <div className="space-y-7">
             {ABOUT_STORY.paragraphs.map((paragraph, index) => (
@@ -52,7 +52,7 @@ export default function AboutPage() {
             ))}
 
             <Reveal delay={0.2}>
-              <p className="rounded-[16px] border border-edge bg-frost px-5 py-4 text-[0.9375rem] leading-relaxed text-slate">
+              <p className="rounded-lg bg-frost px-5 py-4 text-[0.9375rem] leading-relaxed text-slate ring-hair">
                 {EVENT.name} {EVENT.edition} is produced with {PARTNER.name} at {EVENT.venue.name},{' '}
                 {EVENT.venue.area}.
               </p>
@@ -67,8 +67,8 @@ export default function AboutPage() {
         </div>
       </section>
 
-      <section className="section slab">
-        <div className="shell">
+      <section className="shell">
+        <div className="slab section px-5 sm:px-8 lg:px-12">
           <Reveal>
             <div className="edit-head">
               <h2 className="h-section">Three things we do not bend on.</h2>
@@ -79,14 +79,14 @@ export default function AboutPage() {
           <Stagger className="mt-12 grid gap-5 lg:grid-cols-3">
             {ABOUT_STORY.values.map((value, index) => (
               <StaggerItem key={value.title}>
-                <div className="group h-full rounded-[20px] border border-edge bg-canvas p-7 transition-colors duration-300 hover:border-vybe-300 hover:bg-vybe-50">
-                  <div className="flex items-baseline justify-between">
-                    <p className="font-mono text-[0.6875rem] tracking-[0.2em] text-vybe-600">
+                <div className="card-lift group h-full p-7">
+                  <div className="flex items-center justify-between">
+                    <p className="tnum font-mono text-[0.6875rem] font-semibold tracking-[0.2em] text-vybe-600">
                       0{index + 1}
                     </p>
                     <span
                       aria-hidden
-                      className="h-px w-10 bg-vybe-300 transition-all duration-500 group-hover:w-16"
+                      className="h-[3px] w-10 rounded-pill bg-aurora-line transition-all duration-500 group-hover:w-16"
                     />
                   </div>
                   <h3 className="mt-5 font-display text-[1.25rem] font-semibold tracking-[-0.02em] text-ink">
@@ -115,8 +115,8 @@ export default function AboutPage() {
         <Stagger className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {TICKETING_FACTS.map((fact) => (
             <StaggerItem key={fact.label}>
-              <div className="panel h-full p-6">
-                <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.14em] text-muted">
+              <div className="card-lift h-full p-6">
+                <p className="font-mono text-[0.625rem] font-semibold uppercase tracking-[0.18em] text-vybe-700">
                   {fact.label}
                 </p>
                 <p className="mt-2 font-display text-[1.5rem] font-semibold leading-tight tracking-[-0.03em] text-ink">
@@ -131,11 +131,11 @@ export default function AboutPage() {
 
       <section className="shell pb-24">
         <Reveal>
-          <div className="relative overflow-hidden rounded-[28px] bg-ink px-6 py-16 text-center sm:px-12">
-            <span aria-hidden className="absolute inset-0 gridfield opacity-[0.18]" />
+          <div className="slab-deep px-6 py-16 text-center sm:px-12">
+            <span aria-hidden className="pointer-events-none absolute inset-0 gridfield opacity-30" />
             <span
               aria-hidden
-              className="absolute -top-24 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-vybe-500/40 blur-[90px]"
+              className="pointer-events-none absolute -top-24 left-1/2 h-72 w-72 -translate-x-1/2 rounded-pill bg-vybe-500/35 blur-[90px]"
             />
             <div className="relative">
               <h2 className="font-display text-[clamp(1.75rem,4.5vw,3rem)] font-bold leading-[1.04] tracking-[-0.035em] text-white">
@@ -149,14 +149,14 @@ export default function AboutPage() {
                 <Magnetic>
                   <Link
                     href="/book"
-                    className="btn inline-flex bg-white px-8 py-4 text-base text-ink shadow-mid hover:-translate-y-[2px] hover:bg-vybe-50"
+                    className="btn btn-lg bg-white text-ink shadow-raise transition-transform hover:-translate-y-[2px] hover:shadow-float active:translate-y-0"
                   >
                     Buy tickets
                   </Link>
                 </Magnetic>
                 <Link
                   href="/contact"
-                  className="btn inline-flex border border-white/25 px-8 py-4 text-base text-white hover:border-white/50"
+                  className="btn btn-lg bg-white/[0.08] text-white transition-colors hover:bg-white/[0.16]"
                 >
                   Work with us
                 </Link>

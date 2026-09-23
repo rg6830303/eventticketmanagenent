@@ -26,7 +26,7 @@ export function Runsheet() {
         <motion.span
           aria-hidden
           style={{ height: fill }}
-          className="absolute -left-px top-0 w-[2px] rounded-full bg-vybe-500"
+          className="absolute -left-px top-0 w-[2px] rounded-pill bg-aurora-line"
         />
       )}
 
@@ -42,7 +42,7 @@ export function Runsheet() {
         >
           <span
             aria-hidden
-            className="absolute -left-[38px] top-1.5 flex h-3 w-3 items-center justify-center rounded-full border-2 border-vybe-500 bg-canvas sm:-left-[46px]"
+            className="absolute -left-[38px] top-[7px] h-3 w-3 rounded-pill bg-paper shadow-[0_0_0_2px_theme(colors.vybe.500),0_0_0_6px_rgba(37,134,239,0.12)] sm:-left-[46px]"
           />
           <p className="tnum font-mono text-[0.8125rem] font-medium text-vybe-600">{slot.time}</p>
           <h3 className="mt-1 font-display text-[1.25rem] font-semibold tracking-[-0.02em] text-ink">

@@ -35,9 +35,9 @@ export function StickyBuyBar({
           animate={{ y: 0 }}
           exit={{ y: 90 }}
           transition={{ type: 'spring', stiffness: 320, damping: 32 }}
-          className="fixed inset-x-0 bottom-0 z-40 border-t-2 border-ink bg-paper px-4 py-3 lg:hidden"
+          className="fixed inset-x-3 bottom-3 z-40 lg:hidden"
         >
-          <div className="flex items-center justify-between gap-4">
+          <div className="surface-glass flex items-center justify-between gap-4 rounded-pill py-2 pl-5 pr-2">
             <div className="min-w-0">
               <p className="truncate font-display text-[0.9375rem] font-semibold text-ink">
                 OFF Campus · 12 Sep
@@ -50,7 +50,7 @@ export function StickyBuyBar({
                     : 'Tickets on sale'}
               </p>
             </div>
-            <Link href="/events/offcampus#tickets" className="btn-primary btn-sm shrink-0 py-3">
+            <Link href="/events/offcampus#tickets" className="btn-primary shrink-0 px-6 py-3.5 text-[0.875rem]">
               {soldOut ? 'Join waitlist' : 'Buy tickets'}
             </Link>
           </div>

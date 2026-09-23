@@ -57,7 +57,7 @@ export default async function AdminPaymentsPage() {
       </header>
 
       {!env.upi.enabled && (
-        <div className="card-print border-flare-500 p-4 text-[0.8125rem] leading-relaxed text-flare-600">
+        <div className="rounded-lg bg-flare-100 p-4 text-[0.8125rem] leading-relaxed text-flare-600 ring-1 ring-inset ring-flare-300">
           <p className="font-semibold">UPI_ENABLED is not set</p>
           <p className="mt-1.5">
             Customers cannot reach the UPI option, but anything claimed before it was switched off

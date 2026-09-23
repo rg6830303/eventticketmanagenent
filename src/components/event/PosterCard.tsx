@@ -56,7 +56,7 @@ export function PosterCard({ className }: { className?: string }) {
         onPointerMove={handleMove}
         onPointerLeave={reset}
         style={reduce ? undefined : { rotateX, rotateY, transformStyle: 'preserve-3d' }}
-        className="relative aspect-[4/5] w-full overflow-hidden rounded-[20px] border-2 border-ink bg-gradient-to-br from-vybe-50 via-paper to-frost shadow-press-lg"
+        className="relative aspect-[4/5] w-full overflow-hidden rounded-2xl bg-gradient-to-br from-vybe-50 via-paper to-frost shadow-loft ring-1 ring-inset ring-vybe-200"
       >
         {/* Halftone field, straight off the artwork. */}
         <span aria-hidden className="absolute inset-0 dotfield opacity-70" />
@@ -131,7 +131,7 @@ export function PosterCard({ className }: { className?: string }) {
         </motion.svg>
 
         {/* Foot of the card: the details that actually sell the ticket. */}
-        <div className="absolute inset-x-0 bottom-0 border-t-2 border-ink bg-paper px-6 py-5">
+        <div className="absolute inset-x-0 bottom-0 bg-white/85 px-6 py-5 backdrop-blur-md ring-1 ring-inset ring-vybe-100">
           <p className="font-mono text-[0.6875rem] uppercase tracking-[0.2em] text-vybe-600">
             {EVENT.edition}
           </p>

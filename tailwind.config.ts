@@ -5,12 +5,21 @@ import type { Config } from 'tailwindcss';
  *
  * The palette is a daylight one — the flagship event runs from noon, and a
  * midnight-black club site would be lying about what the afternoon feels like.
+ * The ground is blue, not white. Surfaces float on it and get their contrast
+ * from that relationship.
  *
- * The ground is blue, not white. White cards float on it and get their contrast
- * from that relationship; a white page with pale blue accents would flatten the
- * whole thing into a default template. One saturated azure carries every
- * action, a violet lifted off the event artwork appears only inside gradients,
- * and one warm red is reserved for scarcity and errors.
+ * The *colours* below are unchanged. Everything built on top of them was
+ * rebuilt: the previous system was a print pastiche — ink hairlines and hard
+ * offset shadows, a woodcut of a website. It photographed well and worked
+ * badly: every surface shouted at the same volume, so nothing could be
+ * emphasised, and on a phone the 1.5px black boxes stacked into a grid of
+ * cells with no depth to read.
+ *
+ * What replaces it is soft depth. One light source, shadows tinted with the
+ * ink rather than black, hairline rings instead of borders, and generous
+ * radii. Elevation now carries meaning: the further a surface is off the page,
+ * the more it matters. Colour is reserved for action — one azure gradient
+ * carries every primary CTA, and nothing else in the interface uses it.
  */
 const config: Config = {
   content: ['./src/**/*.{ts,tsx,mdx}'],
@@ -68,6 +77,7 @@ const config: Config = {
         // --- Signal: the cherry red off the poster. Never a large fill. ---
         flare: {
           DEFAULT: '#e1303c',
+          100: '#ffe9eb',
           200: '#ffd4d7',
           300: '#f88b93',
           400: '#ef5a65',
@@ -92,37 +102,75 @@ const config: Config = {
       letterSpacing: {
         tightest: '-0.045em',
       },
+      /**
+       * Radii as a named ramp rather than ad-hoc pixel values. Controls are
+       * `pill`; things that hold content step up with their size, so a modal
+       * is never as tight as the chip inside it.
+       */
+      borderRadius: {
+        xs: '8px',
+        sm: '10px',
+        md: '14px',
+        lg: '18px',
+        xl: '24px',
+        '2xl': '30px',
+        '3xl': '38px',
+        pill: '999px',
+      },
       backgroundImage: {
+        // The one gradient that means "this is the action".
+        aurora: 'linear-gradient(135deg, #2586ef 0%, #1268cd 55%, #6d3fd1 130%)',
+        'aurora-soft': 'linear-gradient(135deg, #dfeeff 0%, #f0f7ff 45%, #e2d5ff 120%)',
+        'aurora-line': 'linear-gradient(90deg, #2586ef, #18aec7 45%, #8b5cf0)',
+        'ink-deep': 'linear-gradient(150deg, #123f78 0%, #0a2138 60%, #0b2a4d 100%)',
+        sheen: 'linear-gradient(110deg, transparent 25%, rgba(255,255,255,0.55) 48%, transparent 70%)',
         'grid-blue':
           'linear-gradient(to right, rgba(37,134,239,0.09) 1px, transparent 1px), linear-gradient(to bottom, rgba(37,134,239,0.09) 1px, transparent 1px)',
-        sheen: 'linear-gradient(110deg, transparent 25%, rgba(255,255,255,0.55) 48%, transparent 70%)',
       },
       transitionTimingFunction: {
         out: 'cubic-bezier(0.16, 1, 0.3, 1)',
         spring: 'cubic-bezier(0.34, 1.4, 0.64, 1)',
       },
+      /**
+       * One light source, high and slightly forward. Every shadow is tinted
+       * with the ink (#0a2138) rather than black, so elevation reads as depth
+       * in a blue room instead of a grey smudge laid over it.
+       *
+       * `hair` → `soft` → `raise` → `float` → `loft` is the elevation ladder.
+       * Nothing should skip two rungs inside one screen.
+       */
       boxShadow: {
-        // Print shadows: solid offsets, no blur. A blurred drop shadow says
-        // "floating UI chrome"; a hard offset says "a card laid on a table",
-        // which is the whole visual argument of this system. Interactive
-        // things cast ink; large passive surfaces cast a paler blue so the
-        // page doesn't turn into a woodcut.
-        press: '3px 3px 0 0 #0a2138',
-        'press-lg': '5px 5px 0 0 #0a2138',
-        'press-sm': '2px 2px 0 0 #0a2138',
-        stamp: '6px 6px 0 0 rgba(15,83,164,0.16)',
-        'stamp-lg': '10px 10px 0 0 rgba(15,83,164,0.16)',
-        'stamp-blue': '6px 6px 0 0 #bcdcff',
+        hair: '0 0 0 1px rgba(10,33,56,0.06)',
+        soft: '0 1px 2px rgba(10,33,56,0.04), 0 4px 14px -4px rgba(10,33,56,0.08)',
+        raise:
+          '0 1px 2px rgba(10,33,56,0.04), 0 6px 16px -4px rgba(10,33,56,0.08), 0 14px 32px -12px rgba(10,33,56,0.12)',
+        float:
+          '0 2px 4px rgba(10,33,56,0.04), 0 12px 28px -8px rgba(10,33,56,0.12), 0 28px 60px -20px rgba(10,33,56,0.18)',
+        loft:
+          '0 4px 8px rgba(10,33,56,0.05), 0 20px 44px -12px rgba(10,33,56,0.16), 0 44px 96px -32px rgba(10,33,56,0.24)',
+        // Colour-bearing elevation: only the primary action gets it.
+        glow: '0 6px 16px -4px rgba(37,134,239,0.38), 0 14px 34px -12px rgba(37,134,239,0.34)',
+        'glow-lg': '0 10px 24px -6px rgba(37,134,239,0.45), 0 24px 52px -16px rgba(37,134,239,0.4)',
+        bevel: 'inset 0 1px 0 0 rgba(255,255,255,0.75)',
         ring: 'inset 0 0 0 1px rgba(194,216,238,0.9)',
-        bevel: 'inset 0 1px 0 0 rgba(255,255,255,0.9)',
-        // Legacy names still referenced by the admin console; mapped onto the
-        // print ramp so nothing there silently loses its elevation.
-        low: '3px 3px 0 0 rgba(15,83,164,0.12)',
-        mid: '6px 6px 0 0 rgba(15,83,164,0.16)',
-        high: '10px 10px 0 0 rgba(15,83,164,0.16)',
-        lift: '12px 12px 0 0 rgba(15,83,164,0.18)',
-        azure: '3px 3px 0 0 #0a2138',
-        'azure-lg': '5px 5px 0 0 #0a2138',
+        /* ---- Legacy names ----------------------------------------------
+           Names from the print system, still referenced in places that have
+           not been touched since. Remapped onto the ladder above so nothing
+           renders an offset black block by accident. */
+        press: '0 1px 2px rgba(10,33,56,0.04), 0 4px 14px -4px rgba(10,33,56,0.08)',
+        'press-sm': '0 1px 2px rgba(10,33,56,0.05)',
+        'press-lg':
+          '0 1px 2px rgba(10,33,56,0.04), 0 6px 16px -4px rgba(10,33,56,0.08), 0 14px 32px -12px rgba(10,33,56,0.12)',
+        stamp: '0 1px 2px rgba(10,33,56,0.04), 0 4px 14px -4px rgba(10,33,56,0.08)',
+        'stamp-lg':
+          '0 2px 4px rgba(10,33,56,0.04), 0 12px 28px -8px rgba(10,33,56,0.12), 0 28px 60px -20px rgba(10,33,56,0.18)',
+        'stamp-blue': '0 6px 16px -4px rgba(37,134,239,0.24)',
+        low: '0 1px 2px rgba(10,33,56,0.04), 0 4px 14px -4px rgba(10,33,56,0.08)',
+        mid: '0 1px 2px rgba(10,33,56,0.04), 0 6px 16px -4px rgba(10,33,56,0.08), 0 14px 32px -12px rgba(10,33,56,0.12)',
+        high: '0 2px 4px rgba(10,33,56,0.04), 0 12px 28px -8px rgba(10,33,56,0.12), 0 28px 60px -20px rgba(10,33,56,0.18)',
+        lift: '0 4px 8px rgba(10,33,56,0.05), 0 20px 44px -12px rgba(10,33,56,0.16)',
+        azure: '0 6px 16px -4px rgba(37,134,239,0.38)',
+        'azure-lg': '0 10px 24px -6px rgba(37,134,239,0.45)',
       },
       keyframes: {
         marquee: {
@@ -149,6 +197,16 @@ const config: Config = {
           from: { transform: 'rotate(0deg)' },
           to: { transform: 'rotate(360deg)' },
         },
+        // Slow parallax wander for the background blooms.
+        bloom: {
+          '0%,100%': { transform: 'translate3d(0,0,0) scale(1)' },
+          '50%': { transform: 'translate3d(2%,-3%,0) scale(1.06)' },
+        },
+        // Used by loading rows and the skeleton state.
+        shimmer: {
+          from: { transform: 'translateX(-100%)' },
+          to: { transform: 'translateX(100%)' },
+        },
       },
       animation: {
         marquee: 'marquee 38s linear infinite',
@@ -157,6 +215,8 @@ const config: Config = {
         breathe: 'breathe 6s ease-in-out infinite',
         ping2: 'ping2 2.2s cubic-bezier(0,0,0.2,1) infinite',
         'spin-slow': 'spinSlow 40s linear infinite',
+        bloom: 'bloom 22s ease-in-out infinite',
+        shimmer: 'shimmer 1.8s ease-in-out infinite',
       },
     },
   },

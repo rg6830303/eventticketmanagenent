@@ -82,7 +82,7 @@ export function UpiClaimQueue({ claims }: { claims: UpiClaimItem[] }) {
 
   if (claims.length === 0) {
     return (
-      <div className="card-print p-8 text-center">
+      <div className="card p-8 text-center">
         <p className="h-card">Nothing waiting</p>
         <p className="mt-2 text-[0.875rem] text-slate">
           UPI payments customers have declared show up here for you to confirm.
@@ -109,8 +109,8 @@ export function UpiClaimQueue({ claims }: { claims: UpiClaimItem[] }) {
 
           return (
             <li key={claim.id}>
-              <div className="card-print overflow-hidden">
-                <div className="flex flex-wrap items-center justify-between gap-3 border-b-[1.5px] border-ink bg-vybe-100 px-5 py-3">
+              <div className="card overflow-hidden">
+                <div className="flex flex-wrap items-center justify-between gap-3 bg-aurora-soft px-5 py-3">
                   <Link
                     href={`/booking/${claim.reference}`}
                     className="font-mono text-[0.8125rem] font-medium tracking-[0.08em] text-ink underline-offset-4 hover:underline"

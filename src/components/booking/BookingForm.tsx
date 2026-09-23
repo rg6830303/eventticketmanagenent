@@ -298,11 +298,11 @@ export function BookingForm({
                 <label
                   key={tier.code}
                   className={cn(
-                    'relative flex cursor-pointer items-start gap-4 rounded-[14px] border-[1.5px] bg-paper p-5 transition-all duration-200',
+                    'relative flex cursor-pointer items-start gap-4 rounded-lg p-5 transition-[background-color,box-shadow,transform] duration-200',
                     selected
-                      ? 'border-ink shadow-press'
-                      : 'border-ink/25 hover:border-ink/60',
-                    soldOut && 'cursor-not-allowed opacity-50 hover:border-ink/25',
+                      ? 'bg-vybe-50 shadow-raise'
+                      : 'bg-paper shadow-soft hover:-translate-y-[2px] hover:shadow-raise',
+                    soldOut && 'cursor-not-allowed opacity-50 hover:translate-y-0 hover:shadow-soft',
                   )}
                 >
                   {/* One travelling outline rather than four static ones, so the
@@ -312,7 +312,7 @@ export function BookingForm({
                       aria-hidden
                       layoutId="tier-outline"
                       transition={{ type: 'spring', stiffness: 420, damping: 36 }}
-                      className="pointer-events-none absolute inset-0 rounded-[14px] ring-2 ring-vybe-500/50"
+                      className="pointer-events-none absolute inset-0 rounded-lg ring-2 ring-inset ring-vybe-500"
                     />
                   )}
                   <input
@@ -343,7 +343,7 @@ export function BookingForm({
                         {tier.perks.map((perk) => (
                           <span
                             key={perk}
-                            className="rounded-[6px] border border-ink/25 bg-frost px-2 py-0.5 font-mono text-[0.625rem] uppercase tracking-[0.06em] text-slate"
+                            className="rounded-pill bg-white/70 px-2.5 py-1 font-mono text-[0.625rem] font-semibold uppercase tracking-[0.06em] text-slate ring-hair"
                           >
                             {perk}
                           </span>
@@ -373,7 +373,7 @@ export function BookingForm({
         <section aria-labelledby="step-qty">
           <StepHeading id="step-qty" number="02" title="How many of you?" />
           <div className="mt-4 flex flex-wrap items-center gap-5">
-            <div className="flex items-center gap-1 rounded-[12px] border-[1.5px] border-ink bg-paper p-1 shadow-press-sm">
+            <div className="flex items-center gap-1 rounded-pill bg-paper p-1.5 shadow-soft ring-hair">
               <StepButton
                 label="Remove one ticket"
                 onClick={() => setQuantity((q) => Math.max(1, q - 1))}
@@ -578,8 +578,8 @@ export function BookingForm({
 
             <label
               className={cn(
-                'flex cursor-pointer items-start gap-3 rounded-[12px] border-[1.5px] p-4 transition-colors',
-                consent ? 'border-ink bg-vybe-50 shadow-press-sm' : 'border-ink/25 bg-paper',
+                'flex cursor-pointer items-start gap-3 rounded-lg p-4 transition-[background-color,box-shadow] duration-200',
+                consent ? 'bg-vybe-50 ring-1 ring-inset ring-vybe-300' : 'bg-frost ring-hair-strong',
               )}
             >
               <input
@@ -661,8 +661,8 @@ function StepHeading({
   optional?: boolean;
 }) {
   return (
-    <h2 id={id} className="flex items-center gap-3 border-t-2 border-ink pt-5">
-      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[8px] border-[1.5px] border-ink bg-vybe-100 font-mono text-[0.75rem] font-medium text-ink shadow-press-sm">
+    <h2 id={id} className="flex items-center gap-3">
+      <span className="tnum flex h-8 w-8 shrink-0 items-center justify-center rounded-pill bg-aurora font-mono text-[0.75rem] font-bold text-white shadow-glow">
         {number}
       </span>
       <span className="font-display text-[1.15rem] font-semibold tracking-[-0.02em] text-ink">
@@ -762,7 +762,7 @@ function StepButton({
       onClick={onClick}
       disabled={disabled}
       aria-label={label}
-      className="flex h-10 w-10 items-center justify-center rounded-[9px] text-xl text-ink transition-colors hover:bg-vybe-100 disabled:opacity-25"
+      className="flex h-10 w-10 items-center justify-center rounded-pill text-xl text-ink transition-colors hover:bg-vybe-50 disabled:opacity-25"
     >
       {children}
     </button>

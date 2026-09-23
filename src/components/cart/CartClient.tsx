@@ -198,8 +198,8 @@ export function CartClient({
               const scarce = tier.remaining > 0 && quantity > tier.remaining;
 
               return (
-                <article key={code} className="panel overflow-hidden p-0">
-                  <div className="border-b border-ink/15 bg-vybe-100 px-5 py-3">
+                <article key={code} className="card overflow-hidden">
+                  <div className="bg-aurora-soft px-5 py-3">
                     <div className="flex items-baseline justify-between gap-3">
                       <p className="font-display text-[1.05rem] font-semibold text-ink">{tier.name}</p>
                       <p className="tnum font-display text-[1rem] font-semibold text-ink">
@@ -228,7 +228,7 @@ export function CartClient({
                         <button
                           type="button"
                           onClick={() => removeOne(code, quantity)}
-                          className="flex h-9 w-9 items-center justify-center rounded-[9px] border border-ink text-ink transition-colors hover:bg-vybe-100"
+                          className="btn-icon h-9 w-9 text-lg"
                           aria-label={`Remove one ${tier.name} ticket`}
                         >
                           −
@@ -239,7 +239,7 @@ export function CartClient({
                         <button
                           type="button"
                           onClick={() => addOne(code)}
-                          className="flex h-9 w-9 items-center justify-center rounded-[9px] border border-ink text-ink transition-colors hover:bg-vybe-100"
+                          className="btn-icon h-9 w-9 text-lg"
                           aria-label={`Add one more ${tier.name} ticket`}
                         >
                           +
@@ -259,7 +259,7 @@ export function CartClient({
                       </p>
                     )}
 
-                    <div className="flex flex-wrap items-center justify-between gap-3 border-t border-ink/15 pt-4">
+                    <div className="flex flex-wrap items-center justify-between gap-3 border-t border-ink/[0.07] pt-4">
                       <p className="font-mono text-[0.6875rem] uppercase tracking-[0.16em] text-muted">
                         {code}
                       </p>
@@ -280,9 +280,9 @@ export function CartClient({
       </section>
 
       <aside className="lg:sticky lg:top-28 lg:self-start">
-        <div className="card-print overflow-hidden">
-          <div className="border-b-[1.5px] border-ink bg-vybe-100 px-6 py-4">
-            <p className="font-mono text-[0.6875rem] font-medium uppercase tracking-[0.22em] text-ink">
+        <div className="card-feature overflow-hidden">
+          <div className="bg-aurora-soft px-6 py-4">
+            <p className="font-mono text-[0.6875rem] font-semibold uppercase tracking-[0.22em] text-vybe-700">
               Bill summary
             </p>
             <p className="mt-2 font-display text-[1.2rem] font-semibold text-ink">

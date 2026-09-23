@@ -129,10 +129,10 @@ export function UpiCheckout({
         initial={reduce ? false : { opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.45, ease: EASE }}
-        className="card-print overflow-hidden"
+        className="card overflow-hidden"
         aria-live="polite"
       >
-        <div className="flex items-center justify-between border-b-[1.5px] border-ink bg-amber-100 px-6 py-3.5">
+        <div className="flex items-center justify-between bg-amber-50 px-6 py-3.5">
           <p className="font-mono text-[0.6875rem] font-medium uppercase tracking-[0.2em] text-amber-800">
             Pending verification
           </p>
@@ -149,13 +149,13 @@ export function UpiCheckout({
             always before doors. The QR codes are emailed the moment that happens.
           </p>
 
-          <dl className="mt-6 border-t-2 border-ink">
+          <dl className="mt-6 border-t border-ink/10">
             <Row label="Booking" value={reference} mono />
             <Row label="UTR you gave us" value={formatUtr(utr)} mono />
             <Row label="Amount" value={formatInr(amountPaise)} />
           </dl>
 
-          <p className="mt-6 rounded-[10px] border-[1.5px] border-ink/25 bg-frost px-4 py-3 text-[0.8125rem] leading-relaxed text-slate">
+          <p className="mt-6 rounded-[10px] border border-ink/10 bg-frost px-4 py-3 text-[0.8125rem] leading-relaxed text-slate">
             Nothing else to do. Do not pay again — if anything looks wrong we will email you rather
             than take a second payment.
           </p>
@@ -166,8 +166,8 @@ export function UpiCheckout({
 
   /* ------------------------------------------------------------------- pay */
   return (
-    <div className="card-print overflow-hidden">
-      <div className="flex items-center justify-between border-b-[1.5px] border-ink bg-vybe-100 px-6 py-3.5">
+    <div className="card overflow-hidden">
+      <div className="flex items-center justify-between bg-aurora-soft px-6 py-3.5">
         <p className="font-mono text-[0.6875rem] font-medium uppercase tracking-[0.2em] text-ink">
           Pay by UPI
         </p>
@@ -200,7 +200,7 @@ export function UpiCheckout({
                 margin, and a QR bleeding into a coloured card fails on a real
                 share of Android cameras. */}
             <div className="mt-6 flex justify-center">
-              <div className="rounded-[14px] border-[1.5px] border-ink bg-white p-4 shadow-press">
+              <div className="rounded-lg bg-white p-4 shadow-raise ring-hair">
                 {/* eslint-disable-next-line @next/next/no-img-element -- a data: URL has nothing for next/image to optimise. */}
                 <img
                   src={qrDataUrl}
@@ -224,13 +224,13 @@ export function UpiCheckout({
               </a>
             )}
 
-            <div className="mt-5 border-t-2 border-ink pt-5">
+            <div className="mt-5 border-t border-ink/10 pt-5">
               <p className="font-mono text-[0.6875rem] uppercase tracking-[0.18em] text-vybe-700">
                 Or pay this UPI ID
               </p>
               {/* The VPA gets its own row and wraps rather than truncating:
                   people retype this by hand, and "sh.kavy…" is unusable. */}
-              <code className="mt-2 block break-all rounded-[9px] border-[1.5px] border-ink/25 bg-frost px-3 py-2.5 font-mono text-[0.875rem] text-ink">
+              <code className="mt-2 block break-all rounded-[9px] border border-ink/10 bg-frost px-3 py-2.5 font-mono text-[0.875rem] text-ink">
                 {vpa}
               </code>
               <div className="mt-2 flex gap-2">
@@ -317,7 +317,7 @@ export function UpiCheckout({
               {error && (
                 <p
                   role="alert"
-                  className="mt-3 rounded-[10px] border-[1.5px] border-flare-500 bg-flare-200/50 px-4 py-3 text-[0.8125rem] leading-relaxed text-flare-600"
+                  className="mt-3 rounded-md bg-flare-100 px-4 py-3 text-[0.8125rem] leading-relaxed text-flare-600 ring-1 ring-inset ring-flare-300"
                 >
                   {error}
                 </p>
@@ -352,7 +352,7 @@ export function UpiCheckout({
 
 function Row({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
   return (
-    <div className="flex items-baseline justify-between gap-4 border-b border-ink/15 py-3">
+    <div className="flex items-baseline justify-between gap-4 border-b border-ink/[0.07] py-3">
       <dt className="font-mono text-[0.6875rem] uppercase tracking-[0.14em] text-muted">{label}</dt>
       <dd className={cn('text-right font-medium text-ink', mono && 'font-mono tracking-[0.08em]')}>
         {value}

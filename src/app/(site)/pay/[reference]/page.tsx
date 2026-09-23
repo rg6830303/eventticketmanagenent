@@ -153,7 +153,7 @@ export default async function PayPage({
           {/* ---------------- Order ---------------- */}
           <Reveal delay={0.06}>
             <div className="panel-raised overflow-hidden">
-              <div className="flex items-start justify-between gap-4 border-b-[1.5px] border-ink bg-vybe-100 px-6 py-5">
+              <div className="flex items-start justify-between gap-4 bg-aurora-soft px-6 py-5">
                 <div>
                   <p className="font-mono text-[0.6875rem] font-medium uppercase tracking-[0.22em] text-ink">
                     Your order
@@ -196,7 +196,7 @@ export default async function PayPage({
                 <p className="text-[0.75rem] text-muted">
                   All taxes and platform fees included. Charged once, in INR.
                 </p>
-                <div aria-hidden className="mt-4 flex items-center justify-between gap-4 border-t-[1.5px] border-ink pt-4">
+                <div aria-hidden className="mt-4 flex items-center justify-between gap-4 border-t border-ink/10 pt-4">
                   <span className="barcode h-6 w-28 opacity-70" />
                   <span className="font-mono text-[0.625rem] uppercase tracking-[0.2em] text-muted">
                     {booking.reference}
@@ -210,7 +210,7 @@ export default async function PayPage({
           <Reveal delay={0.12}>
             <div className="sticky top-24 space-y-6">
               {env.paymentsEnabled && (
-                <div className="card-print p-6">
+                <div className="card p-6">
                   {/* Which rail is live is decided by which keys are set, not
                       by a flag that can disagree with them — see env.paymentProvider. */}
                   {/* One card rail. `?via=upi` is set when the session endpoint
@@ -232,7 +232,7 @@ export default async function PayPage({
                     />
                   )}
 
-                  <div className="mt-6 border-t-2 border-ink pt-5">
+                  <div className="mt-6 border-t border-ink/10 pt-5">
                     <p className="font-mono text-[0.6875rem] uppercase tracking-[0.18em] text-vybe-700">
                       Pay with
                     </p>
@@ -240,7 +240,7 @@ export default async function PayPage({
                       {['UPI', 'Cards', 'Net banking', 'Wallets'].map((method) => (
                         <li
                           key={method}
-                          className="rounded-[8px] border border-ink/25 bg-frost px-2.5 py-1.5 font-mono text-[0.6875rem] uppercase tracking-[0.08em] text-slate"
+                          className="rounded-[8px] border border-ink/10 bg-frost px-2.5 py-1.5 font-mono text-[0.6875rem] uppercase tracking-[0.08em] text-slate"
                         >
                           {method}
                         </li>
@@ -288,7 +288,7 @@ export default async function PayPage({
                 * exactly which variables are missing.
                 */}
               {!env.paymentsEnabled && !upiEnabled && (
-                <div className="card-print border-flare-500 p-5 text-[0.8125rem] leading-relaxed text-flare-600">
+                <div className="rounded-lg bg-flare-100 p-5 text-[0.8125rem] leading-relaxed text-flare-600 ring-1 ring-inset ring-flare-300">
                   <p className="font-semibold">Payment is temporarily unavailable</p>
                   <p className="mt-1.5">
                     This is a problem at our end, not yours. Nothing has been charged and your
@@ -304,7 +304,7 @@ export default async function PayPage({
                 </div>
               )}
 
-              <div className="card-print p-6">
+              <div className="card p-6">
               <ul className="space-y-3 text-[0.8125rem] text-slate">
                 <Assurance>Your seats are reserved while this page is open.</Assurance>
                 {/* "Within a minute" is true of the gateway, which confirms
@@ -320,7 +320,7 @@ export default async function PayPage({
                 <Assurance>Full refund if we cancel or move the date.</Assurance>
               </ul>
 
-              <p className="mt-6 border-t-2 border-ink pt-5 text-[0.75rem] leading-relaxed text-muted">
+              <p className="mt-6 border-t border-ink/10 pt-5 text-[0.75rem] leading-relaxed text-muted">
                 Stuck on this step? Email{' '}
                 <a href={`mailto:${BRAND.supportEmail}`} className="link-swipe font-medium">
                   {BRAND.supportEmail}

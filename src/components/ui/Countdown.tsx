@@ -40,14 +40,11 @@ export function Countdown({
     return (
       <div
         className={cn(
-          'flex items-center justify-center gap-3 rounded-[12px] border-[1.5px] border-ink bg-leaf-100 px-6 py-4 shadow-press-sm',
+          'flex items-center justify-center gap-3 rounded-pill bg-leaf-100 px-6 py-4 ring-1 ring-inset ring-leaf-400/40',
           className,
         )}
       >
-        <span className="relative flex h-2.5 w-2.5">
-          <span className="absolute inline-flex h-full w-full animate-ping2 rounded-full bg-leaf-400" />
-          <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-leaf-500" />
-        </span>
+        <span aria-hidden className="pip" />
         <span className="font-display text-[1.0625rem] font-semibold text-leaf-600">
           Doors are open
         </span>
@@ -61,7 +58,7 @@ export function Countdown({
         <div
           key={unit.label}
           className={cn(
-            'flex flex-1 flex-col items-center rounded-[12px] border-[1.5px] border-ink bg-paper shadow-press-sm',
+            'flex flex-1 flex-col items-center rounded-lg bg-paper shadow-soft ring-1 ring-inset ring-vybe-100',
             compact ? 'px-2 py-2.5' : 'min-w-[68px] px-2 py-3.5 sm:min-w-[82px]',
           )}
         >
@@ -76,7 +73,7 @@ export function Countdown({
           </span>
           <span
             className={cn(
-              'mt-1.5 font-mono uppercase tracking-[0.16em] text-muted',
+              'mt-2 font-mono font-semibold uppercase tracking-[0.16em] text-muted',
               compact ? 'text-[0.5625rem]' : 'text-[0.625rem]',
             )}
           >

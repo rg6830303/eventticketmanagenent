@@ -189,8 +189,8 @@ export function CartCheckout({
           : `Pay ${formatInr(totalPaise)}`;
 
   return (
-    <form onSubmit={submit} noValidate className="card-print mt-6 overflow-hidden">
-      <div className="border-b-[1.5px] border-ink bg-vybe-100 px-6 py-4">
+    <form onSubmit={submit} noValidate className="card mt-6 overflow-hidden">
+      <div className="bg-aurora-soft px-6 py-4">
         <p className="font-mono text-[0.6875rem] font-medium uppercase tracking-[0.22em] text-ink">
           Checkout
         </p>
@@ -274,7 +274,7 @@ export function CartCheckout({
         </label>
       </div>
 
-      <div className="border-t-[1.5px] border-ink px-6 py-5">
+      <div className="border-t border-ink/10 px-6 py-5">
         {overLimit ? (
           <p className="rounded-xl border border-flare-300 bg-flare-200/30 px-4 py-3 text-[0.8125rem] leading-relaxed text-flare-600">
             <span className="font-semibold">

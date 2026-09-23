@@ -109,7 +109,7 @@ export default async function OffCampusPage() {
                 <p className="kicker">{EVENT.presentedBy}</p>
                 <h1 className="h-hero mt-5">
                   {EVENT.name}{' '}
-                  <span className="accent block text-vybe-600 sm:inline">{EVENT.edition}</span>
+                  <span className="accent gradient-text block sm:inline">{EVENT.edition}</span>
                 </h1>
               </Reveal>
 
@@ -118,7 +118,7 @@ export default async function OffCampusPage() {
               </Reveal>
 
               <Reveal delay={0.14}>
-                <dl className="mt-9 grid max-w-xl grid-cols-2 gap-x-6 gap-y-6 border-y-2 border-ink py-6 sm:grid-cols-4">
+                <dl className="card mt-9 grid max-w-xl grid-cols-2 gap-x-6 gap-y-6 p-6 sm:grid-cols-4">
                   <Fact
                     label="Date"
                     value={event ? formatEventDate(event.starts_at) : EVENT.dateLabel}
@@ -173,8 +173,8 @@ export default async function OffCampusPage() {
       </section>
 
       {/* ---------------------------------------------------------------- */}
-      <section className="section slab" aria-labelledby="detail">
-        <div className="shell grid gap-14 lg:grid-cols-[1fr_1fr] lg:gap-20">
+      <section className="shell" aria-labelledby="detail">
+        <div className="slab section grid gap-14 px-5 sm:px-8 lg:grid-cols-[1fr_1fr] lg:gap-20 lg:px-12">
           <div>
             <div className="edit-head">
               <h2 id="detail" className="h-section">
@@ -187,18 +187,18 @@ export default async function OffCampusPage() {
                 <p key={paragraph.slice(0, 24)}>{paragraph}</p>
               ))}
             </div>
-            <p className="mt-8 rounded-[12px] border-[1.5px] border-ink/25 bg-frost px-5 py-4 text-[0.875rem] leading-relaxed text-slate">
+            <p className="mt-8 rounded-lg bg-frost px-5 py-4 text-[0.875rem] leading-relaxed text-slate ring-hair">
               {EVENT.name} is produced by {BRAND.name} in partnership with {PARTNER.name}. It is an
               independent event, not affiliated with any college or university.
             </p>
           </div>
 
           <div>
-            <div className="flex items-baseline justify-between border-b-2 border-ink pb-3">
+            <div className="flex flex-wrap items-baseline justify-between gap-3">
               <p className="font-display text-[1.15rem] font-semibold tracking-[-0.02em] text-ink">
                 Hour by hour
               </p>
-              <span className="edit-index">12 — 5 PM</span>
+              <span className="chip chip-quiet">12 — 5 PM</span>
             </div>
             <div className="mt-8">
               <Runsheet />
@@ -222,12 +222,8 @@ export default async function OffCampusPage() {
       </section>
 
       {/* ---------------------------------------------------------------- */}
-      <section
-        id="tickets"
-        className="section slab"
-        aria-labelledby="event-tickets"
-      >
-        <div className="shell">
+      <section id="tickets" className="shell scroll-mt-28" aria-labelledby="event-tickets">
+        <div className="slab section px-5 sm:px-8 lg:px-12">
           <div className="edit-head">
             <h2 id="event-tickets" className="h-section">
               {soldOut ? 'Sold out.' : 'Final Phase pass pricing.'}
@@ -276,19 +272,19 @@ export default async function OffCampusPage() {
             </a>
           </div>
 
-          <div className="card-print overflow-hidden">
-            <div className="flex items-center justify-between border-b-[1.5px] border-ink bg-vybe-100 px-6 py-3.5">
-              <p className="font-mono text-[0.6875rem] font-medium uppercase tracking-[0.2em] text-ink">
+          <div className="card overflow-hidden">
+            <div className="flex items-center justify-between gap-3 bg-aurora-soft px-6 py-4">
+              <p className="font-mono text-[0.6875rem] font-semibold uppercase tracking-[0.2em] text-vybe-700">
                 Door policy
               </p>
-              <span className="font-mono text-[0.6875rem] uppercase tracking-[0.14em] text-ink/60">
+              <span className="font-mono text-[0.6875rem] uppercase tracking-[0.14em] text-slate">
                 House rules
               </span>
             </div>
-            <ol className="divide-y divide-ink/15">
+            <ol className="divide-y divide-ink/[0.07]">
               {EVENT.entryRules.map((rule, index) => (
-                <li key={rule} className="flex gap-4 px-6 py-4 text-[0.9375rem] text-slate">
-                  <span className="shrink-0 font-mono text-[0.75rem] text-vybe-600">
+                <li key={rule} className="flex gap-4 px-6 py-4 text-[0.9375rem] leading-relaxed text-slate">
+                  <span className="tnum mt-px shrink-0 font-mono text-[0.75rem] font-semibold text-vybe-600">
                     {String(index + 1).padStart(2, '0')}
                   </span>
                   {rule}
@@ -300,8 +296,8 @@ export default async function OffCampusPage() {
       </section>
 
       {/* ---------------------------------------------------------------- */}
-      <section className="section slab" aria-labelledby="event-faq">
-        <div className="shell grid gap-12 lg:grid-cols-[0.8fr_1.2fr] lg:gap-20">
+      <section className="shell" aria-labelledby="event-faq">
+        <div className="slab section grid gap-12 px-5 sm:px-8 lg:grid-cols-[0.8fr_1.2fr] lg:gap-20 lg:px-12">
           <div className="lg:sticky lg:top-28 lg:self-start">
             <span className="edit-index">05 — Questions</span>
             <h2 id="event-faq" className="h-section mt-3">
@@ -320,7 +316,7 @@ export default async function OffCampusPage() {
 function Fact({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <dt className="text-[0.6875rem] font-semibold uppercase tracking-[0.14em] text-muted">
+      <dt className="font-mono text-[0.625rem] font-semibold uppercase tracking-[0.18em] text-vybe-700">
         {label}
       </dt>
       <dd className="mt-1.5 font-display text-[1.0625rem] font-semibold tracking-[-0.02em] text-ink">

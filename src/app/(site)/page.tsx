@@ -86,7 +86,7 @@ export default async function HomePage() {
                   <span className="lg:block">The first</span>{' '}
                   <span className="lg:block lg:whitespace-nowrap">party of your</span>{' '}
                   <span className="lg:block lg:whitespace-nowrap">
-                    <span className="accent text-vybe-600">first year</span>.
+                    <span className="accent gradient-text">first year</span>.
                   </span>
                 </h1>
               </Reveal>
@@ -96,15 +96,11 @@ export default async function HomePage() {
               </Reveal>
 
               <Reveal delay={0.18}>
-                <dl className="mt-9 grid max-w-xl grid-cols-2 border-y-2 border-ink sm:grid-cols-4">
+                <dl className="card mt-9 grid max-w-xl grid-cols-2 gap-px overflow-hidden bg-ink/[0.06] sm:grid-cols-4">
                   <HeroFact label="Date" value={EVENT.dateShort} sub="Saturday" />
                   <HeroFact label="Time" value="12—4" sub="PM, sharp" />
                   <HeroFact label="Venue" value="Kingdome" sub={EVENT.venue.area} />
-                  <div className="border-l border-ink/25 px-4 py-4 first:border-l-0 first:pl-0 max-sm:[&:nth-child(3)]:border-l-0 max-sm:[&:nth-child(3)]:pl-0 max-sm:[&:nth-child(n+3)]:border-t max-sm:[&:nth-child(n+3)]:border-t-ink/25">
-                    <p className="tnum mt-2 font-display text-[1.375rem] font-semibold leading-none tracking-[-0.03em] text-ink">
-                      Non-alcoholic party
-                    </p>
-                  </div>
+                  <HeroFact label="Bar" value="Zero proof" sub="Non-alcoholic" />
                 </dl>
               </Reveal>
 
@@ -146,7 +142,7 @@ export default async function HomePage() {
 
           {event && (
             <Reveal delay={0.36}>
-              <div className="card-print mt-16 flex flex-col gap-5 p-6 sm:flex-row sm:items-center sm:justify-between sm:p-7">
+              <div className="card mt-16 flex flex-col gap-5 p-6 sm:flex-row sm:items-center sm:justify-between sm:p-7">
                 <div>
                   <p className="kicker kicker-rule">Doors open in</p>
                   <p className="mt-1.5 text-[0.9375rem] text-slate">
@@ -160,8 +156,10 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <div className="border-y-2 border-ink bg-vybe-500">
-        <Marquee items={TICKER} speedSeconds={44} />
+      <div className="shell">
+        <div className="overflow-hidden rounded-pill bg-aurora shadow-glow">
+          <Marquee items={TICKER} speedSeconds={44} />
+        </div>
       </div>
 
       {/* ================================================================== */}
@@ -202,11 +200,11 @@ export default async function HomePage() {
 
           <div>
             <Reveal delay={0.1}>
-              <div className="flex items-baseline justify-between border-b-2 border-ink pb-3">
+              <div className="flex flex-wrap items-baseline justify-between gap-3">
                 <p className="font-display text-[1.15rem] font-semibold tracking-[-0.02em] text-ink">
                   How the day runs
                 </p>
-                <span className="edit-index">12 — 5 PM</span>
+                <span className="chip chip-quiet">12 — 5 PM</span>
               </div>
             </Reveal>
             <div className="mt-8">
@@ -219,31 +217,31 @@ export default async function HomePage() {
       {/* ================================================================== */}
       {/* Activities                                                          */}
       {/* ================================================================== */}
-      <section id="lineup" className="section slab overflow-hidden" aria-labelledby="activities">
-        <div
-          aria-hidden
-          className="pointer-events-none absolute -right-24 top-0 h-full w-[42%] halftone opacity-[0.35] mask-fade-x"
-        />
-        <div className="shell relative">
-          <Reveal>
-            <div className="edit-head">
-              <h2 id="activities" className="h-section">
-                Everything running, all afternoon.
-              </h2>
-              <span className="edit-index">02 — What&apos;s on</span>
-            </div>
-            <div className="mt-4 flex flex-wrap items-baseline justify-between gap-3">
-              <p className="lede max-w-xl">
-                All of it is included with entry. Nothing here costs extra at the door.
-              </p>
-              <p className="font-mono text-[0.75rem] uppercase tracking-[0.12em] text-muted">
-                With {PARTNER.name}
-              </p>
-            </div>
-          </Reveal>
+      <section id="lineup" className="shell scroll-mt-28" aria-labelledby="activities">
+        <div className="slab section px-5 sm:px-8 lg:px-12">
+          <span
+            aria-hidden
+            className="pointer-events-none absolute -right-24 top-0 h-full w-[42%] halftone opacity-50 mask-fade-x"
+          />
+          <div className="relative">
+            <Reveal>
+              <div className="edit-head">
+                <h2 id="activities" className="h-section">
+                  Everything running, all afternoon.
+                </h2>
+                <span className="edit-index">02 — What&apos;s on</span>
+              </div>
+              <div className="mt-4 flex flex-wrap items-baseline justify-between gap-3">
+                <p className="lede max-w-xl">
+                  All of it is included with entry. Nothing here costs extra at the door.
+                </p>
+                <p className="chip chip-quiet">With {PARTNER.name}</p>
+              </div>
+            </Reveal>
 
-          <div className="mt-10">
-            <ActivityGrid />
+            <div className="mt-10">
+              <ActivityGrid />
+            </div>
           </div>
         </div>
       </section>
@@ -272,17 +270,18 @@ export default async function HomePage() {
 
         {/* Referral programme */}
         <Reveal delay={0.1}>
-          <div className="card-print mt-10 flex flex-col gap-6 p-7 sm:flex-row sm:items-center sm:justify-between">
+          <div className="card mt-10 flex flex-col gap-6 p-7 sm:flex-row sm:items-center sm:justify-between">
             <div className="max-w-xl">
               <h3 className="h-card">{REFERRAL.headline}</h3>
               <p className="mt-2 text-[0.9375rem] leading-relaxed text-slate">{REFERRAL.copy}</p>
             </div>
-            {/* The code as a coupon to tear off: dashed rule, rotated a hair. */}
-            <div className="shrink-0 -rotate-1">
-              <p className="rounded-[10px] border-[1.5px] border-dashed border-ink bg-vybe-100 px-5 py-3.5 font-mono text-[1rem] font-medium tracking-[0.16em] text-ink shadow-press-sm">
+            {/* The code as a coupon: a dashed well, tinted, sized so it reads
+                as something to copy rather than something to fill in. */}
+            <div className="shrink-0">
+              <p className="rounded-md border border-dashed border-vybe-300 bg-vybe-50 px-6 py-4 text-center font-mono text-[1.0625rem] font-semibold tracking-[0.18em] text-vybe-700">
                 {REFERRAL.sampleCode}
               </p>
-              <p className="mt-1.5 text-center font-mono text-[0.625rem] uppercase tracking-[0.2em] text-muted">
+              <p className="mt-2 text-center font-mono text-[0.625rem] font-semibold uppercase tracking-[0.2em] text-muted">
                 ₹100 off · try it
               </p>
             </div>
@@ -293,41 +292,42 @@ export default async function HomePage() {
       {/* ================================================================== */}
       {/* How booking works                                                   */}
       {/* ================================================================== */}
-      <section className="section slab overflow-hidden" aria-labelledby="how">
-        <div
-          aria-hidden
-          className="pointer-events-none absolute -left-24 bottom-0 h-[70%] w-[38%] halftone opacity-[0.3] mask-fade-x"
-        />
-        <div className="shell relative">
-          <Reveal>
-            <div className="edit-head">
-              <h2 id="how" className="h-section">
-                Three steps, about ninety seconds.
-              </h2>
-              <span className="edit-index">04 — Booking</span>
-            </div>
-          </Reveal>
+      <section className="shell" aria-labelledby="how">
+        <div className="slab section px-5 sm:px-8 lg:px-12">
+          <span
+            aria-hidden
+            className="pointer-events-none absolute -left-24 bottom-0 h-[70%] w-[38%] halftone opacity-50 mask-fade-x"
+          />
+          <div className="relative">
+            <Reveal>
+              <div className="edit-head">
+                <h2 id="how" className="h-section">
+                  Three steps, about ninety seconds.
+                </h2>
+                <span className="edit-index">04 — Booking</span>
+              </div>
+            </Reveal>
 
-          <HowItWorks />
+            <HowItWorks />
 
-          <Reveal delay={0.15}>
-            <dl className="mt-14 grid border-t-2 border-ink sm:grid-cols-2 lg:grid-cols-4">
-              {TICKETING_FACTS.map((fact) => (
-                <div
-                  key={fact.label}
-                  className="border-b border-ink/20 px-0 py-5 sm:px-6 lg:border-b-0 lg:py-6 lg:first:pl-0 lg:[&:not(:first-child)]:border-l lg:[&:not(:first-child)]:border-l-ink/20"
-                >
-                  <dt className="font-mono text-[0.625rem] font-medium uppercase tracking-[0.18em] text-vybe-700">
-                    {fact.label}
-                  </dt>
-                  <dd className="mt-2 font-display text-[1.375rem] font-semibold tracking-[-0.02em] text-ink">
-                    {fact.value}
-                  </dd>
-                  <p className="mt-2 text-[0.8125rem] leading-relaxed text-slate">{fact.detail}</p>
-                </div>
-              ))}
-            </dl>
-          </Reveal>
+            {/* The reassurance strip. Four facts, four plates, no rules — a
+                bordered table here competed with the step cards above it. */}
+            <Reveal delay={0.15}>
+              <dl className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                {TICKETING_FACTS.map((fact) => (
+                  <div key={fact.label} className="rounded-lg bg-frost p-5 ring-hair">
+                    <dt className="font-mono text-[0.625rem] font-semibold uppercase tracking-[0.18em] text-vybe-700">
+                      {fact.label}
+                    </dt>
+                    <dd className="mt-2.5 font-display text-[1.3rem] font-semibold tracking-[-0.02em] text-ink">
+                      {fact.value}
+                    </dd>
+                    <p className="mt-2 text-[0.8125rem] leading-relaxed text-slate">{fact.detail}</p>
+                  </div>
+                ))}
+              </dl>
+            </Reveal>
+          </div>
         </div>
       </section>
 
@@ -372,19 +372,19 @@ export default async function HomePage() {
           </Reveal>
 
           <Reveal delay={0.1}>
-            <div className="card-print overflow-hidden">
-              <div className="flex items-center justify-between border-b-[1.5px] border-ink bg-vybe-100 px-6 py-3.5">
-                <p className="font-mono text-[0.6875rem] font-medium uppercase tracking-[0.2em] text-ink">
+            <div className="card overflow-hidden">
+              <div className="flex items-center justify-between gap-3 bg-aurora-soft px-6 py-4">
+                <p className="font-mono text-[0.6875rem] font-semibold uppercase tracking-[0.2em] text-vybe-700">
                   At the door
                 </p>
-                <span className="font-mono text-[0.6875rem] uppercase tracking-[0.14em] text-ink/60">
+                <span className="font-mono text-[0.6875rem] uppercase tracking-[0.14em] text-slate">
                   House rules
                 </span>
               </div>
-              <ol className="divide-y divide-ink/15">
+              <ol className="divide-y divide-ink/[0.07]">
                 {EVENT.entryRules.map((rule, index) => (
-                  <li key={rule} className="flex gap-4 px-6 py-4 text-[0.9375rem] text-slate">
-                    <span className="shrink-0 font-mono text-[0.75rem] text-vybe-600">
+                  <li key={rule} className="flex gap-4 px-6 py-4 text-[0.9375rem] leading-relaxed text-slate">
+                    <span className="tnum mt-px shrink-0 font-mono text-[0.75rem] font-semibold text-vybe-600">
                       {String(index + 1).padStart(2, '0')}
                     </span>
                     {rule}
@@ -399,14 +399,14 @@ export default async function HomePage() {
       {/* ================================================================== */}
       {/* FAQ                                                                 */}
       {/* ================================================================== */}
-      <section className="section slab overflow-hidden" aria-labelledby="faq">
-        <div
-          aria-hidden
-          className="pointer-events-none absolute -right-20 bottom-0 h-[60%] w-[36%] halftone opacity-[0.35] mask-fade-x"
-        />
-        <div className="shell relative grid gap-12 lg:grid-cols-[0.8fr_1.2fr] lg:gap-20">
+      <section className="shell" aria-labelledby="faq">
+        <div className="slab section relative grid gap-12 px-5 sm:px-8 lg:grid-cols-[0.8fr_1.2fr] lg:gap-20 lg:px-12">
+          <span
+            aria-hidden
+            className="pointer-events-none absolute -right-20 bottom-0 h-[60%] w-[36%] halftone opacity-50 mask-fade-x"
+          />
           <Reveal>
-            <div className="lg:sticky lg:top-28 lg:self-start">
+            <div className="relative lg:sticky lg:top-28 lg:self-start">
               <span className="edit-index">06 — Questions</span>
               <h2 id="faq" className="h-section mt-3">
                 Everything people ask.
@@ -421,10 +421,8 @@ export default async function HomePage() {
             </div>
           </Reveal>
 
-          <Reveal delay={0.08}>
-            <Accordion
-              items={EVENT.faqs.map((faq) => ({ question: faq.q, answer: faq.a }))}
-            />
+          <Reveal delay={0.08} className="relative">
+            <Accordion items={EVENT.faqs.map((faq) => ({ question: faq.q, answer: faq.a }))} />
           </Reveal>
         </div>
       </section>
@@ -434,54 +432,48 @@ export default async function HomePage() {
       {/* ================================================================== */}
       <section className="shell pb-24 pt-20">
         <Reveal>
-          {/* The closing move is one oversized ticket, not a centred slogan
-              band: stub column on the left with a real tear line, the pitch
-              set left in the body, a barcode along the foot. */}
-          <div className="relative overflow-hidden rounded-[18px] border-2 border-ink bg-ink text-white shadow-stamp-lg">
-            <span aria-hidden className="absolute inset-0 gridfield opacity-[0.14]" />
-            <div className="relative grid sm:grid-cols-[110px_1fr]">
-              {/* Stub. Rotated caption, punched notches on the tear line. */}
-              <div className="relative hidden items-center justify-center border-r-2 border-dashed border-white/35 sm:flex">
-                <span
-                  aria-hidden
-                  className="absolute -top-[11px] right-[-11px] h-5 w-5 rounded-full border-b-2 border-ink bg-canvas"
-                />
-                <span
-                  aria-hidden
-                  className="absolute -bottom-[11px] right-[-11px] h-5 w-5 rounded-full border-t-2 border-ink bg-canvas"
-                />
-                <p className="-rotate-90 whitespace-nowrap font-mono text-[0.6875rem] uppercase tracking-[0.32em] text-white/60">
-                  Admit one · {EVENT.dateShort}
-                </p>
+          {/* The closing move: one dark plate, floating high off the page, with
+              the live counter doing the persuading instead of an exclamation
+              mark. Everything else on the page is white and low — this is the
+              only surface allowed to be loud, and it earns that by being last. */}
+          <div className="slab-deep px-6 py-14 text-center sm:px-12 sm:py-16">
+            <span aria-hidden className="pointer-events-none absolute inset-0 gridfield opacity-30" />
+            <span
+              aria-hidden
+              className="pointer-events-none absolute left-1/2 top-0 h-72 w-[38rem] max-w-[90%] -translate-x-1/2 -translate-y-1/2 rounded-pill bg-vybe-500/30 blur-3xl"
+            />
+
+            <div className="relative mx-auto max-w-2xl">
+              <p className="chip chip-invert mx-auto">
+                {EVENT.dateShort} · {EVENT.venue.name} · {EVENT.timeLabel}
+              </p>
+              <h2 className="mt-6 font-display text-[clamp(2.125rem,5.5vw,3.75rem)] font-bold leading-[1.04] tracking-[-0.035em] text-white">
+                {soldOut ? 'That was quick.' : 'The room holds 400 people.'}
+              </h2>
+              <p className="mx-auto mt-5 max-w-md text-[1.0625rem] leading-relaxed text-vybe-100/90">
+                {soldOut
+                  ? 'Every ticket has gone. Returns get posted on Instagram first, so keep an eye there.'
+                  : 'Sales close on their own when it is full. Grab yours while there is one left.'}
+              </p>
+
+              <div className="mt-9 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
+                <Magnetic>
+                  <Link
+                    href={soldOut ? BRAND.instagram : '/book'}
+                    className="btn btn-lg bg-white text-ink shadow-raise transition-transform hover:-translate-y-[2px] hover:shadow-float active:translate-y-0"
+                  >
+                    {soldOut ? 'Follow for returns' : 'Buy your ticket'}
+                  </Link>
+                </Magnetic>
+                <Link
+                  href="/faq"
+                  className="btn btn-lg bg-white/[0.08] text-white transition-colors hover:bg-white/[0.16]"
+                >
+                  Read the FAQ
+                </Link>
               </div>
 
-              <div className="px-6 py-12 sm:px-12 sm:py-14">
-                <p className="font-mono text-[0.6875rem] uppercase tracking-[0.24em] text-vybe-200">
-                  {EVENT.dateShort} · {EVENT.venue.name} · {EVENT.timeLabel}
-                </p>
-                <h2 className="mt-5 max-w-[18ch] font-display text-[clamp(2rem,5vw,3.5rem)] font-bold leading-[1.02] tracking-[-0.035em] text-white">
-                  {soldOut ? 'That was quick.' : 'The room holds 400 people.'}
-                </h2>
-                <p className="mt-4 max-w-md text-[1.0625rem] leading-relaxed text-vybe-100">
-                  {soldOut
-                    ? 'Every ticket has gone. Returns get posted on Instagram first, so keep an eye there.'
-                    : 'Sales close on their own when it is full. Grab yours while there is one left.'}
-                </p>
-                <div className="mt-8">
-                  <Magnetic>
-                    <Link
-                      href={soldOut ? BRAND.instagram : '/book'}
-                      className="btn inline-flex border-white bg-white px-8 py-4 text-base text-ink shadow-[3px_3px_0_0_rgba(255,255,255,0.35)] hover:-translate-x-[2px] hover:-translate-y-[2px] hover:shadow-[5px_5px_0_0_rgba(255,255,255,0.35)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
-                    >
-                      {soldOut ? 'Follow for returns' : 'Buy your ticket'}
-                    </Link>
-                  </Magnetic>
-                </div>
-              </div>
-            </div>
-            <div className="relative flex items-center justify-between gap-4 border-t border-white/25 px-6 py-3 sm:px-12">
-              <span aria-hidden className="barcode h-6 w-32 opacity-60 invert" />
-              <p className="font-mono text-[0.625rem] uppercase tracking-[0.2em] text-white/50">
+              <p className="mt-8 font-mono text-[0.625rem] uppercase tracking-[0.2em] text-white/45">
                 Non-transferable · one scan per pass
               </p>
             </div>
@@ -494,16 +486,21 @@ export default async function HomePage() {
   );
 }
 
+/**
+ * One fact in the hero plate. The cells are separated by the grid's own 1px
+ * gap showing the plate's tint through, so there is not a border anywhere in
+ * the component and the dividers can never mis-join at a wrap.
+ */
 function HeroFact({ label, value, sub }: { label: string; value: string; sub: string }) {
   return (
-    <div className="border-l border-ink/25 px-4 py-4 first:border-l-0 first:pl-0 max-sm:[&:nth-child(3)]:border-l-0 max-sm:[&:nth-child(3)]:pl-0 max-sm:[&:nth-child(n+3)]:border-t max-sm:[&:nth-child(n+3)]:border-t-ink/25">
-      <dt className="font-mono text-[0.625rem] font-medium uppercase tracking-[0.18em] text-vybe-700">
+    <div className="bg-paper px-5 py-4">
+      <dt className="font-mono text-[0.625rem] font-semibold uppercase tracking-[0.18em] text-vybe-700">
         {label}
       </dt>
-      <dd className="tnum mt-2 font-display text-[1.375rem] font-semibold leading-none tracking-[-0.03em] text-ink">
+      <dd className="tnum mt-2 font-display text-[1.3rem] font-semibold leading-none tracking-[-0.03em] text-ink">
         {value}
       </dd>
-      <p className="mt-1 text-[0.8125rem] text-slate">{sub}</p>
+      <p className="mt-1.5 text-[0.8125rem] text-slate">{sub}</p>
     </div>
   );
 }

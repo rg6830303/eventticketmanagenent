@@ -169,7 +169,7 @@ export default async function BookingConfirmationPage({
         </Reveal>
 
         <Reveal delay={0.12} className="mx-auto mt-10 max-w-2xl">
-          <div className="card-print p-6 sm:p-7">
+          <div className="card p-6 sm:p-7">
             <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
               <div>
                 <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.14em] text-muted">
@@ -265,7 +265,7 @@ export default async function BookingConfirmationPage({
         </div>
 
         <Reveal delay={0.1} className="no-print mx-auto mt-10 max-w-2xl">
-          <div className="card-print p-6">
+          <div className="card p-6">
             <h2 className="mb-3 font-display text-base font-semibold text-ink">Before you come</h2>
             <ul className="space-y-2 text-[13px] leading-relaxed text-slate">
               {tickets.some((ticket) => (ticket.admits ?? 1) > 1) ? (

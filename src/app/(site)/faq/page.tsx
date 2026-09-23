@@ -111,7 +111,7 @@ export default function FaqPage() {
           </div>
 
           <Reveal delay={0.1} direction="left" className="lg:sticky lg:top-28 lg:h-fit">
-            <aside className="card-print relative overflow-hidden p-6">
+            <aside className="card relative overflow-hidden p-6">
               <div className="relative">
                 <h2 className="h-card">Still stuck?</h2>
                 <p className="mt-2.5 text-[0.875rem] leading-relaxed text-slate">

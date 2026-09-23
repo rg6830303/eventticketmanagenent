@@ -5,11 +5,19 @@
 /* ===========================================================================
    Houz of Vybe — base layer
    ---------------------------------------------------------------------------
-   The visual language is print, not software: ink borders, solid offset
-   shadows, ruled lists, stamps and receipts, all laid on a flat blue poster
-   ground. Nothing floats and nothing glows — things sit ON the page the way
-   flyers sit on a table, which is the difference between a designed event
-   page and a SaaS template wearing event copy.
+   The system is soft depth on a blue ground.
+
+   One light source sits high and slightly forward. Surfaces are white, edged
+   with a hairline ring rather than a border, and separated from the page by
+   tinted shadow instead of a drawn line. Elevation is the grammar: the higher
+   a thing sits, the more it matters, and nothing on a screen skips two rungs
+   of the ladder.
+
+   Colour is reserved. One azure gradient carries every primary action and
+   appears nowhere else, so "the blue thing" always means "the thing to press".
+   Everything else is built from the blue-greys of the ground.
+
+   The palette is unchanged from the previous system. Nothing else is.
    =========================================================================== */
 
 @layer base {
@@ -18,16 +26,25 @@
 
     /* Rhythm tokens the component layer reads, so spacing scales in one place. */
     --rail: clamp(1.25rem, 4vw, 2.75rem);
-    --section-y: clamp(4rem, 7.5vw, 7rem);
+    --section-y: clamp(4.5rem, 8vw, 7.5rem);
     --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
     --ease-spring: cubic-bezier(0.34, 1.4, 0.64, 1);
     --ink: #0a2138;
+
+    /* Hairline colour. A ring at this weight reads as an edge without ever
+       reading as a drawn box, which is the whole point of dropping borders. */
+    --hairline: rgba(10, 33, 56, 0.08);
+    --hairline-strong: rgba(10, 33, 56, 0.14);
+
+    /* Chrome height, so pages can offset sticky content against the header
+       without every page guessing at the number. */
+    --header-h: 76px;
   }
 
   html {
     -webkit-tap-highlight-color: transparent;
     scroll-behavior: smooth;
-    scroll-padding-top: 6rem;
+    scroll-padding-top: calc(var(--header-h) + 2rem);
     background-color: theme('colors.canvas');
   }
 
@@ -56,8 +73,13 @@
     @apply bg-vybe-500 text-white;
   }
 
+  /* A focus ring that survives on every surface: the white inner halo keeps it
+     legible on azure fills, the azure outer on white ones. */
   :focus-visible {
-    @apply outline-none ring-2 ring-vybe-600 ring-offset-2 ring-offset-canvas;
+    @apply outline-none;
+    box-shadow:
+      0 0 0 2px #ffffff,
+      0 0 0 4px theme('colors.vybe.500');
   }
 
   /* Numbers that sit in columns — prices, counters, ticket counts — must not
@@ -76,7 +98,7 @@
     @apply bg-canvasDeep;
   }
   ::-webkit-scrollbar-thumb {
-    @apply rounded-full border-[3px] border-solid border-canvasDeep bg-edgeStrong;
+    @apply rounded-pill border-[3px] border-solid border-canvasDeep bg-edgeStrong;
   }
   ::-webkit-scrollbar-thumb:hover {
     @apply bg-vybe-400;
@@ -86,10 +108,12 @@
 /* ===========================================================================
    The ground
    ---------------------------------------------------------------------------
-   Flat layers, hard edges. A diagonal band of deeper blue, the halftone off
-   the artwork, a fine grid, film grain, and the event wordmark set enormous
-   in outline behind everything — a poster ground, assembled the way a poster
-   is: shapes laid over shapes, nothing blurred into atmosphere.
+   Light rather than ink. A wide wash lifts the top of the viewport toward
+   white so headings have air behind them, two slow azure blooms give the page
+   somewhere to be, and a fine lattice keeps it from becoming featureless
+   gradient. Everything here is low-contrast on purpose: the ground's job is to
+   make the white surfaces read as floating, and it cannot do that while it is
+   busy being interesting.
    =========================================================================== */
 
 @layer components {
@@ -97,48 +121,56 @@
     @apply pointer-events-none fixed inset-0 -z-10 overflow-hidden bg-canvas;
   }
 
-  /* Deep-blue diagonal running behind the lower half of the viewport. */
-  .env__band {
-    @apply absolute inset-x-0 bottom-0 h-[62vh] bg-canvasDeep;
-    clip-path: polygon(0 34%, 100% 0, 100% 100%, 0 100%);
+  /* Daylight, falling from the top. */
+  .env__wash {
+    @apply absolute inset-x-0 top-0 h-[70vh];
+    background: linear-gradient(
+      180deg,
+      #f7fbff 0%,
+      rgba(243, 248, 254, 0.72) 38%,
+      rgba(228, 238, 250, 0) 100%
+    );
   }
 
-  .env__band2 {
-    @apply absolute inset-x-0 bottom-0 h-[30vh] bg-mist;
-    clip-path: polygon(0 58%, 100% 12%, 100% 100%, 0 100%);
+  /* Two blooms, far apart and barely there. They drift on a 22s cycle, which
+     is slow enough to be felt rather than watched. */
+  .env__bloom {
+    @apply absolute rounded-pill opacity-60 will-change-transform;
+    filter: blur(90px);
   }
 
-  .env__grid {
-    @apply absolute inset-0;
+  .env__bloom--a {
+    @apply right-[-14%] top-[-10%] h-[58vh] w-[58vw] animate-bloom;
+    background: radial-gradient(circle at 50% 50%, rgba(37, 134, 239, 0.28), transparent 68%);
+  }
+
+  .env__bloom--b {
+    @apply bottom-[-18%] left-[-16%] h-[54vh] w-[54vw] animate-bloom;
+    background: radial-gradient(circle at 50% 50%, rgba(139, 92, 240, 0.2), transparent 68%);
+    animation-delay: -11s;
+  }
+
+  .env__lattice {
+    @apply absolute inset-0 opacity-70;
     background-image:
-      linear-gradient(to right, rgba(28, 92, 165, 0.07) 1px, transparent 1px),
-      linear-gradient(to bottom, rgba(28, 92, 165, 0.07) 1px, transparent 1px);
-    background-size: 72px 72px;
+      linear-gradient(to right, rgba(28, 92, 165, 0.05) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(28, 92, 165, 0.05) 1px, transparent 1px);
+    background-size: 88px 88px;
+    mask-image: radial-gradient(ellipse 110% 80% at 50% 0%, #000 20%, transparent 85%);
+    -webkit-mask-image: radial-gradient(ellipse 110% 80% at 50% 0%, #000 20%, transparent 85%);
   }
 
-  .env__halftone {
-    @apply absolute -right-[10%] -top-[12%] h-[70vh] w-[55vw];
-    background-image: radial-gradient(circle, rgba(37, 134, 239, 0.2) 1.5px, transparent 1.6px);
-    background-size: 17px 17px;
-    mask-image: radial-gradient(ellipse at 70% 30%, #000 30%, transparent 72%);
-    -webkit-mask-image: radial-gradient(ellipse at 70% 30%, #000 30%, transparent 72%);
+  /* A single horizon line low in the viewport, so the page has a floor. */
+  .env__horizon {
+    @apply absolute inset-x-0 bottom-0 h-[34vh];
+    background: linear-gradient(180deg, rgba(211, 227, 245, 0) 0%, rgba(207, 224, 244, 0.85) 100%);
   }
 
-  /* The wordmark as ground texture. Outline only, one letterform tall enough
-     to crop off both edges — read as environment, not as a headline. */
-  .env__mark {
-    @apply absolute left-[-2vw] top-[30vh] select-none whitespace-nowrap font-display font-bold uppercase;
-    font-size: clamp(9rem, 24vw, 22rem);
-    line-height: 0.8;
-    letter-spacing: -0.03em;
-    color: transparent;
-    -webkit-text-stroke: 1.5px rgba(37, 134, 239, 0.13);
-    transform: rotate(-4deg);
-  }
-
+  /* Grain, at a fraction of its old strength — enough to stop the gradients
+     banding on cheap panels, not enough to be a texture. */
   .env__grain {
-    @apply absolute inset-0 opacity-[0.5] mix-blend-multiply;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.14'/%3E%3C/svg%3E");
+    @apply absolute inset-0 opacity-[0.28] mix-blend-multiply;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.1'/%3E%3C/svg%3E");
   }
 }
 
@@ -158,63 +190,91 @@
     padding-inline: var(--rail);
   }
 
+  .shell-narrow {
+    @apply mx-auto w-full max-w-[720px];
+    padding-inline: var(--rail);
+  }
+
   .section {
     padding-block: var(--section-y);
   }
 
-  /* ---------- Section grounds ---------- */
+  /* ---------- Section grounds ----------
+     A slab no longer draws rules top and bottom. It is a rounded white plate
+     laid on the blue with its own shadow, which is the same statement made
+     with depth instead of line weight. */
   .slab {
-    @apply relative border-y-2 border-ink bg-paper;
+    @apply relative overflow-hidden rounded-3xl bg-paper/80 shadow-soft backdrop-blur-sm;
+    box-shadow:
+      inset 0 0 0 1px var(--hairline),
+      0 1px 2px rgba(10, 33, 56, 0.04),
+      0 12px 32px -12px rgba(10, 33, 56, 0.12);
   }
 
   .slab-deep {
-    @apply relative overflow-hidden bg-ink text-white;
+    @apply relative overflow-hidden rounded-3xl bg-ink-deep text-white shadow-float;
   }
 
-  /* ---------- Editorial section head ----------
-     One pattern for every section opener: index number and label on a heavy
-     baseline rule, heading hanging below it. Replaces the centred
-     kicker/heading/lede stack that every generated landing page uses. */
+  /* ---------- Section head ----------
+     Eyebrow, heading, lede, stacked and left-set, with a short gradient stroke
+     above the eyebrow standing in for the old baseline rule. The stroke is the
+     only place the accent gradient appears outside a button, and it is two
+     millimetres of it. */
+  .section-head {
+    @apply relative max-w-[62ch];
+  }
+
+  /* Column-reverse, not column: every call site writes the heading first and
+     the index second, which is the right document order for a heading and its
+     label. The eyebrow still paints above it. */
   .edit-head {
-    @apply flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2 border-b-2 border-ink pb-3;
+    @apply flex flex-col-reverse items-start gap-3;
   }
 
-  .edit-index {
-    @apply font-mono text-[0.75rem] font-medium uppercase tracking-[0.22em] text-vybe-700;
+  .edit-index,
+  .eyebrow {
+    @apply inline-flex w-fit items-center gap-2.5 font-mono text-[0.6875rem] font-semibold uppercase
+           tracking-[0.2em] text-vybe-700;
+  }
+
+  .edit-index::before,
+  .eyebrow::before {
+    content: '';
+    @apply h-[3px] w-7 rounded-pill bg-aurora-line;
   }
 
   /* ---------- Type scale ---------- */
   .h-hero {
     @apply font-display font-semibold text-ink;
-    font-size: clamp(2.75rem, 8.5vw, 6.5rem);
-    line-height: 0.94;
-    letter-spacing: -0.04em;
+    font-size: clamp(2.75rem, 8vw, 6rem);
+    line-height: 0.98;
+    letter-spacing: -0.035em;
   }
 
   .h-section {
     @apply font-display font-medium text-ink;
-    font-size: clamp(2rem, 4.4vw, 3.35rem);
-    line-height: 1.04;
-    letter-spacing: -0.032em;
+    font-size: clamp(1.9rem, 4.2vw, 3.1rem);
+    line-height: 1.08;
+    letter-spacing: -0.03em;
   }
 
   .h-card {
-    @apply font-display text-[1.35rem] font-medium leading-tight text-ink;
+    @apply font-display text-[1.3rem] font-semibold leading-tight text-ink;
     letter-spacing: -0.02em;
   }
 
   .lede {
-    @apply text-[1.0625rem] leading-[1.65] text-slate sm:text-lg;
+    @apply text-[1.0625rem] leading-[1.7] text-slate sm:text-lg;
   }
 
   .kicker {
-    @apply inline-flex items-center gap-2 font-mono text-[0.6875rem] font-medium uppercase
-           tracking-[0.24em] text-vybe-700;
+    @apply inline-flex items-center gap-2 font-mono text-[0.6875rem] font-semibold uppercase
+           tracking-[0.2em] text-vybe-700;
   }
 
   .kicker-rule::before {
     content: '';
-    @apply inline-block h-px w-6 bg-vybe-500;
+    @apply inline-block h-[3px] w-7 rounded-pill bg-aurora-line;
   }
 
   .accent {
@@ -222,147 +282,301 @@
     letter-spacing: -0.01em;
   }
 
-  /* Big outline display type, for numerals and backdrop words. */
+  /* Reserved for one word per page at most — the hero's emphasis. */
+  .gradient-text {
+    @apply bg-aurora bg-clip-text text-transparent;
+  }
+
   .outline-type {
     color: transparent;
-    -webkit-text-stroke: 1.5px theme('colors.vybe.400');
+    -webkit-text-stroke: 1.5px theme('colors.vybe.300');
   }
 
   /* ---------- Surfaces ----------
-     `card-print` is the feature surface: ink border, solid offset shadow.
-     `panel` keeps the quiet bordered surface for dense areas (admin, forms)
-     where a page of ink boxes would shout. */
+     `card` is the base plate. `card-lift` adds the hover response, and is the
+     only thing that should ever move under the cursor. `card-feature` is the
+     one-per-screen surface that carries the accent edge. */
+  .card {
+    @apply relative rounded-xl bg-paper shadow-soft;
+    box-shadow:
+      inset 0 0 0 1px var(--hairline),
+      0 1px 2px rgba(10, 33, 56, 0.04),
+      0 4px 14px -4px rgba(10, 33, 56, 0.08);
+  }
+
+  .card-lift {
+    @apply card transition-[transform,box-shadow] duration-300;
+    transition-timing-function: var(--ease-out);
+  }
+
+  .card-lift:hover {
+    transform: translateY(-3px);
+    box-shadow:
+      inset 0 0 0 1px rgba(37, 134, 239, 0.18),
+      0 2px 4px rgba(10, 33, 56, 0.04),
+      0 14px 32px -10px rgba(10, 33, 56, 0.14),
+      0 30px 60px -24px rgba(10, 33, 56, 0.2);
+  }
+
+  /* Accent edge without a gradient border hack: a 1.5px inset ring in azure,
+     plus a hairline of the gradient along the top. */
+  .card-feature {
+    @apply relative overflow-hidden rounded-xl bg-paper shadow-float;
+    box-shadow:
+      inset 0 0 0 1.5px rgba(37, 134, 239, 0.32),
+      0 2px 4px rgba(10, 33, 56, 0.04),
+      0 14px 34px -10px rgba(37, 134, 239, 0.22),
+      0 34px 70px -28px rgba(10, 33, 56, 0.24);
+  }
+
+  .card-feature::before {
+    content: '';
+    @apply absolute inset-x-0 top-0 h-[3px] bg-aurora-line;
+  }
+
+  /* Glass, for anything that sits over moving content: the header, sticky
+     bars, the mobile sheet. */
+  .surface-glass {
+    @apply rounded-xl bg-white/[0.72] backdrop-blur-xl;
+    box-shadow:
+      inset 0 0 0 1px rgba(255, 255, 255, 0.6),
+      inset 0 0 0 1.5px var(--hairline),
+      0 2px 4px rgba(10, 33, 56, 0.04),
+      0 14px 34px -14px rgba(10, 33, 56, 0.18);
+  }
+
+  /* ---- Names kept from the previous system so no surface is left unstyled.
+     They now resolve to the plates above. ---- */
   .card-print {
-    @apply rounded-[16px] border-[1.5px] border-ink bg-paper shadow-stamp;
+    @apply card;
   }
 
   .card-print-ink {
-    @apply rounded-[16px] border-[1.5px] border-ink bg-paper shadow-press-lg;
+    @apply card-feature;
   }
 
   .panel {
-    @apply rounded-[14px] border border-edgeStrong bg-paper shadow-stamp;
+    @apply rounded-lg bg-paper shadow-soft;
+    box-shadow:
+      inset 0 0 0 1px var(--hairline),
+      0 1px 2px rgba(10, 33, 56, 0.04),
+      0 4px 14px -4px rgba(10, 33, 56, 0.08);
   }
 
   .panel-raised {
-    @apply rounded-[16px] border-[1.5px] border-ink bg-paper shadow-stamp;
+    @apply card;
   }
 
   .panel-tint {
-    @apply rounded-[14px] border border-vybe-300 bg-vybe-50;
+    @apply rounded-lg bg-vybe-50;
+    box-shadow: inset 0 0 0 1px rgba(37, 134, 239, 0.16);
   }
 
   .panel-glass {
-    @apply rounded-[16px] border-[1.5px] border-ink bg-white/85 shadow-stamp backdrop-blur-md;
+    @apply surface-glass;
   }
 
   /* ---------- Buttons ----------
-     Rectangular, ink-bordered, casting a solid shadow. Hover lifts the block
-     off its shadow; press seats it flat. The travel IS the affordance —
-     no colour flash needed. */
+     Pill geometry, because every control on the site is a pill and the
+     consistency is worth more than the novelty of a corner radius. The primary
+     is the only filled azure object on any screen; it lifts into a coloured
+     glow on hover and settles flat on press, so the travel reports the click
+     before the network does. */
   .btn {
-    @apply inline-flex select-none items-center justify-center gap-2 rounded-[12px]
-           border-[1.5px] border-ink text-[0.9375rem] font-semibold leading-none tracking-[-0.01em]
-           transition-[transform,box-shadow,background-color,color] duration-150
+    @apply inline-flex select-none items-center justify-center gap-2 rounded-pill
+           text-[0.9375rem] font-semibold leading-none tracking-[-0.01em]
+           transition-[transform,box-shadow,background-color,color,opacity] duration-200
            disabled:pointer-events-none disabled:opacity-40;
     transition-timing-function: var(--ease-out);
   }
 
   .btn-primary {
-    @apply btn bg-vybe-500 px-7 py-4 text-white shadow-press
-           hover:-translate-x-[2px] hover:-translate-y-[2px] hover:shadow-press-lg
-           active:translate-x-[2px] active:translate-y-[2px] active:shadow-none;
+    @apply btn bg-aurora px-7 py-4 text-white shadow-glow
+           hover:-translate-y-[2px] hover:shadow-glow-lg
+           active:translate-y-0 active:shadow-soft;
   }
 
   .btn-dark {
-    @apply btn bg-ink px-7 py-4 text-white shadow-[3px_3px_0_0_theme(colors.vybe.500)]
-           hover:-translate-x-[2px] hover:-translate-y-[2px] hover:shadow-[5px_5px_0_0_theme(colors.vybe.500)]
-           active:translate-x-[2px] active:translate-y-[2px] active:shadow-none;
+    @apply btn bg-ink px-7 py-4 text-white shadow-raise
+           hover:-translate-y-[2px] hover:shadow-float
+           active:translate-y-0 active:shadow-soft;
   }
 
   .btn-outline {
-    @apply btn bg-paper px-7 py-4 text-ink shadow-press
-           hover:-translate-x-[2px] hover:-translate-y-[2px] hover:shadow-press-lg
-           active:translate-x-[2px] active:translate-y-[2px] active:shadow-none;
+    @apply btn bg-paper px-7 py-4 text-ink transition-colors;
+    box-shadow:
+      inset 0 0 0 1px var(--hairline-strong),
+      0 1px 2px rgba(10, 33, 56, 0.04);
   }
 
+  .btn-outline:hover {
+    transform: translateY(-2px);
+    box-shadow:
+      inset 0 0 0 1px rgba(37, 134, 239, 0.34),
+      0 6px 16px -4px rgba(10, 33, 56, 0.1),
+      0 14px 30px -14px rgba(10, 33, 56, 0.16);
+  }
+
+  .btn-outline:active {
+    transform: none;
+    box-shadow:
+      inset 0 0 0 1px rgba(37, 134, 239, 0.34),
+      0 1px 2px rgba(10, 33, 56, 0.05);
+  }
+
+  .btn-ghost,
   .btn-quiet {
-    @apply inline-flex select-none items-center justify-center gap-2 rounded-[10px] px-4 py-2.5
-           text-[0.9375rem] font-semibold text-slate transition-colors duration-150
-           hover:bg-white/80 hover:text-ink;
+    @apply inline-flex select-none items-center justify-center gap-2 rounded-pill px-5 py-3
+           text-[0.9375rem] font-semibold text-slate transition-colors duration-200
+           hover:bg-vybe-50 hover:text-vybe-700;
   }
 
   .btn-sm {
-    @apply rounded-[10px] px-5 py-2.5 text-[0.8125rem] shadow-press-sm
-           hover:shadow-press active:shadow-none;
+    @apply px-5 py-2.5 text-[0.8125rem];
   }
 
-  /* ---------- Forms ---------- */
+  .btn-lg {
+    @apply px-8 py-[1.125rem] text-base;
+  }
+
+  /* Icon-only control. Square footprint, pill corners, same ring as an
+     outline button so the two read as one family. */
+  .btn-icon {
+    @apply inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-pill bg-paper text-ink
+           transition-[transform,box-shadow,background-color] duration-200;
+    box-shadow:
+      inset 0 0 0 1px var(--hairline-strong),
+      0 1px 2px rgba(10, 33, 56, 0.04);
+    transition-timing-function: var(--ease-out);
+  }
+
+  .btn-icon:hover {
+    @apply bg-vybe-50;
+    box-shadow:
+      inset 0 0 0 1px rgba(37, 134, 239, 0.3),
+      0 6px 16px -6px rgba(10, 33, 56, 0.14);
+  }
+
+  /* ---------- Forms ----------
+     Fields are quiet until touched: a filled well with no visible border, so a
+     long form reads as a list rather than a stack of boxes. Focus brings the
+     azure ring and lifts the fill to white, which is the only state change the
+     eye needs. */
   .field {
-    @apply w-full rounded-[10px] border-[1.5px] border-ink/25 bg-paper px-4 py-3.5 text-[0.9375rem]
-           text-ink transition-[border-color,box-shadow] duration-150
-           placeholder:text-muted
-           focus:border-ink focus:shadow-press-sm focus:outline-none;
+    @apply w-full rounded-md bg-frost px-4 py-3.5 text-[0.9375rem] text-ink
+           transition-[background-color,box-shadow] duration-200
+           placeholder:text-muted;
+    box-shadow: inset 0 0 0 1px var(--hairline-strong);
+  }
+
+  .field:hover {
+    box-shadow: inset 0 0 0 1px rgba(10, 33, 56, 0.2);
+  }
+
+  .field:focus {
+    @apply bg-paper outline-none;
+    box-shadow:
+      inset 0 0 0 1.5px theme('colors.vybe.500'),
+      0 0 0 4px rgba(37, 134, 239, 0.14);
   }
 
   .field-error {
-    @apply border-flare-500 focus:border-flare-500 focus:shadow-[2px_2px_0_0_theme(colors.flare.500)];
+    box-shadow: inset 0 0 0 1.5px theme('colors.flare.500');
+  }
+
+  .field-error:focus {
+    box-shadow:
+      inset 0 0 0 1.5px theme('colors.flare.500'),
+      0 0 0 4px rgba(225, 48, 60, 0.14);
   }
 
   .label {
-    @apply mb-1.5 block text-[0.8125rem] font-semibold text-ink;
+    @apply mb-2 block text-[0.8125rem] font-semibold text-ink;
   }
 
   .help {
-    @apply mt-1.5 text-[0.75rem] leading-relaxed text-muted;
+    @apply mt-2 text-[0.75rem] leading-relaxed text-muted;
   }
 
   .error-text {
-    @apply mt-1.5 flex items-start gap-1.5 text-[0.75rem] font-medium leading-relaxed text-flare-600;
+    @apply mt-2 flex items-start gap-1.5 text-[0.75rem] font-medium leading-relaxed text-flare-600;
   }
 
   /* ---------- Bits ---------- */
   .chip {
-    @apply inline-flex items-center gap-1.5 rounded-[7px] border border-ink bg-paper
-           px-2.5 py-1 font-mono text-[0.6875rem] font-medium uppercase tracking-[0.1em] text-ink;
+    @apply inline-flex items-center gap-1.5 rounded-pill bg-vybe-50 px-3 py-1.5
+           font-mono text-[0.6875rem] font-semibold uppercase tracking-[0.12em] text-vybe-700;
+    box-shadow: inset 0 0 0 1px rgba(37, 134, 239, 0.16);
   }
 
   .chip-hot {
-    @apply border-flare-600 bg-flare-200/70 text-flare-600;
+    @apply bg-flare-100 text-flare-600;
+    box-shadow: inset 0 0 0 1px rgba(225, 48, 60, 0.22);
   }
 
-  /* A chip laid on by hand: slight rotation, hard mini-shadow. */
+  .chip-ok {
+    @apply bg-leaf-100 text-leaf-600;
+    box-shadow: inset 0 0 0 1px rgba(18, 160, 108, 0.22);
+  }
+
+  .chip-quiet {
+    @apply bg-frost text-slate;
+    box-shadow: inset 0 0 0 1px var(--hairline);
+  }
+
+  /* On a dark plate the tints have nothing to sit on, so the chip inverts. */
+  .chip-invert {
+    @apply bg-white/[0.12] text-white;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.22);
+  }
+
   .sticker {
-    @apply chip -rotate-2 bg-vybe-100 shadow-press-sm;
+    @apply chip;
   }
 
-  .rule {
-    @apply h-px w-full bg-edge;
+  /* A live dot for anything counting down or streaming. */
+  .pip {
+    @apply relative inline-flex h-2 w-2 shrink-0 rounded-pill bg-leaf-500;
+  }
+
+  .pip::after {
+    content: '';
+    @apply absolute inset-0 animate-ping2 rounded-pill bg-leaf-500;
+  }
+
+  .rule,
+  .divider {
+    @apply h-px w-full;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(10, 33, 56, 0.12) 12%,
+      rgba(10, 33, 56, 0.12) 88%,
+      transparent
+    );
   }
 
   .rule-ink {
-    @apply h-[2px] w-full bg-ink;
+    @apply h-[2px] w-full rounded-pill bg-aurora-line opacity-70;
   }
 
-  /* Receipt separator — the dashed line a thermal printer draws. */
   .rule-receipt {
     background-image: repeating-linear-gradient(
       90deg,
-      theme('colors.ink') 0 6px,
+      rgba(10, 33, 56, 0.3) 0 6px,
       transparent 6px 12px
     );
-    @apply h-[1.5px] w-full opacity-30;
+    @apply h-px w-full;
   }
 
-  /* Perforated tear line for ticket-shaped cards. */
   .perforation {
-    background-image: radial-gradient(circle, theme('colors.edgeStrong') 1.5px, transparent 1.6px);
+    background-image: radial-gradient(circle, rgba(10, 33, 56, 0.22) 1.5px, transparent 1.6px);
     background-size: 12px 1px;
     background-repeat: repeat-x;
   }
 
-  /* Barcode strip for ticket stubs: irregular bar widths, or it reads as
-     stripes rather than a barcode. */
+  /* Kept for the ticket stub and the pass: the one place a literal print
+     device still earns its keep, because the object being drawn is a ticket. */
   .barcode {
     background-image: repeating-linear-gradient(
       90deg,
@@ -375,25 +589,40 @@
     );
   }
 
-  /* ---------- Local backdrops ---------- */
+  /* Loading placeholder. Shape-matched to whatever it replaces. */
+  .skeleton {
+    @apply relative overflow-hidden rounded-sm bg-canvasDeep/70;
+  }
+
+  .skeleton::after {
+    content: '';
+    @apply absolute inset-0 animate-shimmer;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.6), transparent);
+  }
+
+  /* ---------- Local backdrops ----------
+     All three survive, at roughly half their old strength. They exist to give
+     a plate somewhere to breathe, not to be noticed. */
   .dotfield {
-    background-image: radial-gradient(circle, rgba(37, 134, 239, 0.18) 1px, transparent 1px);
-    background-size: 22px 22px;
+    background-image: radial-gradient(circle, rgba(37, 134, 239, 0.14) 1px, transparent 1px);
+    background-size: 24px 24px;
   }
 
   .gridfield {
     background-image:
-      linear-gradient(to right, rgba(37, 134, 239, 0.08) 1px, transparent 1px),
-      linear-gradient(to bottom, rgba(37, 134, 239, 0.08) 1px, transparent 1px);
-    background-size: 64px 64px;
+      linear-gradient(to right, rgba(37, 134, 239, 0.06) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(37, 134, 239, 0.06) 1px, transparent 1px);
+    background-size: 72px 72px;
   }
 
   .halftone {
-    background-image:
-      radial-gradient(circle, rgba(37, 134, 239, 0.22) 1.6px, transparent 1.7px),
-      radial-gradient(circle, rgba(139, 92, 240, 0.14) 1px, transparent 1.1px);
-    background-size: 18px 18px, 18px 18px;
-    background-position: 0 0, 9px 9px;
+    background-image: radial-gradient(circle, rgba(37, 134, 239, 0.12) 1.4px, transparent 1.5px);
+    background-size: 20px 20px;
+  }
+
+  /* A soft pool of light behind a single element. */
+  .spotlight {
+    background: radial-gradient(ellipse 60% 60% at 50% 40%, rgba(37, 134, 239, 0.16), transparent 70%);
   }
 
   .fade-edges {
@@ -444,6 +673,14 @@
   .scroll-locked {
     overflow: hidden;
     touch-action: none;
+  }
+  /* Hairline ring in the system colour, for one-off surfaces that do not want
+     a whole component class. */
+  .ring-hair {
+    box-shadow: inset 0 0 0 1px var(--hairline);
+  }
+  .ring-hair-strong {
+    box-shadow: inset 0 0 0 1px var(--hairline-strong);
   }
 }
 

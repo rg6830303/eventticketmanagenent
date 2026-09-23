@@ -23,14 +23,18 @@ export interface RailTier {
 const EASE = [0.16, 1, 0.3, 1] as const;
 
 /**
- * Pricing, as three physical ticket stubs.
+ * Pricing.
  *
- * Ink border, solid offset shadow, a tinted header band, a perforated tear
- * line with punched notches, and a barcode strip at the foot. The outer two
- * sit a fraction of a degree off true and straighten on hover, the way three
- * tickets laid on a table by hand would. The middle tier is called out
- * because on a three-price rail people pick the middle anyway — saying so
- * removes a decision.
+ * Three plates at three elevations. The recommended tier sits higher, carries
+ * the accent edge and the only filled button on the rail — so the eye lands on
+ * it before it has read a single price, which is the entire job of a pricing
+ * page. The other two stay quiet and identical to each other; giving all three
+ * the same weight, as the old stub design did, meant the customer had to make
+ * the comparison unaided.
+ *
+ * The ticket motif survives where it is literal — a notched waist and a
+ * perforation across the card — because the object being drawn really is a
+ * ticket. It is stated once per card, softly, rather than four times.
  */
 export function TicketRail({
   tiers,
@@ -46,7 +50,7 @@ export function TicketRail({
 
   if (tiers.length === 0) {
     return (
-      <div className="card-print p-10 text-center">
+      <div className="card p-10 text-center">
         <p className="h-card">Tickets are not up yet</p>
         <p className="mt-2 text-[0.9375rem] text-slate">
           Prices go live here first. Follow us and you will not miss it.
@@ -55,11 +59,9 @@ export function TicketRail({
     );
   }
 
-  const lean = ['-rotate-1', 'rotate-0', 'rotate-1'];
-
   return (
     <div>
-      <div className="grid gap-6 md:grid-cols-3 md:gap-5">
+      <div className="grid items-start gap-6 md:grid-cols-3 md:gap-5">
         {tiers.map((tier, index) => {
           const soldOut = tier.remaining <= 0;
           const scarce = !soldOut && tier.remaining <= Math.max(10, tier.total * 0.15);
@@ -74,24 +76,28 @@ export function TicketRail({
               viewport={{ once: true, margin: '-70px' }}
               transition={{ duration: 0.55, delay: index * 0.08, ease: EASE }}
               className={cn(
-                'relative flex flex-col overflow-hidden rounded-[16px] border-[1.5px] border-ink bg-paper transition-transform duration-300 ease-out',
-                featured ? 'shadow-press-lg md:-mt-3 md:mb-3' : 'shadow-stamp',
-                !reduce && lean[index % 3],
-                !reduce && 'hover:rotate-0 hover:-translate-y-1',
+                'group relative flex flex-col overflow-hidden',
+                featured ? 'card-feature md:-mt-4' : 'card-lift',
                 soldOut && 'opacity-60',
               )}
             >
-              {/* Header band: tier code left, verdict right, like a stub. */}
-              <div
-                className={cn(
-                  'flex items-center justify-between border-b-[1.5px] border-ink px-5 py-2.5',
-                  featured ? 'bg-vybe-500 text-white' : 'bg-vybe-100 text-ink',
-                )}
-              >
-                <span className="font-mono text-[0.6875rem] font-medium uppercase tracking-[0.2em]">
+              {/* Status line. One row, one fact, no competing badges. */}
+              <div className="flex items-center justify-between gap-3 px-6 pt-6">
+                <span className="font-mono text-[0.6875rem] font-semibold uppercase tracking-[0.2em] text-muted">
                   {tier.code}
                 </span>
-                <span className="font-mono text-[0.6875rem] uppercase tracking-[0.14em]">
+                <span
+                  className={cn(
+                    'chip',
+                    soldOut
+                      ? 'chip-quiet'
+                      : featured
+                        ? ''
+                        : scarce
+                          ? 'chip-hot'
+                          : 'chip-quiet',
+                  )}
+                >
                   {soldOut
                     ? 'Sold out'
                     : featured
@@ -102,7 +108,7 @@ export function TicketRail({
                 </span>
               </div>
 
-              <div className="flex-1 p-6">
+              <div className="flex-1 px-6 pt-5">
                 <h3 className="font-display text-[1.4rem] font-semibold tracking-[-0.02em] text-ink">
                   {tier.name}
                 </h3>
@@ -112,14 +118,15 @@ export function TicketRail({
                   </p>
                 )}
 
-                <p className="mt-5 flex items-baseline gap-2">
-                  <span className="tnum font-display text-[2.75rem] font-bold leading-none tracking-[-0.04em] text-ink">
+                <p className="mt-6 flex items-baseline gap-2">
+                  <span className="tnum font-display text-[2.875rem] font-bold leading-none tracking-[-0.04em] text-ink">
                     {tier.pricePaise === 0 ? 'Free' : formatInr(tier.pricePaise)}
                   </span>
                   <span className="font-mono text-[0.6875rem] uppercase tracking-[0.12em] text-muted">
                     {tier.priceUnit}
                   </span>
                 </p>
+
                 {/*
                   The cover sits on the price, at the price's size.
 
@@ -128,42 +135,48 @@ export function TicketRail({
                   they have a tab. Zero gets its own words and its own colour, so
                   the difference is read rather than inferred.
                 */}
-                <div
-                  className={cn(
-                    'mt-4 inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-[0.8125rem] font-semibold',
-                    tier.redeemablePaise === 0
-                      ? 'border-flare-500/50 bg-flare-100 text-flare-600'
-                      : 'border-leaf-500/40 bg-leaf-100 text-leaf-600',
-                  )}
-                >
-                  <span>
+                <div className="mt-4 flex flex-wrap items-center gap-2">
+                  <span className={cn('chip', tier.redeemablePaise === 0 ? 'chip-hot' : 'chip-ok')}>
                     {tier.redeemablePaise === 0
                       ? 'Zero redeemable'
                       : `${formatInr(tier.redeemablePaise)} redeemable`}
                   </span>
-                  <span aria-hidden>·</span>
-                  <span>{tier.pax} {tier.pax === 1 ? 'guest' : 'guests'}</span>
+                  <span className="chip chip-quiet">
+                    {tier.pax} {tier.pax === 1 ? 'guest' : 'guests'}
+                  </span>
                 </div>
               </div>
 
-              {/* Tear line, notches punched through to the ground. */}
-              <div className="relative">
+              {/* The ticket waist: notches punched to the ground, one soft
+                  perforation between them. */}
+              <div className="relative mt-7">
                 <span
                   aria-hidden
-                  className="absolute -left-[9px] top-1/2 h-4 w-4 -translate-y-1/2 rounded-full border-r-[1.5px] border-ink bg-canvasDeep"
+                  className="absolute -left-[9px] top-1/2 h-[18px] w-[18px] -translate-y-1/2 rounded-pill bg-canvas"
                 />
                 <span
                   aria-hidden
-                  className="absolute -right-[9px] top-1/2 h-4 w-4 -translate-y-1/2 rounded-full border-l-[1.5px] border-ink bg-canvasDeep"
+                  className="absolute -right-[9px] top-1/2 h-[18px] w-[18px] -translate-y-1/2 rounded-pill bg-canvas"
                 />
-                <span aria-hidden className="perforation mx-5 block h-px" />
+                <span aria-hidden className="perforation mx-6 block h-px" />
               </div>
 
-              <div className="p-6 pt-5">
-                <ul className="space-y-2">
+              <div className="px-6 pb-6 pt-6">
+                <ul className="space-y-2.5">
                   {tier.perks.map((perk) => (
-                    <li key={perk} className="flex gap-2.5 text-[0.875rem] text-slate">
-                      <span aria-hidden className="mt-[9px] h-[5px] w-[5px] shrink-0 bg-vybe-500" />
+                    <li key={perk} className="flex gap-2.5 text-[0.875rem] leading-relaxed text-slate">
+                      <svg
+                        aria-hidden
+                        viewBox="0 0 16 16"
+                        className="mt-[3px] h-4 w-4 shrink-0 text-vybe-500"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.9"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="m3.5 8.5 3 3 6-7" />
+                      </svg>
                       {perk}
                     </li>
                   ))}
@@ -177,7 +190,7 @@ export function TicketRail({
                     setRecentlyAdded((current) => ({ ...current, [tier.code]: true }));
                   }}
                   className={cn(
-                    'mt-6 w-full',
+                    'mt-7 w-full',
                     soldOut
                       ? 'btn-outline pointer-events-none opacity-50'
                       : featured
@@ -188,21 +201,18 @@ export function TicketRail({
                   {soldOut
                     ? 'Sold out'
                     : recentlyAdded[tier.code]
-                      ? 'Added to cart'
+                      ? 'Added to cart ✓'
                       : 'Add to cart'}
                 </button>
 
-                <Link href="/cart" className="btn-outline btn-sm mt-3 w-full">
-                  Open cart
-                </Link>
-              </div>
-
-              {/* Barcode foot. Decorative, and honest about it. */}
-              <div className="flex items-center justify-between gap-4 border-t-[1.5px] border-ink bg-frost px-5 py-2.5">
-                <span aria-hidden className="barcode h-5 w-24 opacity-70" />
-                <span className="font-mono text-[0.625rem] uppercase tracking-[0.18em] text-muted">
-                  HOV·26·{tier.code}
-                </span>
+                {/* Secondary route, and only where it has been earned: before
+                    anything is in the cart, "open cart" on every card is three
+                    dead links. */}
+                {recentlyAdded[tier.code] && !soldOut && (
+                  <Link href="/cart" className="btn-ghost mt-2 w-full">
+                    Go to cart →
+                  </Link>
+                )}
               </div>
             </motion.div>
           );
@@ -210,7 +220,7 @@ export function TicketRail({
       </div>
 
       {showReferralNote && (
-        <p className="mt-6 text-center text-[0.875rem] text-slate">
+        <p className="mt-8 text-center text-[0.875rem] text-slate">
           Got a referral code? Add it in the cart for a flat ₹{REFERRAL.discountRupees} off your
           order.
         </p>

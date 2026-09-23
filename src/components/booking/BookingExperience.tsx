@@ -77,8 +77,8 @@ export function BookingExperience(props: BookingExperienceProps) {
             mono figures. A receipt is the one artefact everyone already reads
             as "what am I being charged", which beats any card layout at the
             same job. */}
-        <div className="card-print overflow-hidden">
-          <div className="border-b-[1.5px] border-ink bg-vybe-100 px-6 py-4">
+        <div className="card overflow-hidden">
+          <div className="bg-aurora-soft px-6 py-4">
             <div className="flex items-baseline justify-between">
               <p className="font-mono text-[0.6875rem] font-medium uppercase tracking-[0.22em] text-ink">
                 Order summary

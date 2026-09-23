@@ -1,14 +1,13 @@
-import { EVENT } from '@/content/site';
-
 /**
  * The page ground.
  *
- * Flat layers with hard edges, assembled the way a poster is: a deep-blue
- * diagonal band across the lower half, the halftone screen off the artwork in
- * one corner, a fine grid, film grain, and the event wordmark set enormous in
- * outline and cropped by the viewport. No blur, no drift — a mesh-gradient
- * aurora is the single most recognisable tell of a generated page, and this
- * replaces it with composition.
+ * Daylight falling from the top, two slow azure blooms far apart, a fine
+ * lattice that fades before it reaches the fold, and a horizon low in the
+ * viewport so the page has a floor to stand on.
+ *
+ * Its entire job is to make the white surfaces above it read as floating. It
+ * cannot do that while it is busy being interesting, which is why everything
+ * here is low contrast and nothing moves faster than a 22-second cycle.
  *
  * Server component, CSS only: costs nothing at runtime and cannot fail the
  * way a canvas can.
@@ -16,13 +15,11 @@ import { EVENT } from '@/content/site';
 export function Environment() {
   return (
     <div className="env" aria-hidden>
-      <span className="env__band" />
-      <span className="env__band2" />
-      <span className="env__grid" />
-      <span className="env__halftone" />
-      <span className="env__mark">
-        {EVENT.name} {EVENT.editionShort}
-      </span>
+      <span className="env__wash" />
+      <span className="env__bloom env__bloom--a" />
+      <span className="env__bloom env__bloom--b" />
+      <span className="env__lattice" />
+      <span className="env__horizon" />
       <span className="env__grain" />
     </div>
   );
