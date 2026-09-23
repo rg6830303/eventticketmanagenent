@@ -11,6 +11,13 @@ const EASE = [0.16, 1, 0.3, 1] as const;
 
 interface Props {
   eventSlug: string;
+  /**
+   * The signed-in customer, when there is one. Only ever used to prefill the
+   * form — the booking is still attributed by the email that is submitted, so
+   * somebody buying on a friend's behalf can type a different address and it
+   * does the right thing.
+   */
+  account: { name: string; email: string; phone: string | null } | null;
   items: CartItem[];
   totalPasses: number;
   totalPaise: number;
@@ -43,6 +50,7 @@ interface FieldErrors {
  */
 export function CartCheckout({
   eventSlug,
+  account,
   items,
   totalPasses,
   totalPaise,
@@ -56,7 +64,15 @@ export function CartCheckout({
   const [phase, setPhase] = useState<Phase>('idle');
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
-  const [form, setForm] = useState({ name: '', email: '', phone: '', consent: false, updates: false });
+  const [form, setForm] = useState({
+    name: account?.name ?? '',
+    email: account?.email ?? '',
+    phone: account?.phone ?? '',
+    consent: false,
+    // Consent is never prefilled. A box the customer did not tick is not
+    // consent, however confident we are about what they would have chosen.
+    updates: false,
+  });
 
   // Regenerated per attempt, not per render: a retry after a network timeout
   // must replay the same key so a booking that actually committed is returned

@@ -88,6 +88,17 @@ const OPEN_WHILE_PAUSED = [
   // The scanner's own installer. Handing door staff a download that 503s
   // because sales are shut is the same mistake as closing the scan endpoint.
   '/houz-ticket.apk',
+  // Accounts, which are how a customer reaches the passes they already own.
+  // Closing these would strand exactly the people the exceptions above exist
+  // to protect: somebody who paid, then came back to find their QR. Signing up
+  // is not in the list — that is front-of-shop, and the shop is shut.
+  '/login',
+  '/account',
+  '/api/account/login',
+  '/api/account/logout',
+  '/api/account/forgot',
+  '/api/account/reset',
+  '/api/account/verify',
   // Ours to look at, and a way for a stranded customer to reach a human.
   '/api/health',
   '/contact',
@@ -97,7 +108,13 @@ const OPEN_WHILE_PAUSED = [
 
 function isOpenWhilePaused(pathname: string): boolean {
   return OPEN_WHILE_PAUSED.some((prefix) =>
-    prefix.endsWith('/') ? pathname.startsWith(prefix) : pathname === prefix,
+    // A trailing slash means "this and everything under it". Without one the
+    // match is exact, except that a path is also allowed to be the prefix
+    // followed by a slash — so '/account' covers '/account/verify' but not
+    // some future '/accountancy'.
+    prefix.endsWith('/')
+      ? pathname.startsWith(prefix)
+      : pathname === prefix || pathname.startsWith(`${prefix}/`),
   );
 }
 

@@ -28,6 +28,17 @@ export const KDF_SALT = 'houz-of-vybe/kdf/v1';
 
 export const ADMIN_SESSION_INFO = 'admin-session-jwt';
 export const TICKET_SIGNING_INFO = 'ticket-qr-hmac';
+/**
+ * Customer sessions get their own derived key.
+ *
+ * Independent of the admin one on purpose: the two cookies authorise wildly
+ * different things — one shows a person their own tickets, the other shows
+ * every buyer's email, phone and spend — and signing both with one key makes
+ * "is this token for the other audience?" the only thing standing between
+ * them. HKDF with a distinct info string means a customer token cannot be
+ * verified by the admin key at all, whatever claims it carries.
+ */
+export const CUSTOMER_SESSION_INFO = 'customer-session-jwt';
 
 /**
  * Fallback key material, most stable first.

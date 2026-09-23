@@ -97,6 +97,16 @@ export const LIMITS = {
   // enumerating live codes from one address.
   referral: { limit: 25, window: 300 },
   payment: { limit: 20, window: 600 },
+  // Accounts. The per-email login bucket is the one that identifies a person;
+  // the per-IP one is set high on purpose, because a hostel or a campus puts
+  // hundreds of people behind one address and a handful of fumbled sign-ins
+  // must not lock out everybody else on the same wifi.
+  accountLogin: { limit: 10, window: 900 },
+  accountLoginIp: { limit: 100, window: 900 },
+  accountSignup: { limit: 10, window: 3600 },
+  // Reset, verify and resend share a bucket shape: each one sends an email, so
+  // the cost of abuse is somebody else's inbox.
+  accountReset: { limit: 5, window: 900 },
   // A UTR claim is cheap to write and impossible to verify, so the ceiling is
   // low: this is the endpoint a script would use to hunt for live references.
   upiClaim: { limit: 8, window: 900 },

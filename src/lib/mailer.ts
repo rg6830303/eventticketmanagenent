@@ -10,6 +10,8 @@ import {
   ticketEmailSubject,
   ticketEmailText,
   contactAckHtml,
+  accountActionHtml,
+  accountActionText,
   type TicketEmailData,
 } from './email-templates';
 import { brandMarkPng } from './email-assets';
@@ -387,6 +389,45 @@ export async function sendTicketEmail(detail: BookingDetail): Promise<SendResult
   globalThis.__hovTransport?.close();
   globalThis.__hovTransport = undefined;
   return sendMail(payload);
+}
+
+/**
+ * An account email: verify an address, or reset a password.
+ *
+ * Both carry a single-use link, so both are time-sensitive and both have to
+ * actually arrive. The caller decides what to do when this fails — signup can
+ * survive a bounced verification (the customer can ask for another), a reset
+ * cannot, and pretending otherwise would leave somebody waiting for a mail
+ * that is never coming.
+ */
+export async function sendAccountEmail(input: {
+  to: string;
+  name: string;
+  purpose: 'verify_email' | 'reset_password';
+  url: string;
+}): Promise<SendResult> {
+  const verify = input.purpose === 'verify_email';
+
+  const content = {
+    name: input.name,
+    heading: verify ? 'Confirm your email' : 'Reset your password',
+    body: verify
+      ? 'Confirm this address and your account will show every pass you have bought from us, past and upcoming. The link works for three days.'
+      : 'Somebody asked to reset the password on this account. Use the link below to choose a new one. It works for two hours and once only.',
+    buttonLabel: verify ? 'Confirm my email' : 'Choose a new password',
+    url: input.url,
+    footnote: verify
+      ? 'If you did not create an account with us, ignore this email — nothing happens without the link above.'
+      : 'If this was not you, ignore this email. Your password has not changed, and the link expires on its own.',
+  };
+
+  return sendMail({
+    to: input.to,
+    subject: verify ? 'Confirm your email — Houz of Vybe' : 'Reset your password — Houz of Vybe',
+    html: accountActionHtml(content),
+    text: accountActionText(content),
+    template: verify ? 'account-verify' : 'account-reset',
+  });
 }
 
 export async function sendContactAck(name: string, to: string): Promise<SendResult> {

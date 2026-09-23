@@ -346,3 +346,67 @@ export function contactAckHtml(name: string, siteUrl: string): string {
     </td></tr></table>
   </body></html>`;
 }
+
+/**
+ * Account emails — verify an address, or reset a password.
+ *
+ * One template for both, because they are the same object: a sentence of
+ * context and a single button carrying a single-use link. Keeping them as one
+ * function keeps them looking identical in an inbox, which is what makes the
+ * second one recognisable as legitimate when it arrives out of the blue.
+ *
+ * The URL is printed underneath as well as linked. Plenty of mail clients
+ * mangle or strip buttons, and an account email whose only affordance did not
+ * render is an account email that failed.
+ */
+export function accountActionHtml(input: {
+  name: string;
+  heading: string;
+  body: string;
+  buttonLabel: string;
+  url: string;
+  footnote: string;
+}): string {
+  return `<!doctype html><html><body style="margin:0;background:${BG};padding:32px 12px;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center">
+      <table role="presentation" width="520" cellpadding="0" cellspacing="0" style="width:100%;max-width:520px;background:${CARD};border:1px solid ${LINE};border-radius:18px;">
+        <tr><td style="padding:32px;">
+          <p style="margin:0 0 20px 0;font:800 20px/1 Arial,Helvetica,sans-serif;color:${TEXT};">HOUZ <span style="color:${BLUE};">OF</span> VYBE</p>
+          <p style="margin:0 0 14px 0;font:700 18px/1.4 Arial,Helvetica,sans-serif;color:${TEXT};">${esc(input.heading)}</p>
+          <p style="margin:0 0 10px 0;font:400 15px/1.7 Arial,Helvetica,sans-serif;color:${TEXT};">Hey ${esc(input.name.split(' ')[0])},</p>
+          <p style="margin:0 0 24px 0;font:400 15px/1.7 Arial,Helvetica,sans-serif;color:${MUTED};">${esc(input.body)}</p>
+          <table role="presentation" cellpadding="0" cellspacing="0"><tr><td style="border-radius:999px;background:${BLUE};">
+            <a href="${esc(input.url)}" style="display:inline-block;padding:14px 28px;font:700 15px/1 Arial,Helvetica,sans-serif;color:#ffffff;text-decoration:none;">${esc(input.buttonLabel)}</a>
+          </td></tr></table>
+          <p style="margin:22px 0 0 0;font:400 12px/1.7 Arial,Helvetica,sans-serif;color:#5d6b93;">
+            Button not working? Paste this into your browser:<br>
+            <span style="word-break:break-all;color:${BLUE};">${esc(input.url)}</span>
+          </p>
+          <p style="margin:18px 0 0 0;padding-top:16px;border-top:1px solid ${LINE};font:400 12px/1.7 Arial,Helvetica,sans-serif;color:#5d6b93;">${esc(input.footnote)}</p>
+        </td></tr>
+      </table>
+    </td></tr></table>
+  </body></html>`;
+}
+
+export function accountActionText(input: {
+  name: string;
+  heading: string;
+  body: string;
+  url: string;
+  footnote: string;
+}): string {
+  return [
+    `${input.heading}`,
+    '',
+    `Hey ${input.name.split(' ')[0]},`,
+    '',
+    input.body,
+    '',
+    input.url,
+    '',
+    input.footnote,
+    '',
+    'Houz of Vybe · Hyderabad',
+  ].join('\n');
+}

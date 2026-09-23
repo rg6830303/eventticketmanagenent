@@ -1,5 +1,6 @@
 import { after } from 'next/server';
 import { Header } from '@/components/site/Header';
+import { getCustomerSession } from '@/lib/customer-auth';
 import { Footer } from '@/components/site/Footer';
 import { PageTransition } from '@/components/site/PageTransition';
 import { maybeReconcile } from '@/lib/payments';
@@ -41,7 +42,17 @@ import { maybeReconcile } from '@/lib/payments';
  */
 export const maxDuration = 60;
 
-export default function SiteLayout({ children }: { children: React.ReactNode }) {
+export default async function SiteLayout({ children }: { children: React.ReactNode }) {
+  /*
+   * Read once here rather than in the header itself.
+   *
+   * The header is a client component — it needs scroll position and a drawer —
+   * so it cannot read a cookie. Resolving the session in the layout keeps the
+   * whole site's chrome on one answer, and a failure to read it is "signed
+   * out" rather than a 500 on every page.
+   */
+  const account = await getCustomerSession().catch(() => null);
+
   after(async () => {
     try {
       await maybeReconcile();
@@ -52,7 +63,7 @@ export default function SiteLayout({ children }: { children: React.ReactNode }) 
 
   return (
     <div className="flex min-h-dvh flex-col">
-      <Header />
+      <Header account={account ? { name: account.name } : null} />
       <main id="main" className="flex-1">
         <PageTransition>{children}</PageTransition>
       </main>

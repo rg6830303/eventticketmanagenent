@@ -26,7 +26,7 @@ import { Logo } from '@/components/brand/Logo';
  * The CTA never leaves. On a single-event site every screen is a chance to
  * sell the one ticket.
  */
-export function Header() {
+export function Header({ account }: { account: { name: string } | null }) {
   const pathname = usePathname();
   const [landed, setLanded] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -130,6 +130,14 @@ export function Header() {
             </ul>
 
             <div className="flex items-center gap-2">
+              {/* Signed in, the first name is the affordance — shorter than
+                  "My account" and it confirms *which* account at a glance. */}
+              <Link
+                href={account ? '/account' : '/login'}
+                className="btn-ghost hidden px-4 py-2.5 text-[0.875rem] sm:inline-flex"
+              >
+                {account ? account.name.split(' ')[0] : 'Sign in'}
+              </Link>
               <Link
                 href="/book"
                 className="btn-primary hidden px-6 py-3 text-[0.875rem] sm:inline-flex"
@@ -252,10 +260,13 @@ export function Header() {
                   initial={{ opacity: 0, y: 14 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.3 }}
-                  className="mt-6"
+                  className="mt-6 space-y-3"
                 >
                   <Link href="/book" className="btn-primary btn-lg w-full">
                     Buy tickets
+                  </Link>
+                  <Link href={account ? '/account' : '/login'} className="btn-outline w-full">
+                    {account ? 'My tickets' : 'Sign in'}
                   </Link>
                   <p className="mt-4 text-center text-[0.8125rem] leading-relaxed text-muted">
                     {EVENT.dateLabel} · {EVENT.timeLabel}

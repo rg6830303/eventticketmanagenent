@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import { env } from '@/lib/env';
 import { listStorefrontTiers } from '@/lib/storefront-tiers';
 import { getFeaturedEvent, getPublicEvent } from '@/lib/events';
+import { getCurrentCustomer } from '@/lib/customer-auth';
 import { formatEventDate, formatEventTime } from '@/lib/utils';
 import { CartClient } from '@/components/cart/CartClient';
 
@@ -42,7 +43,12 @@ export default async function CartPage({
   // than showing an uncheckoutable cart keeps the dead end in one place.
   if (isPast) redirect(`/events/${event.slug}`);
 
-  const tiers = await listStorefrontTiers(event.id);
+  const [tiers, customer] = await Promise.all([
+    listStorefrontTiers(event.id),
+    // Signed out, or unreadable: a guest checkout, which is the path that must
+    // never break. Never an error.
+    getCurrentCustomer().catch(() => null),
+  ]);
 
   return (
     <div className="relative">
@@ -50,6 +56,11 @@ export default async function CartPage({
         <CartClient
           eventName={edition ? `${event.name} ${edition}` : event.name}
           eventSlug={event.slug}
+          account={
+            customer
+              ? { name: customer.name, email: customer.email, phone: customer.phone }
+              : null
+          }
           tiers={tiers}
           eventDate={formatEventDate(event.starts_at)}
           doorsAt={formatEventTime(event.doors_at ?? event.starts_at)}

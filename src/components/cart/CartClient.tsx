@@ -13,6 +13,8 @@ import { CartCheckout } from './CartCheckout';
 interface CartClientProps {
   eventName: string;
   eventSlug: string;
+  /** Signed-in customer, for prefilling the checkout. Null for a guest. */
+  account: { name: string; email: string; phone: string | null } | null;
   tiers: TierOption[];
   eventDate: string;
   doorsAt: string;
@@ -30,6 +32,7 @@ const REFERRAL_KEY = 'hov-cart-referral-v1';
 export function CartClient({
   eventName,
   eventSlug,
+  account,
   tiers,
   eventDate,
   doorsAt,
@@ -378,6 +381,7 @@ export function CartClient({
         {hydrated && cartRows.length > 0 && (
           <CartCheckout
             eventSlug={eventSlug}
+            account={account}
             items={cartRows.map((row) => ({ code: row.code, quantity: row.quantity }))}
             totalPasses={totalPasses}
             totalPaise={total}

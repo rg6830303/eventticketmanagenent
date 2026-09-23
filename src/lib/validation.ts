@@ -242,3 +242,51 @@ export function fieldErrors(error: z.ZodError): Record<string, string[]> {
   }
   return out;
 }
+
+// ---------------------------------------------------------------------------
+// Customer accounts
+// ---------------------------------------------------------------------------
+
+/**
+ * A password rule that is a floor, not an obstacle course.
+ *
+ * Ten characters and nothing else. Composition rules — one capital, one digit,
+ * one symbol — measurably push people towards `Password1!` and a sticky note,
+ * and they are not what this is protecting: a compromised account here shows
+ * somebody their own ticket list. Length is the part that actually costs an
+ * attacker anything, and the lockout in customer-auth.ts does the rest.
+ */
+export const passwordSchema = z
+  .string({ required_error: 'Choose a password' })
+  .min(10, 'Use at least 10 characters')
+  .max(200, 'That password is too long');
+
+export const signUpSchema = z.object({
+  name: nameSchema,
+  email: emailSchema,
+  // Optional at signup: a phone number is needed to *buy*, not to have an
+  // account, and asking for one before there is any reason to is how a signup
+  // form loses people.
+  phone: z.string().trim().optional().or(z.literal('')),
+  password: passwordSchema,
+  marketingOptIn: z.boolean().optional(),
+  /** Honeypot. A real browser leaves it empty. */
+  company: z.string().max(0).optional().or(z.literal('')),
+});
+
+export const logInSchema = z.object({
+  email: z.string().trim().toLowerCase().email('Enter a valid email'),
+  // Not `passwordSchema`: an existing password that predates a rule change
+  // must still be typeable. Length rules belong on the way in, not the way
+  // back.
+  password: z.string().min(1, 'Enter your password').max(200),
+});
+
+export const forgotPasswordSchema = z.object({
+  email: z.string().trim().toLowerCase().email('Enter a valid email'),
+});
+
+export const resetPasswordSchema = z.object({
+  token: z.string().min(10, 'This link is not valid').max(200),
+  password: passwordSchema,
+});
