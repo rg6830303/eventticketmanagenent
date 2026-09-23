@@ -7,6 +7,8 @@ import { cn, formatInr } from '@/lib/utils';
 export interface PriceTier {
   id: string;
   code: string;
+  /** Which event this tier sells. Two events can share a tier code. */
+  event_name?: string;
   name: string;
   description: string | null;
   price_paise: number;
@@ -59,7 +61,7 @@ export function PriceEditor({ initialTiers }: { initialTiers: PriceTier[] }) {
   function startEdit(tier: PriceTier) {
     setError(null);
     setNotice(null);
-    setEditing(tier.code);
+    setEditing(tier.id);
     setDraft({
       name: tier.name,
       priceRupees: String(tier.price_paise / 100),
@@ -70,7 +72,7 @@ export function PriceEditor({ initialTiers }: { initialTiers: PriceTier[] }) {
     });
   }
 
-  async function save(code: string) {
+  async function save(tier: PriceTier) {
     if (!draft) return;
     setBusy(true);
     setError(null);
@@ -80,7 +82,7 @@ export function PriceEditor({ initialTiers }: { initialTiers: PriceTier[] }) {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          code,
+          id: tier.id,
           name: draft.name,
           description: draft.description || null,
           priceRupees: Number(draft.priceRupees),
@@ -127,7 +129,7 @@ export function PriceEditor({ initialTiers }: { initialTiers: PriceTier[] }) {
       const response = await fetch('/api/admin/prices', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: tier.code, active: !tier.active }),
+        body: JSON.stringify({ id: tier.id, active: !tier.active }),
       });
       const body = (await response.json()) as { error?: string };
       if (!response.ok) setError(body.error ?? 'Could not update that pass.');
@@ -151,7 +153,7 @@ export function PriceEditor({ initialTiers }: { initialTiers: PriceTier[] }) {
 
       <div className="space-y-3">
         {tiers.map((tier) => {
-          const isEditing = editing === tier.code;
+          const isEditing = editing === tier.id;
 
           return (
             <div
@@ -167,6 +169,9 @@ export function PriceEditor({ initialTiers }: { initialTiers: PriceTier[] }) {
                     <span className="font-mono text-[11px] uppercase tracking-[0.12em] text-muted">
                       {tier.code}
                     </span>
+                    {tier.event_name && (
+                      <span className="chip chip-quiet text-[10px]">{tier.event_name}</span>
+                    )}
                     {!tier.active && (
                       <span className="rounded-md bg-flare-200/40 px-1.5 py-0.5 text-[10px] font-medium text-flare-600">
                         hidden
@@ -274,7 +279,7 @@ export function PriceEditor({ initialTiers }: { initialTiers: PriceTier[] }) {
                         <button
                           type="button"
                           disabled={busy}
-                          onClick={() => save(tier.code)}
+                          onClick={() => save(tier)}
                           className="btn-primary px-5 py-2 text-[13px] disabled:opacity-40"
                         >
                           {busy ? 'Saving…' : 'Save and publish'}

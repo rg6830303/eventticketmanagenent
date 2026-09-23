@@ -9,6 +9,7 @@ const ITEMS = [
   { href: '/admin', label: 'Dashboard', icon: GridIcon, exact: true },
   { href: '/admin/scan', label: 'Scan', icon: ScanIcon },
   { href: '/admin/bookings', label: 'Bookings', icon: ListIcon },
+  { href: '/admin/events', label: 'Events', icon: CalendarIcon, minRole: 'manager' as const },
   { href: '/admin/tickets', label: 'Tickets', icon: TicketIcon, minRole: 'manager' as const },
   // Manager and above only. The page itself re-checks, but a link that always
   // 403s for gate staff is a link that teaches them the console is broken.
@@ -126,6 +127,15 @@ export function AdminNav({
 }
 
 type IconProps = { className?: string };
+
+function CalendarIcon({ className }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" className={className} aria-hidden>
+      <rect x="3" y="5" width="18" height="16" rx="2.5" />
+      <path d="M3 10h18M8 3v4M16 3v4" strokeLinecap="round" />
+    </svg>
+  );
+}
 
 function GridIcon({ className }: IconProps) {
   return (

@@ -32,8 +32,12 @@ export async function GET() {
   try {
     await requireSession('manager');
 
-    const tiers = await query<TierWithUnit & { confirmed: number; pending: number }>(
+    const tiers = await query<
+      TierWithUnit & { confirmed: number; pending: number; event_name: string; event_slug: string }
+    >(
       `SELECT t.*,
+              e.name AS event_name,
+              e.slug AS event_slug,
               (SELECT COALESCE(SUM(bi.quantity), 0)::int FROM booking_items bi
                  JOIN bookings b ON b.id = bi.booking_id
                 WHERE bi.tier_id = t.id AND b.status = 'confirmed') AS confirmed,
@@ -41,7 +45,8 @@ export async function GET() {
                  JOIN bookings b ON b.id = bi.booking_id
                 WHERE bi.tier_id = t.id AND b.status = 'pending') AS pending
          FROM ticket_tiers t
-        ORDER BY t.active DESC, t.sort_order ASC, t.price_paise ASC`,
+         JOIN events e ON e.id = t.event_id
+        ORDER BY e.starts_at DESC, t.active DESC, t.sort_order ASC, t.price_paise ASC`,
     );
 
     return ok({ tiers });
@@ -56,6 +61,7 @@ export async function PATCH(request: NextRequest) {
     if (!verifyOrigin(request.headers)) return fail('Request blocked', 'bad_origin', 403);
 
     const body = (await readJson(request)) as {
+      id?: string;
       code?: string;
       name?: string;
       description?: string | null;
@@ -67,13 +73,21 @@ export async function PATCH(request: NextRequest) {
       perks?: string[];
     };
 
-    if (!body.code) return fail('Which pass?', 'missing_code', 422);
-    const code = body.code.trim().toUpperCase();
+    /*
+     * Identified by id, not code.
+     *
+     * `code` is unique per event, not globally — two events both selling a
+     * NORMAL pass is the ordinary case. Matching on code alone repriced an
+     * arbitrary one of them, and `UPDATE ... WHERE code = $1` repriced *all* of
+     * them.
+     */
+    if (!body.id) return fail('Which pass?', 'missing_id', 422);
 
-    const existing = await queryOne<TierWithUnit>('SELECT * FROM ticket_tiers WHERE code = $1', [
-      code,
+    const existing = await queryOne<TierWithUnit>('SELECT * FROM ticket_tiers WHERE id = $1', [
+      body.id,
     ]);
-    if (!existing) return fail(`${code} does not exist`, 'not_found', 404);
+    if (!existing) return fail('That pass no longer exists', 'not_found', 404);
+    const code = existing.code;
 
     // --- Validation ------------------------------------------------------
     const pricePaise =
@@ -131,10 +145,10 @@ export async function PATCH(request: NextRequest) {
          price_unit       = COALESCE($7, price_unit),
          active           = COALESCE($8, active),
          perks            = COALESCE($9::jsonb, perks)
-       WHERE code = $1
+       WHERE id = $1
        RETURNING *`,
       [
-        code,
+        existing.id,
         body.name?.trim() ?? null,
         body.description?.trim() ?? null,
         pricePaise,
@@ -161,7 +175,7 @@ export async function PATCH(request: NextRequest) {
      * charged — and any payment order already raised is still honoured at the
      * amount it was raised for, so nobody mid-payment is left short.
      */
-    const repriced = await repricePendingBookings(code).catch((error) => {
+    const repriced = await repricePendingBookings(existing.id).catch((error) => {
       // The price change itself has committed and is the important half. Log
       // loudly and carry on rather than failing the request after the fact.
       console.error('[prices] could not reprice pending bookings', {
@@ -175,7 +189,7 @@ export async function PATCH(request: NextRequest) {
       actor: session,
       action: 'price.update',
       entity: 'ticket_tier',
-      entityId: code,
+      entityId: existing.id,
       metadata: {
         from: {
           name: existing.name,

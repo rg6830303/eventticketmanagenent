@@ -20,13 +20,19 @@ import { query, transaction } from './db';
  * customer for their referral, and it belongs to them regardless of what the
  * pass now costs.
  *
+ * Everything here joins on `booking_items.tier_id`, never on `tier_code`.
+ * Codes are unique per event, not globally, so two events both having a
+ * NORMAL tier — which is the normal case, not an edge one — made a code join
+ * reprice one event's carts against the other event's prices. The id is the
+ * only thing that identifies a tier.
+ *
  * This deliberately does NOT cancel any payment order already raised. Orders
  * carry their own amount and are honoured against it, so a customer who is
  * mid-payment when a price changes completes at the figure they were shown
  * rather than being told they are suddenly short. The next press of Pay raises
  * a fresh order at the new price.
  */
-export async function repricePendingBookings(tierCode?: string): Promise<{
+export async function repricePendingBookings(tierId?: string): Promise<{
   bookings: number;
   items: number;
 }> {
@@ -41,14 +47,14 @@ export async function repricePendingBookings(tierCode?: string): Promise<{
               admits_each      = t.admits,
               redeemable_paise = t.redeemable_paise
          FROM ticket_tiers t, bookings b
-        WHERE t.code = bi.tier_code
+        WHERE t.id = bi.tier_id
           AND b.id = bi.booking_id
           AND b.status = 'pending'
-          AND ($1::text IS NULL OR bi.tier_code = $1)
+          AND ($1::uuid IS NULL OR bi.tier_id = $1)
           AND (bi.unit_price_paise <> t.price_paise
                OR bi.admits_each <> t.admits
                OR bi.redeemable_paise <> t.redeemable_paise)`,
-      [tierCode ?? null],
+      [tierId ?? null],
     );
 
     // Then the booking totals, recomputed from the lines that now exist rather
@@ -87,7 +93,7 @@ export async function repriceBooking(bookingId: string): Promise<boolean> {
               admits_each      = t.admits,
               redeemable_paise = t.redeemable_paise
          FROM ticket_tiers t, bookings b
-        WHERE t.code = bi.tier_code
+        WHERE t.id = bi.tier_id
           AND b.id = bi.booking_id
           AND b.id = $1
           AND b.status = 'pending'
@@ -131,7 +137,7 @@ export async function pendingPriceDrift(): Promise<
             count(*)::int       AS bookings
        FROM booking_items bi
        JOIN bookings b ON b.id = bi.booking_id
-       JOIN ticket_tiers t ON t.code = bi.tier_code
+       JOIN ticket_tiers t ON t.id = bi.tier_id
       WHERE b.status = 'pending' AND bi.unit_price_paise <> t.price_paise
       GROUP BY 1, 2, 3
       ORDER BY 4 DESC`,
