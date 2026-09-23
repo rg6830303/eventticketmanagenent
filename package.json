@@ -2,7 +2,7 @@
   "name": "houz-of-vybe",
   "version": "1.0.0",
   "private": true,
-  "description": "Houz of Vybe — Hyderabad clubbing events platform with QR ticketing, Gmail SMTP delivery and an admin scan console.",
+  "description": "Houz of Vybe \u2014 Hyderabad clubbing events platform with QR ticketing, Gmail SMTP delivery and an admin scan console.",
   "engines": {
     "node": ">=20.0.0"
   },
@@ -12,6 +12,7 @@
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
+    "doctor": "node scripts/doctor.mjs",
     "db:push": "node scripts/db-push.mjs",
     "db:seed": "node scripts/db-seed.mjs",
     "admin:create": "node scripts/create-admin.mjs"

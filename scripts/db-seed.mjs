@@ -45,6 +45,7 @@ function ist(year, month, day, hour, minute = 0) {
 const OFFCAMPUS_CONTENT = {
   presentedBy: 'Houz of Vybe × Kingdome Klub & Kitchen',
   headline: 'The first party of your first year.',
+  headlineAccent: 'first year',
   subhead:
     'Four hours, one rooftop bar, and the entire fresher batch in one place. Doors at noon, music until four.',
   standfirst:

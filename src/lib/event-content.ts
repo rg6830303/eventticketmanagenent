@@ -22,6 +22,15 @@ export interface EventContent {
   presentedBy?: string;
   /** The hero headline. Distinct from the event's name. */
   headline?: string;
+  /**
+   * The part of the headline set in the script face.
+   *
+   * An explicit substring rather than "the last two words", because guessing
+   * lands the flourish on "the door" as readily as on "first year". Must
+   * appear in `headline` verbatim; when it does not, the headline simply
+   * renders unaccented, which is a plain heading rather than a broken one.
+   */
+  headlineAccent?: string;
   /** One or two sentences under the headline. */
   subhead?: string;
   /** The opening paragraph on the event page. */
@@ -56,6 +65,7 @@ export const DEFAULT_CONTENT: Required<Omit<EventContent, 'venue'>> & {
 } = {
   presentedBy: 'Houz of Vybe',
   headline: 'The next one.',
+  headlineAccent: '',
   subhead: 'Book online, get a QR pass by email, walk straight in.',
   standfirst: 'Tickets are on sale here. Every pass is a QR scanned once at the door.',
   body: [

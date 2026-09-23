@@ -1,13 +1,15 @@
-import Link from 'next/link';
 import type { ReactNode } from 'react';
-import { Logo } from '@/components/brand/Logo';
 
 /**
  * The frame every account screen sits in.
  *
  * One plate, centred, narrow. These pages have exactly one job each and the
- * layout says so — no nav, no marketing, nothing to click that is not the
- * thing they came to do.
+ * layout says so — nothing on them to click that is not the thing they came to
+ * do.
+ *
+ * No wordmark of its own: these render inside the site layout, which already
+ * has the logo in the header, and two of them stacked reads as a page that has
+ * rendered twice.
  */
 export function AuthShell({
   eyebrow,
@@ -24,12 +26,6 @@ export function AuthShell({
 }) {
   return (
     <div className="shell-narrow flex min-h-[80dvh] flex-col justify-center py-28">
-      <div className="mb-8 text-center">
-        <Link href="/" className="inline-block rounded-pill" aria-label="Houz of Vybe — home">
-          <Logo variant="inline" />
-        </Link>
-      </div>
-
       <div className="card p-7 sm:p-9">
         <p className="eyebrow">{eyebrow}</p>
         <h1 className="h-section mt-3 text-[clamp(1.6rem,4vw,2.1rem)]">{title}</h1>

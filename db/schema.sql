@@ -123,6 +123,38 @@ CREATE INDEX IF NOT EXISTS bookings_referral_idx ON bookings (referral_code)
   WHERE referral_code IS NOT NULL;
 
 -- --------------------------------------------------------------------------
+-- admin_users
+--
+-- Defined here, before anything that references it.
+--
+-- It used to sit further down, after upi_payment_claims, scan_log and
+-- audit_log — all three of which carry a foreign key to it. Postgres resolves
+-- REFERENCES at creation time, not at the end of the script, so `db:push`
+-- against an empty database failed on the first of them with `relation
+-- "admin_users" does not exist`. Every existing deployment was fine, because
+-- the table had been created back when the file was in a different order, and
+-- ON CONFLICT/IF NOT EXISTS made every later re-run a no-op. The failure was
+-- invisible until somebody needed a *new* database — a restore, a staging
+-- copy, a local checkout — which is the worst possible moment to discover that
+-- the schema cannot be applied.
+-- --------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS admin_users (
+  id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  email          TEXT NOT NULL UNIQUE,
+  name           TEXT NOT NULL,
+  password_hash  TEXT NOT NULL,
+  role           TEXT NOT NULL DEFAULT 'gate'
+                   CHECK (role IN ('owner', 'manager', 'gate')),
+  active         BOOLEAN NOT NULL DEFAULT true,
+  last_login_at  TIMESTAMPTZ,
+  -- Brute-force guard: cleared on a successful login.
+  failed_logins  INTEGER NOT NULL DEFAULT 0,
+  locked_until   TIMESTAMPTZ,
+  created_at     TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+
+-- --------------------------------------------------------------------------
 -- upi_payment_claims — customer-declared UPI payments awaiting a human check
 --
 -- A UTR is a number the customer types into a form. Nothing about it can be
@@ -189,24 +221,6 @@ CREATE TABLE IF NOT EXISTS tickets (
 CREATE INDEX IF NOT EXISTS tickets_booking_idx ON tickets (booking_id);
 CREATE INDEX IF NOT EXISTS tickets_event_idx   ON tickets (event_id, status);
 CREATE INDEX IF NOT EXISTS tickets_status_idx  ON tickets (status);
-
--- --------------------------------------------------------------------------
--- admin_users
--- --------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS admin_users (
-  id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  email          TEXT NOT NULL UNIQUE,
-  name           TEXT NOT NULL,
-  password_hash  TEXT NOT NULL,
-  role           TEXT NOT NULL DEFAULT 'gate'
-                   CHECK (role IN ('owner', 'manager', 'gate')),
-  active         BOOLEAN NOT NULL DEFAULT true,
-  last_login_at  TIMESTAMPTZ,
-  -- Brute-force guard: cleared on a successful login.
-  failed_logins  INTEGER NOT NULL DEFAULT 0,
-  locked_until   TIMESTAMPTZ,
-  created_at     TIMESTAMPTZ NOT NULL DEFAULT now()
-);
 
 -- --------------------------------------------------------------------------
 -- scan_log — every scan attempt, including the rejected ones. This is the

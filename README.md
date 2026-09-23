@@ -163,6 +163,63 @@ VALUES ('SOMECODE', 'Who it belongs to', 10000, 200);
 
 ---
 
+## Events
+
+The site has no hard-coded event. **The event it sells is a query**: the next
+published date that has not finished, with an optional manual pin for when two
+are on sale at once. Everything the page says — headline, what's on, runsheet,
+door policy, FAQs — lives in `events.content` as JSONB and is edited at
+`/admin/events`.
+
+Launching a new date is therefore entirely a console operation:
+
+1. `/admin/events` → **New event**. It is created as a draft, invisible to
+   customers.
+2. Add at least one pass. Publishing without one is refused — that combination
+   renders a Buy button leading to an empty cart.
+3. Fill in the words. Anything left blank falls back to a generic line rather
+   than rendering empty.
+4. Set the status to **Published**. The home page follows it immediately.
+5. Set the old date to **Archived**. It moves to past events; its page stays up,
+   flagged as past, pointing at the next one.
+
+Events are never deleted. `bookings.event_id` is `ON DELETE RESTRICT`, and that
+is correct: an event is what a QR code is validated against, so removing one
+would orphan every pass issued for it and erase the scan log that settles door
+disputes. **Archived** is the operation you want.
+
+---
+
+## Customer accounts
+
+Optional for buying — guest checkout is untouched, because requiring an account
+before payment loses sales. What an account adds is a place to find the passes
+you already bought, and a checkout that fills itself in.
+
+Accounts live on the existing `customers` table, which already has a row for
+everybody who has ever checked out as a guest. **Signing up is usually a claim
+of that row**, which is the feature: your past orders appear.
+
+It is also the risk, and one rule handles it: **the ticket list is gated on a
+verified email address.** A `customers` row is keyed on email alone, so until
+the mailbox proves it belongs to whoever holds the account, the claim is only an
+assertion — honouring it would hand whoever typed the address a stranger's
+booking history and their working QR codes. An unverified account sees a verify
+prompt instead.
+
+Consequences worth knowing:
+
+- **No SMTP means no usable accounts.** Verification and password resets are
+  both emails. Buying still works; accounts do not.
+- Signing up with an address that already has an account returns exactly the
+  same response as a fresh signup, issues no session, and changes no password.
+  The address gets a password-reset email. Anything else is a way to test
+  whether a given person is on the customer list.
+- Completing a password reset also verifies the address — the token was only
+  ever readable from that mailbox.
+
+---
+
 ## Architecture
 
 | Layer | Choice | Why |
@@ -206,6 +263,49 @@ bookings cannot oversell the room.
 
 ---
 
+## Is the site live? Start here
+
+Two commands answer almost every "the site is up and nothing works" question.
+
+```bash
+npm run doctor      # checks env, database, schema, admin users and events
+```
+
+It reads a connection string and nothing else, so it works before the first
+deploy and during an outage. Every failure it reports names the variable or the
+action that fixes it. The same report is in the console at **/admin/status**
+once you can log in.
+
+**If the whole site returns a maintenance page, check `SITE_PAUSED` first.**
+It is an environment variable read by the middleware, and while it is `true`
+every public page returns a 503 before any page renders — the console, the door
+scanner and anything serving an existing booking stay up, which is exactly why
+it is easy to leave switched on by mistake. Delete the variable (or set it to
+`false`) in your hosting dashboard and redeploy. `/api/health` reports it as
+`sitePaused`, and stays reachable while paused so you can.
+
+### Go-live checklist
+
+In order. Each step is what the previous one unblocks.
+
+1. **Database reachable.** `DATABASE_URL`, or the Supabase integration's
+   `POSTGRES_URL`. `npm run doctor` will say which it found.
+2. **Schema applied.** `npm run db:push`. Idempotent — safe to re-run, and
+   required after any release that adds columns.
+3. **Secrets.** `ADMIN_SESSION_SECRET` and `TICKET_SIGNING_SECRET`, or connect
+   Supabase and let them derive. See *Generating the two secrets*.
+4. **A way in.** `npm run admin:create`.
+5. **Something to sell.** `/admin/events` → create a date, add at least one
+   pass, set it to **Published**. Publishing is refused until a pass exists.
+6. **Payments.** `PAYMENT_PROVIDER`, its keys, and `PAYMENTS_ENABLED=true`.
+7. **Email.** `SMTP_USER`, `SMTP_PASSWORD`, `MAIL_FROM_ADDRESS`. Without it no
+   ticket is emailed and customer accounts cannot be verified at all.
+8. **Public URL.** `NEXT_PUBLIC_SITE_URL`, or emailed passes link to a preview
+   domain.
+9. **`SITE_PAUSED` unset.**
+
+---
+
 ## Quickstart
 
 ```bash
@@ -214,8 +314,9 @@ cd houz-of-vybe
 npm install
 cp .env.example .env.local     # then fill it in — see below
 npm run db:push                # create the schema (idempotent)
-npm run db:seed                # seed the OffCampus event + 4 ticket tiers
+npm run db:seed                # seed the archive event + a draft for the next date
 npm run admin:create           # create your first admin user
+npm run doctor                 # confirm nothing is missing
 npm run dev                    # http://localhost:3000
 ```
 
@@ -456,11 +557,16 @@ Being honest about what this does not do yet:
 | `npm run start` | Serve the production build |
 | `npm run lint` | ESLint |
 | `npm run typecheck` | `tsc --noEmit` |
+| `npm run doctor` | Why this deployment cannot sell a ticket. Read-only. |
 | `npm run db:push` | Apply `db/schema.sql` (idempotent) |
-| `npm run db:seed` | Seed the OFF Campus event, its three tiers and the `KAVYANSH100` code |
+| `npm run db:seed` | Seed the OFF Campus event and its tiers, plus a draft for the next date |
 | `npm run admin:create` | Create or update an admin user |
 
 `db:seed` is an upsert: re-running it updates the event and prices without touching bookings, and
-it will never lower a tier's quantity below what has already sold. The event date is the real one
-(12 September 2026, doors 12:00 IST), so a freshly seeded database always has a bookable future
-event rather than one the booking flow rejects as already past.
+it will never lower a tier's quantity below what has already sold.
+
+It derives the event's status from its own date rather than asserting
+`published`. OFF Campus ran on 12 September 2026, so seeding now archives it —
+re-running the seed can no longer put a party that has already happened back on
+sale. When nothing upcoming exists it also creates a draft for the next date,
+which is a starting point for `/admin/events`, not something customers can see.

@@ -1,6 +1,8 @@
 import { after } from 'next/server';
 import { Header } from '@/components/site/Header';
 import { getCustomerSession } from '@/lib/customer-auth';
+import { getFeaturedEvent } from '@/lib/events';
+import { formatEventDate } from '@/lib/utils';
 import { Footer } from '@/components/site/Footer';
 import { PageTransition } from '@/components/site/PageTransition';
 import { maybeReconcile } from '@/lib/payments';
@@ -51,7 +53,12 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
    * whole site's chrome on one answer, and a failure to read it is "signed
    * out" rather than a 500 on every page.
    */
-  const account = await getCustomerSession().catch(() => null);
+  const [account, featured] = await Promise.all([
+    getCustomerSession().catch(() => null),
+    getFeaturedEvent().catch(() => null),
+  ]);
+
+  const selling = featured && !featured.isPast ? featured : null;
 
   after(async () => {
     try {
@@ -63,7 +70,21 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
 
   return (
     <div className="flex min-h-dvh flex-col">
-      <Header account={account ? { name: account.name } : null} />
+      <Header
+        account={account ? { name: account.name } : null}
+        event={
+          selling
+            ? {
+                name: selling.row.name,
+                dateLabel: formatEventDate(selling.row.starts_at),
+                timeLabel: selling.timeLabel,
+                venue: selling.content.venue.area
+                  ? `${selling.row.venue_name}, ${selling.content.venue.area}`
+                  : selling.row.venue_name,
+              }
+            : null
+        }
+      />
       <main id="main" className="flex-1">
         <PageTransition>{children}</PageTransition>
       </main>

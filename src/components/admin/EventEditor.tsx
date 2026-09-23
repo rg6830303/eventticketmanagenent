@@ -73,6 +73,7 @@ export function EventEditor({
     // --- editorial ---
     presentedBy: content.presentedBy ?? '',
     headline: content.headline ?? '',
+    headlineAccent: content.headlineAccent ?? '',
     subhead: content.subhead ?? '',
     standfirst: content.standfirst ?? '',
     body: (content.body ?? []).join('\n\n'),
@@ -102,6 +103,7 @@ export function EventEditor({
     const nextContent: EventContent = {
       presentedBy: form.presentedBy || undefined,
       headline: form.headline || undefined,
+      headlineAccent: form.headlineAccent || undefined,
       subhead: form.subhead || undefined,
       standfirst: form.standfirst || undefined,
       body: form.body ? form.body.split('\n\n').map((p) => p.trim()).filter(Boolean) : [],
@@ -363,6 +365,12 @@ export function EventEditor({
             onChange={(v) => set('presentedBy', v)}
           />
           <Field label="Headline" value={form.headline} onChange={(v) => set('headline', v)} />
+          <Field
+            label="Headline accent"
+            hint="A phrase from the headline to set in the script face. Must match exactly."
+            value={form.headlineAccent}
+            onChange={(v) => set('headlineAccent', v)}
+          />
         </div>
         <Textarea label="Subhead" rows={2} value={form.subhead} onChange={(v) => set('subhead', v)} />
         <Textarea

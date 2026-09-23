@@ -5,7 +5,7 @@ import { getBookingByReference } from '@/lib/bookings';
 import { reconcileBooking } from '@/lib/payments';
 import { repriceBooking } from '@/lib/reprice';
 import { env } from '@/lib/env';
-import { BRAND, EVENT } from '@/content/site';
+import { BRAND } from '@/content/site';
 import { formatEventDate, formatEventTime, formatInr } from '@/lib/utils';
 import { RazorpayCheckout } from '@/components/payment/RazorpayCheckout';
 import { UpiCheckout } from '@/components/payment/UpiCheckout';
@@ -22,7 +22,7 @@ export const maxDuration = 30;
 
 export const metadata: Metadata = {
   title: 'Checkout',
-  description: 'Complete payment for your OFF Campus pass.',
+  description: 'Complete payment for your pass.',
   robots: { index: false, follow: false },
 };
 
@@ -118,7 +118,7 @@ export default async function PayPage({
         payeeName: env.upi.payeeName,
         amountPaise: booking.amount_paise,
         reference: booking.reference,
-        note: `${EVENT.name} ${booking.reference}`,
+        note: `${event.name} ${booking.reference}`,
       })
     : null;
   const upiQr = upiUri ? await qrDataUrl(upiUri, 464).catch(() => null) : null;
@@ -158,8 +158,14 @@ export default async function PayPage({
                   <p className="font-mono text-[0.6875rem] font-medium uppercase tracking-[0.22em] text-ink">
                     Your order
                   </p>
-                  <p className="h-card mt-1.5 whitespace-nowrap">
-                    {EVENT.name} <span className="accent text-vybe-600">{EVENT.edition}</span>
+                  {/* The event this booking is for, not whichever one the site
+                      is currently selling. Naming the wrong party on a page
+                      that is about to take money is not a cosmetic error. */}
+                  <p className="h-card mt-1.5">
+                    {event.name}
+                    {event.edition && (
+                      <span className="accent text-vybe-600"> {event.edition}</span>
+                    )}
                   </p>
                 </div>
                 <span className="chip shrink-0">Held · {booking.reference}</span>
@@ -221,7 +227,7 @@ export default async function PayPage({
                     <RazorpayCheckout
                       reference={booking.reference}
                       amountPaise={booking.amount_paise}
-                      eventName={`${EVENT.name} ${EVENT.edition}`}
+                      eventName={[event.name, event.edition].filter(Boolean).join(' ')}
                       tierName={tier?.name ?? 'Entry'}
                       quantity={booking.quantity}
                       customer={{

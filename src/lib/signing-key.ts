@@ -53,6 +53,29 @@ export const KEY_MATERIAL_SOURCES = [
   'SUPABASE_SERVICE_ROLE_KEY',
   'SUPABASE_SECRET_KEY',
   'POSTGRES_PASSWORD',
+  /*
+   * Last resort: the two purpose-built secrets, used as material for a
+   * *different* purpose.
+   *
+   * Customer sessions arrived after these, and a deployment that had set both
+   * of its secrets by hand — rather than connecting Supabase — had nothing for
+   * the third key to derive from. Every signup and every customer login threw
+   * MissingKeyMaterialError and surfaced as a generic 500, on a deployment
+   * where the console and the QR passes worked perfectly.
+   *
+   * Deriving is not reuse: HKDF with a distinct `info` per purpose yields a
+   * key cryptographically independent of the material it came from, so a
+   * customer cookie signed with a key derived from ADMIN_SESSION_SECRET cannot
+   * be verified by ADMIN_SESSION_SECRET itself.
+   *
+   * THE POSITION IN THIS LIST IS LOAD-BEARING. These are appended, never
+   * inserted. Every entry above them is material some deployment is already
+   * deriving from, and moving one up the order changes which key an existing
+   * deployment produces — for TICKET_SIGNING_SECRET that would invalidate every
+   * QR pass already sitting in a customer's inbox, at the door, on the night.
+   */
+  'ADMIN_SESSION_SECRET',
+  'TICKET_SIGNING_SECRET',
 ] as const;
 
 export interface KeyMaterial {
@@ -75,6 +98,10 @@ export function resolveKeyMaterial(explicitName: string): KeyMaterial | null {
   if (explicit) return { source: explicitName, value: explicit, explicit: true };
 
   for (const name of KEY_MATERIAL_SOURCES) {
+    // Never derive a key from the variable that *is* this key: that would
+    // return the secret stretched rather than verbatim, silently invalidating
+    // every token already signed with it.
+    if (name === explicitName) continue;
     const value = process.env[name]?.trim();
     // Short material would make a weak key however it is stretched; HKDF
     // spreads entropy, it does not create it.

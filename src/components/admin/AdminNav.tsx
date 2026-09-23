@@ -18,6 +18,7 @@ const ITEMS = [
   { href: '/admin/prices', label: 'Prices', icon: PriceIcon, minRole: 'manager' as const },
   { href: '/admin/checkins', label: 'Door log', icon: PulseIcon },
   { href: '/admin/payments', label: 'UPI', icon: RupeeIcon },
+  { href: '/admin/status', label: 'Status', icon: HeartIcon, minRole: 'manager' as const },
 ];
 
 const ROLE_RANK: Record<string, number> = { gate: 1, manager: 2, owner: 3 };
@@ -127,6 +128,15 @@ export function AdminNav({
 }
 
 type IconProps = { className?: string };
+
+function HeartIcon({ className }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" className={className} aria-hidden>
+      <path d="M2.5 12h4l2-5 4 10 2-5h7" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx="19" cy="6" r="2.5" />
+    </svg>
+  );
+}
 
 function CalendarIcon({ className }: IconProps) {
   return (

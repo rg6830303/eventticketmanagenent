@@ -1,6 +1,8 @@
 import Link from 'next/link';
-import { BRAND, EVENT, FOOTER_LINKS, PARTNER } from '@/content/site';
+import { BRAND, FOOTER_LINKS } from '@/content/site';
 import { Logo } from '@/components/brand/Logo';
+import { getFeaturedEvent } from '@/lib/events';
+import { formatEventDate } from '@/lib/utils';
 
 /**
  * Footer.
@@ -11,37 +13,59 @@ import { Logo } from '@/components/brand/Logo';
  * the ink surface appears. The small print sits below it on the open ground,
  * unboxed, because navigation and legal links do not need a container.
  */
-export function Footer() {
+export async function Footer() {
   const year = new Date().getFullYear();
+
+  /*
+   * Whatever the site is currently selling.
+   *
+   * This block used to print a constant, so once OFF Campus was archived every
+   * page on the site ended with a "Last call" panel for a party that had
+   * already happened — on the FAQ, on the privacy policy, everywhere.
+   *
+   * A failure here is not worth a 500 on every page: the footer simply drops
+   * its CTA and keeps the small print.
+   */
+  const featured = await getFeaturedEvent().catch(() => null);
+  const selling = featured && !featured.isPast ? featured : null;
 
   return (
     <footer className="relative mt-auto">
       {/* Last chance to sell the ticket, before the small print.
 
           Light, not dark. Several pages close on a dark plate of their own, and
-          two of them stacked read as one long band with a seam through it. */}
-      <div className="shell pb-16 pt-8">
-        <div className="card-feature relative px-6 py-10 sm:px-10 sm:py-11">
-          <span
-            aria-hidden
-            className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 spotlight"
-          />
-          <div className="relative flex flex-col items-start gap-7 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <p className="eyebrow">Last call</p>
-              <p className="mt-3 font-display text-[1.625rem] font-semibold tracking-[-0.03em] text-ink">
-                {EVENT.name} <span className="accent gradient-text">{EVENT.edition}</span>
-              </p>
-              <p className="mt-2 text-[0.9375rem] text-slate">
-                {EVENT.dateLabel} · {EVENT.timeLabel} · {EVENT.venue.name}, {EVENT.venue.area}
-              </p>
+          two of them stacked read as one long band with a seam through it.
+
+          Absent entirely when there is nothing to sell — a "Last call" for a
+          date that has passed is worse than no call at all. */}
+      {selling && (
+        <div className="shell pb-16 pt-8">
+          <div className="card-feature relative px-6 py-10 sm:px-10 sm:py-11">
+            <span
+              aria-hidden
+              className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 spotlight"
+            />
+            <div className="relative flex flex-col items-start gap-7 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="eyebrow">Last call</p>
+                <p className="mt-3 font-display text-[1.625rem] font-semibold tracking-[-0.03em] text-ink">
+                  {selling.row.name}
+                  {selling.edition && (
+                    <span className="accent gradient-text"> {selling.edition}</span>
+                  )}
+                </p>
+                <p className="mt-2 text-[0.9375rem] text-slate">
+                  {formatEventDate(selling.row.starts_at)} · {selling.timeLabel} ·{' '}
+                  {selling.row.venue_name}
+                </p>
+              </div>
+              <Link href={`/book?event=${selling.row.slug}`} className="btn-primary btn-lg shrink-0">
+                Buy tickets
+              </Link>
             </div>
-            <Link href="/book" className="btn-primary btn-lg shrink-0">
-              Buy tickets
-            </Link>
           </div>
         </div>
-      </div>
+      )}
 
       <div className="shell pb-14">
         <div className="grid gap-12 lg:grid-cols-[1.4fr_2fr]">
@@ -50,13 +74,15 @@ export function Footer() {
             <p className="mt-5 max-w-sm text-[0.9375rem] leading-relaxed text-slate">
               {BRAND.description}
             </p>
-            <address className="mt-6 not-italic text-[0.875rem] leading-relaxed text-muted">
-              <span className="block font-medium text-slate">{EVENT.venue.name}</span>
-              {EVENT.venue.addressLines.join(', ')}
-            </address>
-            <p className="mt-4 text-[0.8125rem] text-muted">
-              {PARTNER.role}: {PARTNER.name}
-            </p>
+            {selling && (
+              <address className="mt-6 not-italic text-[0.875rem] leading-relaxed text-muted">
+                <span className="block font-medium text-slate">{selling.row.venue_name}</span>
+                {(selling.content.venue.addressLines.length > 0
+                  ? selling.content.venue.addressLines
+                  : [selling.row.venue_address, selling.row.city].filter(Boolean)
+                ).join(', ')}
+              </address>
+            )}
             <div className="mt-6 flex flex-wrap gap-2.5">
               {BRAND.socials.map((social) => (
                 <a

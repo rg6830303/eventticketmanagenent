@@ -44,10 +44,21 @@ export async function GET(request: NextRequest) {
         }))
       : null;
 
+  /*
+   * Whether the shop is deliberately shut.
+   *
+   * Reported because "the site returns 503" and "somebody set SITE_PAUSED three
+   * weeks ago and forgot" are indistinguishable from outside, and the second
+   * one is the more common. /api/health stays open while paused precisely so
+   * this can be read.
+   */
+  const paused = (process.env.SITE_PAUSED ?? 'false').trim().toLowerCase() === 'true';
+
   const body = {
     status: db.ok ? 'ok' : 'degraded',
     timestamp: new Date().toISOString(),
     environment: env.appEnv,
+    sitePaused: paused,
     checks: {
       database: {
         ok: db.ok,

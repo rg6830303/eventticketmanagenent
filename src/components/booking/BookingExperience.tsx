@@ -5,7 +5,6 @@ import { useCallback, useState } from 'react';
 import { SafeDecoration } from '@/components/ui/SafeDecoration';
 import { Ticket3D } from '@/components/game/Ticket3D';
 import { formatEventDate, formatEventTime, formatInr } from '@/lib/utils';
-import { EVENT } from '@/content/site';
 import { BookingForm, type ReferralState, type TierOption } from './BookingForm';
 
 interface BookingExperienceProps {
@@ -88,7 +87,10 @@ export function BookingExperience(props: BookingExperienceProps) {
               </p>
             </div>
             <p className="h-card mt-2">
-              {EVENT.name} <span className="accent text-vybe-600">{EVENT.edition}</span>
+              {props.eventName}
+              {props.eventTagline && (
+                <span className="accent text-vybe-600"> {props.eventTagline}</span>
+              )}
             </p>
             <p className="mt-1 text-[0.8125rem] text-slate">
               {formatEventDate(props.startsAt)} · {formatEventTime(props.doorsAt ?? props.startsAt)}
@@ -164,7 +166,7 @@ export function BookingExperience(props: BookingExperienceProps) {
         <div className="mt-6 hidden justify-center lg:flex">
           <SafeDecoration label="ticket-3d">
             <Ticket3D
-              eventName={`${EVENT.name}`}
+              eventName={props.eventName}
               tierName={tierName}
               venue={props.venueName}
               date={formatEventTime(props.doorsAt ?? props.startsAt)}

@@ -10,7 +10,7 @@ import {
   useMotionValueEvent,
 } from 'framer-motion';
 import { useEffect, useState } from 'react';
-import { NAV_LINKS, EVENT } from '@/content/site';
+import { NAV_LINKS } from '@/content/site';
 import { cn } from '@/lib/utils';
 import { Logo } from '@/components/brand/Logo';
 
@@ -26,7 +26,14 @@ import { Logo } from '@/components/brand/Logo';
  * The CTA never leaves. On a single-event site every screen is a chance to
  * sell the one ticket.
  */
-export function Header({ account }: { account: { name: string } | null }) {
+export function Header({
+  account,
+  event,
+}: {
+  account: { name: string } | null;
+  /** The date the site is selling, for the line under the mobile CTA. */
+  event: { name: string; dateLabel: string; timeLabel: string; venue: string } | null;
+}) {
   const pathname = usePathname();
   const [landed, setLanded] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -268,11 +275,13 @@ export function Header({ account }: { account: { name: string } | null }) {
                   <Link href={account ? '/account' : '/login'} className="btn-outline w-full">
                     {account ? 'My tickets' : 'Sign in'}
                   </Link>
-                  <p className="mt-4 text-center text-[0.8125rem] leading-relaxed text-muted">
-                    {EVENT.dateLabel} · {EVENT.timeLabel}
-                    <br />
-                    {EVENT.venue.name}, {EVENT.venue.area}
-                  </p>
+                  {event && (
+                    <p className="mt-4 text-center text-[0.8125rem] leading-relaxed text-muted">
+                      {event.dateLabel} · {event.timeLabel}
+                      <br />
+                      {event.venue}
+                    </p>
+                  )}
                 </motion.div>
               </div>
             </motion.div>

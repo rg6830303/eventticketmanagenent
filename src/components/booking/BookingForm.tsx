@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { cn, formatInr } from '@/lib/utils';
 import { normaliseIndianMobile, suggestEmailCorrection } from '@/lib/validation';
-import { EVENT, REFERRAL } from '@/content/site';
+import { REFERRAL } from '@/content/site';
 
 export interface TierOption {
   code: string;

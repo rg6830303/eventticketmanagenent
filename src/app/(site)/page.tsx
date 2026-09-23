@@ -8,6 +8,7 @@ import { Reveal } from '@/components/ui/Reveal';
 import { Marquee } from '@/components/ui/Marquee';
 import { Magnetic } from '@/components/ui/Magnetic';
 import { Countdown } from '@/components/ui/Countdown';
+import { Headline } from '@/components/event/Headline';
 import { PosterCard } from '@/components/event/PosterCard';
 import { ActivityGrid } from '@/components/event/ActivityGrid';
 import { Runsheet } from '@/components/event/Runsheet';
@@ -111,7 +112,13 @@ export default async function HomePage() {
     <>
       {/* The artwork, staged as the way in. Landing page only — an intro in
           front of a checkout would be sabotage. */}
-      <PosterIntro />
+      <PosterIntro
+        caption={
+          sellable
+            ? [edition, event.venue_name, dateShort].filter(Boolean).join(' · ')
+            : undefined
+        }
+      />
 
       {/* ================================================================== */}
       {/* Hero                                                               */}
@@ -132,13 +139,11 @@ export default async function HomePage() {
               </Reveal>
 
               <Reveal delay={0.06}>
-                <h1 className="h-hero mt-5 font-semibold lg:w-[118%]">
-                  <span className="lg:block">The first</span>{' '}
-                  <span className="lg:block lg:whitespace-nowrap">party of your</span>{' '}
-                  <span className="lg:block lg:whitespace-nowrap">
-                    <span className="accent gradient-text">first year</span>.
-                  </span>
-                </h1>
+                <Headline
+                  text={content.headline}
+                  accent={content.headlineAccent}
+                  className="h-hero mt-5 font-semibold"
+                />
               </Reveal>
 
               <Reveal delay={0.12}>

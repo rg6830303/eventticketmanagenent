@@ -2,7 +2,7 @@
 
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { useCallback, useEffect, useState } from 'react';
-import { EVENT } from '@/content/site';
+
 
 /**
  * The poster, staged as the way into the site.
@@ -29,7 +29,7 @@ const HEART_PATH =
 
 const EASE = [0.16, 1, 0.3, 1] as const;
 
-export function PosterIntro() {
+export function PosterIntro({ caption }: { caption?: string }) {
   const reduce = useReducedMotion();
   // Starts true so the server-rendered overlay is opaque; the flag check on
   // mount is what dismisses it for a returning visitor.
@@ -243,9 +243,11 @@ export function PosterIntro() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 1.6, ease: EASE }}
           >
-            <p className="font-mono text-[clamp(0.625rem,1.6vw,0.8125rem)] uppercase tracking-[0.32em] text-[#bcdcff]">
-              {EVENT.edition} · {EVENT.venue.name} · {EVENT.dateShort}
-            </p>
+            {caption && (
+              <p className="font-mono text-[clamp(0.625rem,1.6vw,0.8125rem)] uppercase tracking-[0.32em] text-[#bcdcff]">
+                {caption}
+              </p>
+            )}
           </motion.div>
 
           {/* Runs for the exact life of the intro, so the wait reads as a
