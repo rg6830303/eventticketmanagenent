@@ -131,12 +131,6 @@ export function Header() {
 
             <div className="flex items-center gap-2">
               <Link
-                href="/cart"
-                className="btn-ghost hidden px-4 py-2.5 text-[0.875rem] sm:inline-flex"
-              >
-                Cart
-              </Link>
-              <Link
                 href="/events/offcampus#tickets"
                 className="btn-primary hidden px-6 py-3 text-[0.875rem] sm:inline-flex"
               >

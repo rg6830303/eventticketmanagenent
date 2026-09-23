@@ -71,12 +71,14 @@ export async function TicketCard({ ticket, event, tier, index, total }: TicketCa
       <div className="relative">
         <div
           className={cn(
-            'relative rounded-[24px] border bg-frost/70 backdrop-blur-md',
-            'shadow-[0_20px_60px_-30px_rgba(3,6,15,0.95)] transition-shadow duration-300',
+            'relative rounded-2xl border bg-white/80 backdrop-blur-md',
+            // Ink-tinted, not near-black: the old shadow was lifted from a dark
+            // theme and read as a bruise under a card on a pale blue page.
+            'shadow-float transition-shadow duration-300',
             'print:border-black/25 print:bg-white print:shadow-none print:backdrop-blur-none',
             style.live
-              ? 'border-edge group-hover:shadow-azure-lg'
-              : 'border-flare-600/25 print:border-black/25',
+              ? 'border-vybe-200 group-hover:shadow-loft'
+              : 'border-flare-300 print:border-black/25',
           )}
         >
           {/* Brand motif, low enough to read as watermark rather than art. */}

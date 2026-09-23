@@ -118,7 +118,7 @@ export default async function OffCampusPage() {
               </Reveal>
 
               <Reveal delay={0.14}>
-                <dl className="card mt-9 grid max-w-xl grid-cols-2 gap-x-6 gap-y-6 p-6 sm:grid-cols-4">
+                <dl className="card mt-9 grid max-w-md grid-cols-2 gap-x-6 gap-y-6 p-6 sm:grid-cols-3">
                   <Fact
                     label="Date"
                     value={event ? formatEventDate(event.starts_at) : EVENT.dateLabel}

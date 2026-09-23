@@ -176,10 +176,9 @@ export function LegalLayout({
 
       <div className="shell relative pb-24 pt-16 sm:pt-24 lg:pb-32">
         <header className="max-w-3xl">
-          <p className="edit-index mb-4 flex items-center gap-2.5">
-            <span aria-hidden="true" className="h-px w-6 bg-vybe-500/60" />
-            {kicker}
-          </p>
+          {/* The eyebrow draws its own leading stroke now; the hand-rolled
+              hairline that used to sit here made it two. */}
+          <p className="eyebrow mb-4">{kicker}</p>
           <h1 className="h-section">{title}</h1>
           <p className="lede mt-5 max-w-2xl">{lede}</p>
           <p className="mt-7 flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[12px] uppercase tracking-[0.18em] text-muted">
@@ -215,7 +214,7 @@ export function LegalLayout({
         <div className="mt-14 grid gap-12 lg:mt-16 lg:grid-cols-[236px_minmax(0,1fr)] lg:gap-16">
           <nav aria-label="On this page" className="hidden lg:block">
             <div className="sticky top-28 max-h-[calc(100dvh-9rem)] overflow-y-auto pr-1">
-              <p className="edit-index mb-5 block border-b border-ink/10 pb-2">On this page</p>
+              <p className="eyebrow mb-5 border-b border-ink/[0.07] pb-3">On this page</p>
               <div className="relative pl-5">
                 <span
                   aria-hidden="true"

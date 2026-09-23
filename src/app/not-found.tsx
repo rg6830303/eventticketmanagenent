@@ -7,33 +7,34 @@ export const metadata = { title: 'Page not found' };
 export default function NotFound() {
   return (
     <div className="relative flex min-h-dvh flex-col items-center justify-center overflow-hidden px-5 py-20 text-center">
-      <div aria-hidden className="pointer-events-none absolute inset-0">
+      <div aria-hidden className="pointer-events-none absolute inset-0 -z-10">
         <div className="absolute inset-0 gridfield fade-edges" />
-        <div className="absolute left-1/2 top-1/2 h-[420px] w-[420px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-vybe-600/20 blur-[120px]" />
+        <div className="absolute left-1/2 top-1/2 h-[420px] w-[420px] -translate-x-1/2 -translate-y-1/2 rounded-pill bg-vybe-500/25 blur-[120px]" />
       </div>
 
       {/* The mark drifted off its axis — the page is the one thing here that
           isn't where it should be. */}
       <div
         aria-hidden
-        className="pointer-events-none absolute left-1/2 top-1/2 aspect-square w-[min(112vw,660px)] -translate-x-[38%] -translate-y-[56%] animate-drift"
+        className="pointer-events-none absolute left-1/2 top-1/2 -z-10 aspect-square w-[min(112vw,660px)] -translate-x-1/2 -translate-y-1/2 animate-drift"
       >
-        <Globe spin strokeWidth={1.5} className="h-full w-full text-vybe-500/25" />
+        <Globe spin strokeWidth={1.5} className="h-full w-full text-vybe-400/20" />
       </div>
 
       <div className="relative w-full max-w-xl">
         <Link
           href="/"
-          className="mb-12 inline-block rounded-full"
+          className="mb-12 inline-block rounded-pill"
           aria-label="Houz of Vybe — home"
         >
           <Logo variant="inline" />
         </Link>
 
+        {/* A black glow behind the numeral was a leftover from a dark theme;
+            on a daylight page it read as a smudge. The gradient carries it. */}
         <p
           aria-hidden
-          className="font-display text-[30vw] font-extrabold leading-none tracking-tighter text-ink sm:text-[190px]"
-          style={{ textShadow: '0 0 60px rgba(3,6,15,0.9)' }}
+          className="gradient-text font-display text-[30vw] font-extrabold leading-none tracking-tighter sm:text-[190px]"
         >
           404
         </p>
@@ -54,7 +55,7 @@ export default function NotFound() {
           <Link href="/events/offcampus" className="btn-outline px-7 py-3.5">
             OffCampus
           </Link>
-          <Link href="/book" className="btn-outline btn-sm px-7 py-3.5">
+          <Link href="/book" className="btn-ghost">
             Book tickets
           </Link>
         </div>

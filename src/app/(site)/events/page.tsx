@@ -102,7 +102,7 @@ function EventCard({ event }: { event: EventRow }) {
     <TiltCard intensity={5} className="group">
       {/* No overflow-hidden here: clipping flattens the 3D context and the
           TiltLayers would collapse onto the card face. */}
-      <article className="preserve-3d relative rounded-2xl border border-edge bg-paper/70 backdrop-blur-md">
+      <article className="card preserve-3d relative overflow-visible">
         <div aria-hidden className="absolute inset-0 overflow-hidden rounded-[inherit]">
           <div className="absolute inset-0 gridfield fade-edges opacity-50" />
           <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-vybe-300/55 to-transparent" />
@@ -114,7 +114,7 @@ function EventCard({ event }: { event: EventRow }) {
           {/* Date block reads as a tear-off calendar leaf. */}
           <TiltLayer
             z={44}
-            className="flex w-full shrink-0 items-center gap-4 border-b border-edge pb-5 sm:w-auto sm:flex-col sm:items-center sm:gap-0 sm:border-b-0 sm:border-r sm:pb-0 sm:pr-8"
+            className="flex w-full shrink-0 items-center gap-4 border-b border-ink/[0.07] pb-5 sm:w-auto sm:flex-col sm:items-center sm:gap-0 sm:border-b-0 sm:border-r sm:border-r-ink/[0.07] sm:pb-0 sm:pr-8"
           >
             <p className="font-display text-4xl font-extrabold leading-none text-vybe-600 sm:text-5xl">
               {date.toLocaleDateString('en-IN', { day: '2-digit', timeZone: 'Asia/Kolkata' })}

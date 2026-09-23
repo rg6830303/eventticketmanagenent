@@ -61,7 +61,7 @@ export function TicketRail({
 
   return (
     <div>
-      <div className="grid items-start gap-6 md:grid-cols-3 md:gap-5">
+      <div className="grid gap-6 md:grid-cols-3 md:gap-5">
         {tiers.map((tier, index) => {
           const soldOut = tier.remaining <= 0;
           const scarce = !soldOut && tier.remaining <= Math.max(10, tier.total * 0.15);
@@ -76,7 +76,7 @@ export function TicketRail({
               viewport={{ once: true, margin: '-70px' }}
               transition={{ duration: 0.55, delay: index * 0.08, ease: EASE }}
               className={cn(
-                'group relative flex flex-col overflow-hidden',
+                'group relative flex h-full flex-col overflow-hidden',
                 featured ? 'card-feature md:-mt-4' : 'card-lift',
                 soldOut && 'opacity-60',
               )}
@@ -161,7 +161,7 @@ export function TicketRail({
                 <span aria-hidden className="perforation mx-6 block h-px" />
               </div>
 
-              <div className="px-6 pb-6 pt-6">
+              <div className="flex flex-1 flex-col px-6 pb-6 pt-6">
                 <ul className="space-y-2.5">
                   {tier.perks.map((perk) => (
                     <li key={perk} className="flex gap-2.5 text-[0.875rem] leading-relaxed text-slate">
@@ -190,7 +190,9 @@ export function TicketRail({
                     setRecentlyAdded((current) => ({ ...current, [tier.code]: true }));
                   }}
                   className={cn(
-                    'mt-7 w-full',
+                    // mt-auto, so three cards of different length still line
+                    // their buttons up along one edge.
+                    'mt-auto w-full pt-7',
                     soldOut
                       ? 'btn-outline pointer-events-none opacity-50'
                       : featured

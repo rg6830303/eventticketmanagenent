@@ -72,12 +72,12 @@ export function AdminNav({
                 <motion.span
                   layoutId={indicatorId}
                   aria-hidden
-                  className="absolute inset-x-4 top-0 h-0.5 rounded-full bg-vybe-400"
+                  className="absolute inset-x-4 top-0 h-[3px] rounded-pill bg-aurora-line"
                   transition={{ type: 'spring', stiffness: 500, damping: 38 }}
                 />
               )}
               {active && reduce && (
-                <span aria-hidden className="absolute inset-x-4 top-0 h-0.5 rounded-full bg-vybe-400" />
+                <span aria-hidden className="absolute inset-x-4 top-0 h-[3px] rounded-pill bg-aurora-line" />
               )}
               <item.icon
                 className={cn('h-5 w-5 transition-transform duration-200', active && 'scale-110')}
@@ -91,7 +91,7 @@ export function AdminNav({
   }
 
   return (
-    <nav aria-label="Console" className="flex items-center gap-1 overflow-x-auto">
+    <nav aria-label="Console" className="flex items-center gap-1 overflow-x-auto py-1.5">
       {items.map((item) => {
         const active = isActive(item.href, item.exact);
         return (
@@ -100,24 +100,24 @@ export function AdminNav({
             href={item.href}
             aria-current={active ? 'page' : undefined}
             className={cn(
-              'relative flex items-center gap-2 whitespace-nowrap px-3 py-2.5 text-[13px] font-medium',
+              'relative flex items-center gap-2 whitespace-nowrap rounded-pill px-3.5 py-2 text-[13px] font-medium',
               'transition-colors duration-200',
-              active ? 'text-ink' : 'text-slate hover:text-ink',
+              active ? 'text-vybe-700' : 'text-slate hover:text-ink',
             )}
           >
             {active && !reduce && (
               <motion.span
                 layoutId={indicatorId}
                 aria-hidden
-                className="absolute inset-x-0 bottom-0 h-0.5 rounded-full bg-vybe-500"
+                className="absolute inset-0 rounded-pill bg-vybe-100"
                 transition={{ type: 'spring', stiffness: 500, damping: 38 }}
               />
             )}
             {active && reduce && (
-              <span aria-hidden className="absolute inset-x-0 bottom-0 h-0.5 rounded-full bg-vybe-500" />
+              <span aria-hidden className="absolute inset-0 rounded-pill bg-vybe-100" />
             )}
-            <item.icon className="h-4 w-4" />
-            {item.label}
+            <item.icon className="relative h-4 w-4" />
+            <span className="relative">{item.label}</span>
           </Link>
         );
       })}

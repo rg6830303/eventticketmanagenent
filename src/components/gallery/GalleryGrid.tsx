@@ -80,7 +80,7 @@ export function GalleryGrid({ items }: { items: GalleryItem[] }) {
                 openerRef.current = event.currentTarget;
                 setActive(item);
               }}
-              className="group relative block h-full w-full origin-bottom overflow-hidden rounded-2xl border border-edge text-left transition-[border-color,box-shadow] duration-500 hover:border-vybe-600 hover:shadow-azure focus-visible:border-vybe-500"
+              className="group relative block h-full w-full origin-bottom overflow-hidden rounded-xl text-left shadow-soft ring-1 ring-inset ring-ink/[0.06] transition-shadow duration-500 hover:shadow-float"
               aria-label={`${item.caption} — ${item.event}. Open larger view.`}
             >
               <TileArt
@@ -97,12 +97,12 @@ export function GalleryGrid({ items }: { items: GalleryItem[] }) {
 
               <span
                 aria-hidden
-                className="absolute left-3 top-3 font-mono text-[10px] tracking-[0.2em] text-ink/45 transition-colors duration-300 group-hover:text-vybe-700"
+                className="absolute left-3 top-3 rounded-pill bg-white/70 px-2 py-0.5 font-mono text-[10px] font-semibold tracking-[0.18em] text-vybe-700 backdrop-blur-sm"
               >
                 {String(index + 1).padStart(2, '0')}
               </span>
 
-              <span className="absolute inset-x-0 bottom-0 translate-y-3 bg-gradient-to-t from-canvas via-canvas/75 to-transparent p-3 opacity-0 transition-all duration-500 ease-out group-hover:translate-y-0 group-hover:opacity-100 group-focus-visible:translate-y-0 group-focus-visible:opacity-100 sm:p-4">
+              <span className="absolute inset-x-0 bottom-0 translate-y-3 bg-gradient-to-t from-white via-white/85 to-transparent p-3 opacity-0 transition-all duration-500 ease-out group-hover:translate-y-0 group-hover:opacity-100 group-focus-visible:translate-y-0 group-focus-visible:opacity-100 sm:p-4">
                 <span className="block text-[12px] font-medium text-ink sm:text-[13px]">
                   {item.caption}
                 </span>
@@ -140,7 +140,7 @@ export function GalleryGrid({ items }: { items: GalleryItem[] }) {
               onClick={(event) => event.stopPropagation()}
               className="relative w-full max-w-3xl"
             >
-              <div className="overflow-hidden rounded-2xl border border-edge shadow-azure-lg">
+              <div className="overflow-hidden rounded-2xl shadow-loft ring-1 ring-inset ring-ink/[0.06]">
                 <TileArt
                   hue={active.hue}
                   seed={active.id}

@@ -83,11 +83,11 @@ export function StatCard({
   return (
     <div
       className={cn(
-        'panel shadow-mid p-4 transition-colors',
-        accent && 'border-vybe-600/50 bg-vybe-500/[0.07]',
+        'rounded-lg p-4 shadow-soft transition-colors',
+        accent ? 'bg-vybe-50 ring-1 ring-inset ring-vybe-300' : 'bg-paper ring-hair',
       )}
     >
-      <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted">{label}</p>
+      <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.18em] text-muted">{label}</p>
       <p
         className={cn(
           'mt-2 font-display text-2xl font-bold tabular-nums leading-none sm:text-3xl',
@@ -128,11 +128,11 @@ export function CapacityBar({
         aria-valuemin={0}
         aria-valuemax={100}
         aria-label="Capacity taken"
-        className="relative h-3 w-full overflow-hidden rounded-full bg-frost shadow-ring"
+        className="relative h-2.5 w-full overflow-hidden rounded-pill bg-canvasDeep"
       >
         <motion.div
           className={cn(
-            'h-full rounded-full',
+            'h-full rounded-pill',
             tight
               ? 'bg-gradient-to-r from-vybe-600 via-vybe-400 to-flare-500'
               : 'bg-gradient-to-r from-vybe-700 via-vybe-500 to-pulse-400',

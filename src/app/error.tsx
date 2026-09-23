@@ -19,14 +19,14 @@ export default function Error({
 
   return (
     <div className="relative flex min-h-dvh flex-col items-center justify-center overflow-hidden px-5 py-20 text-center">
-      <div aria-hidden className="pointer-events-none absolute inset-0">
+      <div aria-hidden className="pointer-events-none absolute inset-0 -z-10">
         <div className="absolute inset-0 gridfield fade-edges" />
-        <div className="absolute left-1/2 top-1/2 h-96 w-96 -translate-x-1/2 -translate-y-1/2 rounded-full bg-vybe-700/20 blur-[110px]" />
+        <div className="absolute left-1/2 top-1/2 h-96 w-96 -translate-x-1/2 -translate-y-1/2 rounded-pill bg-vybe-500/22 blur-[110px]" />
       </div>
 
       <div
         aria-hidden
-        className="pointer-events-none absolute left-1/2 top-1/2 aspect-square w-[min(120vw,720px)] -translate-x-1/2 -translate-y-1/2"
+        className="pointer-events-none absolute left-1/2 top-1/2 -z-10 aspect-square w-[min(120vw,720px)] -translate-x-1/2 -translate-y-1/2"
       >
         <Globe spin strokeWidth={1.4} className="h-full w-full text-vybe-500/15" />
       </div>
@@ -34,13 +34,13 @@ export default function Error({
       <div className="relative max-w-md">
         <Link
           href="/"
-          className="mb-10 inline-block rounded-full"
+          className="mb-10 inline-block rounded-pill"
           aria-label="Houz of Vybe — home"
         >
           <Logo variant="inline" />
         </Link>
 
-        <div className="mx-auto mb-7 flex h-16 w-16 items-center justify-center rounded-full border border-flare/40 bg-flare/10">
+        <div className="mx-auto mb-7 flex h-16 w-16 items-center justify-center rounded-pill bg-flare-100 ring-1 ring-inset ring-flare-300">
           <svg
             aria-hidden="true"
             viewBox="0 0 24 24"
@@ -69,7 +69,7 @@ export default function Error({
           <button type="button" onClick={reset} className="btn-primary px-7 py-3.5">
             Try again
           </button>
-          <Link href="/" className="btn-outline btn-sm px-7 py-3.5">
+          <Link href="/" className="btn-outline px-7 py-3.5">
             Back home
           </Link>
         </div>

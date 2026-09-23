@@ -16,30 +16,27 @@ export function Footer() {
 
   return (
     <footer className="relative mt-auto">
-      {/* Last chance to sell the ticket, before the small print. */}
+      {/* Last chance to sell the ticket, before the small print.
+
+          Light, not dark. Several pages close on a dark plate of their own, and
+          two of them stacked read as one long band with a seam through it. */}
       <div className="shell pb-16 pt-8">
-        <div className="slab-deep relative px-6 py-10 sm:px-10 sm:py-12">
-          <span aria-hidden className="pointer-events-none absolute inset-0 gridfield opacity-[0.3]" />
+        <div className="card-feature relative px-6 py-10 sm:px-10 sm:py-11">
           <span
             aria-hidden
-            className="pointer-events-none absolute -right-20 -top-24 h-64 w-64 rounded-pill bg-vybe-500/25 blur-3xl"
+            className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 spotlight"
           />
           <div className="relative flex flex-col items-start gap-7 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <p className="font-mono text-[0.6875rem] font-semibold uppercase tracking-[0.22em] text-vybe-200">
-                Last call
+              <p className="eyebrow">Last call</p>
+              <p className="mt-3 font-display text-[1.625rem] font-semibold tracking-[-0.03em] text-ink">
+                {EVENT.name} <span className="accent gradient-text">{EVENT.edition}</span>
               </p>
-              <p className="mt-3 font-display text-[1.625rem] font-semibold tracking-[-0.03em] text-white">
-                {EVENT.name} <span className="accent text-vybe-200">{EVENT.edition}</span>
-              </p>
-              <p className="mt-2 text-[0.9375rem] text-vybe-100/85">
+              <p className="mt-2 text-[0.9375rem] text-slate">
                 {EVENT.dateLabel} · {EVENT.timeLabel} · {EVENT.venue.name}, {EVENT.venue.area}
               </p>
             </div>
-            <Link
-              href="/book"
-              className="btn btn-lg shrink-0 bg-white text-ink shadow-raise transition-transform hover:-translate-y-[2px] hover:shadow-float active:translate-y-0"
-            >
+            <Link href="/book" className="btn-primary btn-lg shrink-0">
               Buy tickets
             </Link>
           </div>

@@ -38,7 +38,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         />
       </div>
 
-      <header className="sticky top-0 z-40 border-b border-edge bg-canvas/90 backdrop-blur-xl">
+      <header className="sticky top-0 z-40 bg-white/85 shadow-soft backdrop-blur-xl">
         <div className="mx-auto flex h-14 w-full max-w-6xl items-center justify-between gap-3 px-4">
           <div className="flex min-w-0 items-center gap-3">
             <Logo variant="inline" className="origin-left scale-[0.88] sm:scale-100" />
@@ -59,7 +59,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           </div>
         </div>
 
-        <div className="hidden border-t border-edge/60 sm:block">
+        <div className="hidden border-t border-ink/[0.06] sm:block">
           <div className="mx-auto w-full max-w-6xl px-4">
             <AdminNav role={session.role} />
           </div>
@@ -71,11 +71,11 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         {children}
       </main>
 
-      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-edge bg-canvas/95 backdrop-blur-xl sm:hidden">
+      <div className="fixed inset-x-0 bottom-0 z-40 bg-white/[0.92] shadow-[0_-8px_24px_-12px_rgba(10,33,56,0.22)] backdrop-blur-xl sm:hidden">
         <AdminNav variant="tabs" role={session.role} />
       </div>
 
-      <footer className="relative hidden border-t border-edge px-4 py-4 sm:block">
+      <footer className="relative hidden border-t border-ink/[0.06] px-4 py-4 sm:block">
         <p className="mx-auto flex max-w-6xl items-center gap-2 font-mono text-[10px] uppercase tracking-wider text-muted">
           <Globe className="h-3 w-3 text-vybe-400" strokeWidth={5} />
           {env.appEnv} · payments {env.paymentsEnabled ? 'live' : 'disabled'} · smtp{' '}
