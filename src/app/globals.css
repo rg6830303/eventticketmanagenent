@@ -337,7 +337,7 @@
   /* Glass, for anything that sits over moving content: the header, sticky
      bars, the mobile sheet. */
   .surface-glass {
-    @apply rounded-xl bg-white/[0.88] backdrop-blur-xl;
+    @apply rounded-xl bg-white/[0.93] backdrop-blur-xl;
     box-shadow:
       inset 0 0 0 1px rgba(255, 255, 255, 0.6),
       inset 0 0 0 1.5px var(--hairline),
