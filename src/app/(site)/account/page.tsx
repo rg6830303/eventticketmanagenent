@@ -1,10 +1,12 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
+import { getBookingByReference } from '@/lib/bookings';
 import { getCustomerAccount } from '@/lib/customer-auth';
 import { query } from '@/lib/db';
 import { formatEventDate, formatInr } from '@/lib/utils';
 import { SignOutButton } from '@/components/account/SignOutButton';
+import { TicketCard } from '@/components/booking/TicketCard';
 
 export const dynamic = 'force-dynamic';
 export const metadata: Metadata = { title: 'My account', robots: { index: false, follow: false } };
@@ -51,6 +53,15 @@ export default async function AccountPage() {
   const upcoming = bookings.filter((b) => !isPast(b));
   const past = bookings.filter(isPast);
 
+  // The passes themselves, QR and all, for every paid booking still ahead —
+  // this page is where people will open their ticket at the door.
+  const details = await Promise.all(
+    upcoming
+      .filter((b) => b.status === 'confirmed')
+      .map((b) => getBookingByReference(b.reference).catch(() => null)),
+  );
+  const passes = details.filter((d): d is NonNullable<typeof d> => Boolean(d && d.tickets.length));
+
   return (
     <div className="shell pb-24 pt-32 sm:pt-36">
       <div className="flex flex-wrap items-end justify-between gap-4">
@@ -69,6 +80,20 @@ export default async function AccountPage() {
       <Section title="Past events" empty="Nothing here yet.">
         {past.map((b) => <BookingCard key={b.reference} booking={b} past />)}
       </Section>
+
+      {passes.length > 0 && (
+        <section className="mt-12">
+          <h2 className="font-display text-xl font-bold text-ink">My tickets</h2>
+          <p className="mt-1 text-[0.875rem] text-slate">Show this QR at the door. Each pass scans once — screenshot it in case signal is patchy.</p>
+          <div className="mt-5 grid gap-5 lg:grid-cols-2">
+            {passes.flatMap((d) =>
+              d.tickets.map((ticket, index) => (
+                <TicketCard key={ticket.id} ticket={ticket} event={d.event} tier={d.tier} index={index + 1} total={d.tickets.length} />
+              )),
+            )}
+          </div>
+        </section>
+      )}
 
       {upcoming.length === 0 && (
         <Link href="/" className="btn-primary mt-8 inline-flex">See what is on</Link>

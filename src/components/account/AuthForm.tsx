@@ -54,8 +54,13 @@ const ENDPOINT: Record<Mode, string> = {
  * customer somewhere that is not.
  */
 function safeNext(next?: string): string {
-  if (!next || !next.startsWith('/') || next.startsWith('//')) return '/account';
-  return next;
+  // Fall back to the address bar: the prop can be lost if the page was served
+  // from a cached render, and landing on the wrong page after signing up is
+  // exactly the glitch this has to avoid.
+  const candidate =
+    next ?? (typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('next') ?? undefined : undefined);
+  if (!candidate || !candidate.startsWith('/') || candidate.startsWith('//')) return '/account';
+  return candidate;
 }
 
 export function AuthForm({ mode, next, token }: Props) {
@@ -115,7 +120,7 @@ export function AuthForm({ mode, next, token }: Props) {
 
       // Signed in. A full navigation rather than router.push, so the header
       // and every server component re-render as the signed-in customer.
-      window.location.assign(safeNext(next));
+      window.location.replace(safeNext(next));
     } catch {
       setMessage('We could not reach the server. Check your connection.');
     } finally {

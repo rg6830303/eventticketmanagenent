@@ -35,8 +35,12 @@ const EASE = [0.16, 1, 0.3, 1] as const;
 export function TicketRail({
   tiers,
   showReferralNote = true,
+  signedIn = true,
 }: {
   tiers: RailTier[];
+  /** Signed-out visitors can browse; adding a pass sends them to sign up and
+   *  back to the cart with the pass already in it. */
+  signedIn?: boolean;
   /** Off where the page already carries a full referral callout of its own. */
   showReferralNote?: boolean;
 }) {
@@ -175,6 +179,7 @@ export function TicketRail({
                   onClick={() => {
                     addToCart(tier.code, 1);
                     setRecentlyAdded((current) => ({ ...current, [tier.code]: true }));
+                    if (!signedIn) window.location.assign('/signup?next=/cart');
                   }}
                   className={cn(
                     'mt-6 w-full',

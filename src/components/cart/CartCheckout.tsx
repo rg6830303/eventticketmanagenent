@@ -3,9 +3,10 @@
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { cn, formatInr } from '@/lib/utils';
 import { clearCart, type CartItem } from '@/lib/cart';
+import { loadCheckout } from '@/components/payment/RazorpayCheckout';
 
 const EASE = [0.16, 1, 0.3, 1] as const;
 
@@ -22,7 +23,7 @@ interface Props {
   account: { name: string; email: string; phone: string } | null;
 }
 
-type Phase = 'idle' | 'booking' | 'starting-payment' | 'redirecting' | 'error';
+type Phase = 'idle' | 'booking' | 'starting-payment' | 'paying' | 'verifying' | 'redirecting' | 'error';
 
 interface FieldErrors {
   [field: string]: string[];
@@ -131,8 +132,23 @@ function CheckoutForm({
   // instead of written twice.
   const idempotencyKey = useRef<string | null>(null);
 
-  const busy = phase === 'booking' || phase === 'starting-payment' || phase === 'redirecting';
+  // Reference of a booking already held by an earlier press. A retry pays for
+  // that booking instead of holding a second one.
+  const heldRef = useRef<string | null>(null);
+  const poller = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [heldReference, setHeldReference] = useState<string | null>(null);
+
+  const busy =
+    phase === 'booking' || phase === 'starting-payment' || phase === 'paying' || phase === 'verifying' || phase === 'redirecting';
   const overLimit = totalPasses > maxPasses;
+
+  // Warm Razorpay's script while they fill the form, so Pay opens instantly.
+  useEffect(() => {
+    loadCheckout().catch(() => {});
+    return () => {
+      if (poller.current) clearInterval(poller.current);
+    };
+  }, []);
 
   const set = (field: keyof typeof form) => (value: string | boolean) => {
     setForm((current) => ({ ...current, [field]: value }));
@@ -144,6 +160,84 @@ function CheckoutForm({
     });
   };
 
+  const finish = useCallback(
+    (reference: string) => {
+      if (poller.current) clearInterval(poller.current);
+      poller.current = null;
+      clearCart();
+      setPhase('redirecting');
+      router.replace(`/booking/${reference}?paid=1`);
+    },
+    [router],
+  );
+
+  /** Ask the server (which asks Razorpay) whether this booking is paid. */
+  const checkPaid = useCallback(
+    async (reference: string) => {
+      try {
+        const response = await fetch(`/api/bookings/${reference}/claim`, { method: 'POST' });
+        const body = (await response.json()) as { data?: { status?: string } };
+        if (body.data?.status === 'confirmed') {
+          finish(reference);
+          return true;
+        }
+      } catch {
+        /* next tick */
+      }
+      return false;
+    },
+    [finish],
+  );
+
+  /** Create (or reuse) the booking. Null means an error was already shown. */
+  const holdBooking = useCallback(async (): Promise<{ reference: string; requiresPayment: boolean } | null> => {
+    if (heldRef.current) return { reference: heldRef.current, requiresPayment: true };
+    if (!idempotencyKey.current) idempotencyKey.current = crypto.randomUUID();
+
+    const response = await fetch('/api/bookings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Idempotency-Key': idempotencyKey.current },
+      body: JSON.stringify({
+        eventSlug,
+        items: items.map((item) => ({ tierCode: item.code, quantity: item.quantity })),
+        name: form.name,
+        email: form.email,
+        phone: form.phone,
+        referralCode: referralCode || '',
+        marketingOptIn: form.updates,
+        consent: form.consent,
+        company: '',
+      }),
+    });
+    const body = (await response.json()) as {
+      data?: { reference: string; requiresPayment: boolean };
+      error?: string;
+      details?: FieldErrors;
+    };
+
+    // The session lapsed; sign in and come straight back. The cart survives.
+    if (response.status === 401) {
+      window.location.assign('/login?next=/cart');
+      return null;
+    }
+    if (!response.ok || !body.data) {
+      idempotencyKey.current = null;
+      setPhase('error');
+      setFieldErrors(body.details ?? {});
+      setError(body.error ?? 'We could not hold those passes. Try again in a moment.');
+      return null;
+    }
+    heldRef.current = body.data.reference;
+    setHeldReference(body.data.reference);
+    return body.data;
+  }, [eventSlug, items, form, referralCode]);
+
+  /**
+   * Pay straight from the cart: hold the booking, create the Razorpay order,
+   * open the modal. No intermediate page. The cart is only cleared once the
+   * payment is confirmed, so a dismissed modal leaves everything in place and
+   * the next press reuses the same held booking.
+   */
   const submit = useCallback(
     async (event: React.FormEvent) => {
       event.preventDefault();
@@ -153,115 +247,125 @@ function CheckoutForm({
       setFieldErrors({});
       setPhase('booking');
 
-      if (!idempotencyKey.current) {
-        idempotencyKey.current = crypto.randomUUID();
-      }
-
       let reference: string | null = null;
-
       try {
-        const response = await fetch('/api/bookings', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Idempotency-Key': idempotencyKey.current,
-          },
-          body: JSON.stringify({
-            eventSlug,
-            items: items.map((item) => ({ tierCode: item.code, quantity: item.quantity })),
-            name: form.name,
-            email: form.email,
-            phone: form.phone,
-            referralCode: referralCode || '',
-            marketingOptIn: form.updates,
-            consent: form.consent,
-            company: '',
-          }),
-        });
+        const held = await holdBooking();
+        if (!held) return;
+        reference = held.reference;
 
-        const body = (await response.json()) as {
-          data?: {
-            reference: string;
-            requiresPayment: boolean;
-            payUrl: string | null;
-            amountPaise: number;
-            referralRejected?: boolean;
-            referralMessage?: string | null;
-          };
-          error?: string;
-          details?: FieldErrors;
-        };
-
-        // The session lapsed between loading the cart and pressing Pay. Send
-        // them to sign in and straight back; the cart is still in the browser.
-        if (response.status === 401) {
-          router.push('/login?next=/cart');
-          return;
-        }
-
-        if (!response.ok || !body.data) {
-          // The booking never committed, so the cart is still the right place
-          // to be and the key can be reused on the next attempt.
-          idempotencyKey.current = null;
-          setPhase('error');
-          setFieldErrors(body.details ?? {});
-          setError(body.error ?? 'We could not hold those passes. Try again in a moment.');
-          return;
-        }
-
-        reference = body.data.reference;
-
-        // Inventory is reserved from here on. The cart has done its job.
-        clearCart();
-
-        if (!body.data.requiresPayment) {
-          router.push(`/booking/${reference}`);
+        if (!held.requiresPayment) {
+          clearCart();
+          router.replace(`/booking/${reference}`);
           return;
         }
 
         setPhase('starting-payment');
-
-        // Gateway-agnostic: the server creates the order and decides which rail
-        // is live, so the cart never names a provider. Razorpay's checkout needs
-        // its own component mounted with the order id, so the handoff is always
-        // to the checkout page rather than straight to a hosted page.
-        const sessionResponse = await fetch('/api/payments/session', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ reference }),
-        });
-        const sessionBody = (await sessionResponse.json()) as {
-          data?: { alreadyPaid?: boolean; payUrl?: string };
+        // Script and order in parallel: the modal opens as soon as both land.
+        const [, orderResponse] = await Promise.all([
+          loadCheckout(),
+          fetch('/api/payments/razorpay/order', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ reference }),
+          }),
+        ]);
+        const orderBody = (await orderResponse.json()) as {
+          data?: { orderId: string; amount: number; currency: string; keyId: string };
+          error?: string;
         };
-
-        if (sessionBody.data?.alreadyPaid) {
-          router.push(`/booking/${reference}?paid=1`);
+        if (!orderResponse.ok || !orderBody.data) {
+          if (await checkPaid(reference)) return;
+          setPhase('error');
+          setError(orderBody.error ?? 'We could not start the payment. Your passes are held — press Pay to try again.');
           return;
         }
 
-        setPhase('redirecting');
-        router.push(sessionBody.data?.payUrl ?? body.data.payUrl ?? `/pay/${reference}`);
+        const Razorpay = window.Razorpay;
+        if (!Razorpay) throw new Error('checkout unavailable');
+        const ref = reference;
+        const rzp = new Razorpay({
+          key: orderBody.data.keyId,
+          order_id: orderBody.data.orderId,
+          amount: orderBody.data.amount,
+          currency: orderBody.data.currency,
+          name: 'Houz of Vybe',
+          description: `${totalPasses} ${totalPasses === 1 ? 'pass' : 'passes'}`,
+          prefill: { name: form.name, email: form.email, contact: form.phone },
+          notes: { reference: ref },
+          theme: { color: '#2586ef', backdrop_color: '#0a2138' },
+          retry: { enabled: false },
+          handler: async (payload: unknown) => {
+            setPhase('verifying');
+            try {
+              const response = await fetch('/api/payments/razorpay/verify', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+              });
+              if (response.ok) {
+                finish(ref);
+                return;
+              }
+            } catch {
+              /* fall through to asking the server */
+            }
+            if (!(await checkPaid(ref))) {
+              setPhase('error');
+              setError(
+                'Your payment went through but we are still confirming it. Do not pay again — your passes will arrive by email.',
+              );
+            }
+          },
+          modal: {
+            confirm_close: true,
+            ondismiss: () => {
+              setPhase((current) => (current === 'verifying' || current === 'redirecting' ? current : 'idle'));
+              void checkPaid(ref);
+            },
+          },
+        });
+        rzp.on('payment.failed', (payload: unknown) => {
+          const detail = payload as { error?: { description?: string } };
+          setPhase('error');
+          setError(detail.error?.description ?? 'The payment did not go through. Nothing was charged — press Pay to try again.');
+        });
+
+        setPhase('paying');
+        rzp.open();
+
+        // UPI apps can evict this tab mid-payment; keep asking the server.
+        if (poller.current) clearInterval(poller.current);
+        const deadline = Date.now() + 8 * 60 * 1000;
+        poller.current = setInterval(() => {
+          if (Date.now() > deadline) {
+            if (poller.current) clearInterval(poller.current);
+          } else void checkPaid(ref);
+        }, 5000);
       } catch {
-        if (reference) {
-          router.push(`/pay/${reference}`);
-          return;
-        }
-        idempotencyKey.current = null;
         setPhase('error');
-        setError('We could not reach the server. Check your connection and try again.');
+        if (!reference) idempotencyKey.current = null;
+        setError(
+          reference
+            ? 'We could not open the payment window. If you are inside Instagram, open this page in your browser — your passes are held.'
+            : 'We could not reach the server. Check your connection and try again.',
+        );
       }
     },
-    [busy, eventSlug, items, form, referralCode, router],
+    [busy, holdBooking, checkPaid, finish, router, form, totalPasses],
   );
 
   const buttonLabel =
     phase === 'booking'
       ? 'Holding your passes…'
       : phase === 'starting-payment'
-        ? 'Starting secure checkout…'
-        : phase === 'redirecting'
-          ? 'Taking you to payment…'
-          : `Pay ${formatInr(totalPaise)}`;
+        ? 'Opening secure checkout…'
+        : phase === 'paying'
+          ? 'Complete payment in the Razorpay window…'
+          : phase === 'verifying'
+            ? 'Confirming your payment…'
+            : phase === 'redirecting'
+              ? 'Paid! Issuing your passes…'
+              : `Pay ${formatInr(totalPaise)}`;
 
   return (
     <form onSubmit={submit} noValidate className="card-print mt-6 overflow-hidden">
@@ -403,6 +507,14 @@ function CheckoutForm({
                 className="mt-3 rounded-xl border border-flare-300 bg-flare-200/30 px-4 py-3 text-[0.8125rem] leading-relaxed text-flare-600"
               >
                 {error}
+                {heldReference && phase === 'error' && (
+                  <>
+                    {' '}
+                    <Link href={`/pay/${heldReference}`} className="font-semibold underline">
+                      Open payment page
+                    </Link>
+                  </>
+                )}
               </motion.p>
             )}
           </AnimatePresence>

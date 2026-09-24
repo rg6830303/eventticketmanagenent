@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import { getEventBySlug } from '@/lib/bookings';
 import { getCustomerSession } from '@/lib/customer-auth';
 import { isPastEvent } from '@/lib/event-facts';
@@ -33,8 +33,8 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
  *
  * OFF Campus had a page written by hand. The platform needs one page that works
  * for every event an operator creates in the console — name, date, venue,
- * poster, passes — so the next drop is a row, not a pull request. (OFF Campus
- * keeps its own page at /events/offcampus as the record of that night.)
+ * poster, passes — so the next drop is a row, not a pull request. Past events
+ * redirect home; their record lives in the console.
  *
  * Three states, and the page is honest about each: on sale, announced but not
  * on sale yet, and over.
@@ -46,9 +46,10 @@ export default async function EventPage({ params }: Params) {
 
   const [tiers, session] = await Promise.all([listStorefrontTiers(event.id), getCustomerSession()]);
 
-  const past = isPastEvent(event);
+  // Past nights are a console record now, not a public page.
+  if (isPastEvent(event)) redirect('/');
+  const past = false;
   const onSale = !past && tiers.some((t) => t.remaining > 0);
-  const soldOut = !past && event.status === 'sold_out';
   const fromPaise = onSale ? Math.min(...tiers.filter((t) => t.remaining > 0).map((t) => t.pricePaise)) : null;
   const title = `${event.name} ${event.tagline ?? ''}`.trim();
   const venueLine = [event.venue_name, event.venue_address && event.venue_address !== event.city ? event.venue_address : null, event.city]
@@ -86,7 +87,7 @@ export default async function EventPage({ params }: Params) {
                   : 'inline-flex rounded-full bg-vybe-500 px-3 py-1 font-mono text-[0.6875rem] font-semibold uppercase tracking-[0.18em] text-white'
               }
             >
-              {past ? 'Past event' : onSale ? 'Tickets on sale' : soldOut ? 'Sold out' : 'Coming soon'}
+              {onSale ? 'Tickets on sale' : 'Coming soon'}
             </span>
 
             <h1 className="mt-5 font-display text-[clamp(2.5rem,6vw,4.5rem)] font-bold leading-[0.95] tracking-[-0.03em] text-ink">
@@ -109,11 +110,6 @@ export default async function EventPage({ params }: Params) {
                 <a href="#tickets" className="btn-primary px-7 py-4">
                   {onSale ? `Get tickets${fromPaise ? ` · from ${formatInr(fromPaise)}` : ''}` : 'See passes'}
                 </a>
-                {!session && (
-                  <Link href={`/signup?next=/events/${event.slug}`} className="btn-outline px-6 py-4">
-                    Create an account
-                  </Link>
-                )}
               </div>
             )}
 
@@ -135,7 +131,7 @@ export default async function EventPage({ params }: Params) {
               <div>
                 <p className="font-mono text-[0.6875rem] uppercase tracking-[0.2em] text-muted">Passes</p>
                 <h2 className="mt-2 font-display text-3xl font-bold text-ink sm:text-4xl">
-                  {onSale ? 'Pick your pass' : soldOut ? 'Sold out' : 'Tickets opening soon'}
+                  {onSale ? 'Pick your pass' : 'Tickets opening soon'}
                 </h2>
               </div>
               {onSale && (
@@ -153,10 +149,10 @@ export default async function EventPage({ params }: Params) {
                   <span className="text-slate">Browse freely — you will need an account at checkout.</span>
                 </p>
                 <div className="flex gap-2">
-                  <Link href={`/login?next=/events/${event.slug}`} className="btn-outline py-2.5 text-[0.875rem]">
+                  <Link href="/login?next=/cart" className="btn-outline py-2.5 text-[0.875rem]">
                     Sign in
                   </Link>
-                  <Link href={`/signup?next=/events/${event.slug}`} className="btn-primary py-2.5 text-[0.875rem]">
+                  <Link href="/signup?next=/cart" className="btn-primary py-2.5 text-[0.875rem]">
                     Sign up
                   </Link>
                 </div>
@@ -165,12 +161,12 @@ export default async function EventPage({ params }: Params) {
 
             {onSale ? (
               <div className="mt-10">
-                <TicketRail tiers={tiers} showReferralNote={false} />
+                <TicketRail tiers={tiers} showReferralNote={false} signedIn={Boolean(session)} />
               </div>
             ) : (
               <div className="mt-8 rounded-2xl border-[1.5px] border-dashed border-edgeStrong bg-paper p-8 text-center">
                 <p className="font-display text-xl font-bold text-ink">
-                  {soldOut ? 'Every pass has gone.' : 'Passes are not on sale yet.'}
+                  Passes are not on sale yet.
                 </p>
                 <p className="mx-auto mt-2 max-w-md text-[0.9375rem] text-slate">
                   {session

@@ -30,11 +30,11 @@ export const BRAND = {
 
 /** The venue partner named on the artwork. */
 export const PARTNER = {
-  name: 'Kingdome Klub & Kitchen',
-  role: 'Venue partner',
+  name: 'Orbit',
+  role: 'Co-presenter',
 } as const;
 
-export const FEATURED_EVENT_SLUG = 'offcampus';
+export const FEATURED_EVENT_SLUG = 'dandiya-project';
 
 export const NAV_LINKS = [
   { href: '/#upcoming', label: 'Upcoming' },
@@ -47,11 +47,11 @@ export const NAV_LINKS = [
 
 export const FOOTER_LINKS = {
   'The party': [
-    { href: '/events/offcampus', label: 'OFF Campus 2026' },
+    { href: '/events/dandiya-project', label: 'The Dandiya Project 2026' },
     { href: '/book', label: 'Buy tickets' },
     { href: '/cart', label: 'Cart' },
     { href: '/gallery', label: 'Gallery' },
-    { href: '/events', label: 'Upcoming dates' },
+    { href: '/account', label: 'My account' },
   ],
   'Houz of Vybe': [
     { href: '/about', label: 'Who we are' },
@@ -72,34 +72,31 @@ export const FOOTER_LINKS = {
  */
 export const EVENT = {
   slug: FEATURED_EVENT_SLUG,
-  name: 'OFF Campus',
-  edition: "Freshers '26",
-  editionShort: "'26",
-  presentedBy: 'Houz of Vybe × Kingdome Klub & Kitchen',
-  // Kept as strings for copy; the authoritative timestamps are in Postgres.
-  dateLabel: 'Saturday 12 September 2026',
-  dateShort: '12.09.2026',
-  timeLabel: '12 PM — 4 PM',
-  headline: 'The first party of your first year.',
-  subhead:
-    'Four hours, one rooftop bar, and the entire fresher batch in one place. Doors at noon, music until four.',
+  name: 'The Dandiya Project',
+  edition: '2026',
+  editionShort: '2026',
+  presentedBy: 'Orbit × Houz of Vybe',
+  // Kept as strings for copy; the authoritative date and venue are edited in
+  // Console → Events and read from Postgres wherever it matters.
+  dateLabel: 'Navratri 2026',
+  dateShort: 'Navratri 2026',
+  timeLabel: 'Evening till late',
+  headline: 'Dhol, dandiya and a night-long garba circle.',
+  subhead: 'Dress in your brightest, bring your crew, and spin till the lights come up.',
   standfirst:
-    'OFF Campus is the Freshers welcome for the class of 2026. It runs in daylight at Kingdome Klub & Kitchen in the Financial District, with a non-stop DJ, a photo booth, temporary tattoos and a few things we are not printing on the poster.',
+    'The Dandiya Project 2026 is Orbit × Houz of Vybe’s Navratri night in Hyderabad — live dhol, dandiya sticks in the air and a garba circle that does not stop.',
   body: [
-    'You get one first week of college. This is the part of it people actually remember, and it happens on a Saturday afternoon instead of at 2 AM on a weeknight.',
-    'The room is Kingdome Klub & Kitchen in the Financial District. Music runs without a break from noon to four, the booths open when the doors do, and the kitchen is open through the whole thing.',
-    'Entry is by QR pass. You book here, the pass lands in your inbox, and the door team scans it once. No printed list, no calling someone at the gate to get your name on it.',
+    'Navratri comes once a year. This is the night of it people will talk about.',
+    'Live dhol, a DJ who knows when to drop the Bollywood, and a dance floor sized for a full garba circle.',
+    'Entry is by QR pass. You book here, the pass lands in your inbox and your account, and the door team scans it once.',
   ],
 
   venue: {
-    name: 'Kingdome Klub & Kitchen',
-    area: 'Financial District',
-    addressLines: [
-      '251/8, E/1, Kingdome Klub Rd, Financial District',
-      'Hyderabad, Telangana 500075',
-    ],
-    mapsUrl: 'https://share.google/LiUERsDBUai9sXKAS',
-    landmark: 'Kingdome Klub Road, Financial District',
+    name: 'Venue announced soon',
+    area: 'Hyderabad',
+    addressLines: ['Hyderabad, Telangana'],
+    mapsUrl: 'https://www.instagram.com/houzofvybe',
+    landmark: 'Hyderabad',
   },
 
   /**
@@ -187,7 +184,7 @@ export const EVENT = {
     },
     {
       q: 'How do I get there?',
-      a: 'Kingdome Klub & Kitchen is on Kingdome Klub Road in the Financial District. Cabs drop at the entrance. Parking on site is limited on the day.',
+      a: 'The venue is announced on the event page and in your ticket email. Follow @houzofvybe for the reveal.',
     },
   ],
 } as const;
@@ -266,21 +263,21 @@ export const TICKETING_FACTS = [
  * TODO(operator): replace with photographs from the day.
  */
 export const GALLERY = [
-  { id: 1, caption: 'Doors, just after noon', event: 'OFF Campus', hue: 205, span: 'tall' },
-  { id: 2, caption: 'Photo booth queue', event: 'OFF Campus', hue: 198, span: 'wide' },
-  { id: 3, caption: 'Front of the booth', event: 'OFF Campus', hue: 212, span: 'normal' },
-  { id: 4, caption: 'Tattoo table', event: 'OFF Campus', hue: 190, span: 'normal' },
-  { id: 5, caption: 'Terrace, 2 PM', event: 'OFF Campus', hue: 208, span: 'wide' },
-  { id: 6, caption: 'Peak hour', event: 'OFF Campus', hue: 216, span: 'tall' },
-  { id: 7, caption: 'Bar service', event: 'Kingdome', hue: 200, span: 'normal' },
-  { id: 8, caption: 'Closing set', event: 'OFF Campus', hue: 194, span: 'normal' },
+  { id: 1, caption: 'Doors, just after noon', event: 'The Dandiya Project', hue: 205, span: 'tall' },
+  { id: 2, caption: 'Photo booth queue', event: 'The Dandiya Project', hue: 198, span: 'wide' },
+  { id: 3, caption: 'Front of the booth', event: 'The Dandiya Project', hue: 212, span: 'normal' },
+  { id: 4, caption: 'Tattoo table', event: 'The Dandiya Project', hue: 190, span: 'normal' },
+  { id: 5, caption: 'Terrace, 2 PM', event: 'The Dandiya Project', hue: 208, span: 'wide' },
+  { id: 6, caption: 'Peak hour', event: 'The Dandiya Project', hue: 216, span: 'tall' },
+  { id: 7, caption: 'Bar service', event: 'The Dandiya Project', hue: 200, span: 'normal' },
+  { id: 8, caption: 'Closing set', event: 'The Dandiya Project', hue: 194, span: 'normal' },
   { id: 9, caption: 'Sound check', event: 'Production', hue: 210, span: 'wide' },
 ] as const;
 
 export const ABOUT_STORY = {
   heading: 'We throw parties in daylight, and we run our own door.',
   paragraphs: [
-    'Houz of Vybe is a small Hyderabad crew that puts on day parties for college crowds. OFF Campus is our Freshers edition, made with Kingdome Klub & Kitchen.',
+    'Houz of Vybe is a small Hyderabad crew that puts on day parties for college crowds. The Dandiya Project is our Navratri night, made with Orbit.',
     'We handle it end to end: the booking, the sound, the booths, the door and the ticketing platform you are on right now. That is why a pass reaches your inbox in under a minute instead of after a WhatsApp conversation.',
     'Capacity is a number in a database here, not a guess at the gate. When it is reached, the site stops selling. A packed room is good, an oversold one is not.',
   ],

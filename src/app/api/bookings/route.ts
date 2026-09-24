@@ -86,7 +86,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const deliverable = await checkEmailDeliverable(input.email);
+    // The email is the signed-in account's, already checked at signup, so the
+    // DNS round trip would only slow down checkout.
+    const deliverable = account ? { deliverable: true, reason: null as string | null } : await checkEmailDeliverable(input.email);
     if (!deliverable.deliverable) {
       return fail('We could not verify that email address', 'undeliverable_email', 422, {
         email: [deliverable.reason ?? 'This address cannot receive email'],

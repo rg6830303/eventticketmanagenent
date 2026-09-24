@@ -53,8 +53,7 @@ export default function AboutPage() {
 
             <Reveal delay={0.2}>
               <p className="rounded-[16px] border border-edge bg-frost px-5 py-4 text-[0.9375rem] leading-relaxed text-slate">
-                {EVENT.name} {EVENT.edition} is produced with {PARTNER.name} at {EVENT.venue.name},{' '}
-                {EVENT.venue.area}.
+                {EVENT.name} {EVENT.edition} is produced with {PARTNER.name} in {EVENT.venue.area}.
               </p>
             </Reveal>
           </div>

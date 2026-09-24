@@ -17,7 +17,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
     changeFrequency: MetadataRoute.Sitemap[number]['changeFrequency'];
   }> = [
     { path: '/', priority: 1, changeFrequency: 'weekly' },
-    { path: '/events/offcampus', priority: 0.4, changeFrequency: 'yearly' },
     { path: '/events', priority: 0.9, changeFrequency: 'daily' },
     { path: '/events/dandiya-project', priority: 0.95, changeFrequency: 'daily' },
     { path: '/signup', priority: 0.5, changeFrequency: 'monthly' },

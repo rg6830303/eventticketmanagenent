@@ -37,7 +37,7 @@ const LOAD_TIMEOUT_MS = 12_000;
  */
 let checkoutPromise: Promise<void> | null = null;
 
-function loadCheckout(): Promise<void> {
+export function loadCheckout(): Promise<void> {
   if (typeof window === 'undefined') return Promise.reject(new Error('no window'));
   if (window.Razorpay) return Promise.resolve();
   if (checkoutPromise) return checkoutPromise;
