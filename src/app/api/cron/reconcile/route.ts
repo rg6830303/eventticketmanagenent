@@ -1,6 +1,6 @@
 import { timingSafeEqual } from 'node:crypto';
 import { NextResponse, type NextRequest } from 'next/server';
-import { reconcilePending, sendUndeliveredTickets } from '@/lib/payments';
+import { reconcilePending, sendCheckoutNudges, sendUndeliveredTickets } from '@/lib/payments';
 import { rateLimit } from '@/lib/rate-limit';
 import { clientIp } from '@/lib/validation.server';
 
@@ -117,6 +117,8 @@ export async function GET(request: NextRequest) {
     // takes no login and renders the customer's name and QR passes — and this
     // response is read by schedulers that log it, some of them publicly. The
     // references go to the server log above, which is private, and nowhere else.
+    const nudges = await sendCheckoutNudges(15_000).catch(() => ({ checked: 0, sent: 0 }));
+
     if (mail.sent > 0) {
       console.error(`[cron] sent ${mail.sent} ticket email(s) that had previously failed`);
     }
@@ -128,6 +130,7 @@ export async function GET(request: NextRequest) {
       recovered: paid.length,
       emailsRetried: mail.attempted,
       emailsSent: mail.sent,
+      nudgesSent: nudges.sent,
     });
   } catch (error) {
     console.error('[cron] sweep failed:', error instanceof Error ? error.message : error);

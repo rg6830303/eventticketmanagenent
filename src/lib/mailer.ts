@@ -13,6 +13,7 @@ import {
   type TicketEmailData,
 } from './email-templates';
 import { brandMarkPng } from './email-assets';
+import { checkoutNudgeEmail, resetEmail, welcomeEmail, type RenderedEmail } from './email-account-templates';
 import type { BookingDetail } from './types';
 
 /**
@@ -397,4 +398,50 @@ export async function sendContactAck(name: string, to: string): Promise<SendResu
     text: `Hey ${name.split(' ')[0]},\n\nWe got your message. Someone from the crew will get back to you within one working day.\n\nHouz of Vybe · Hyderabad`,
     template: 'contact-ack',
   });
+}
+
+/* ---------------------------------------------------------------------------
+ * Account and follow-up mail. Same send seam, same email_log trail, and never
+ * an attachment that could be read as a pass.
+ * ------------------------------------------------------------------------- */
+
+function withBrand(rendered: RenderedEmail, to: string, template: string, bookingId: string | null = null): SendArgs {
+  return {
+    to,
+    subject: rendered.subject,
+    html: rendered.html,
+    text: rendered.text,
+    attachments: [
+      { filename: 'houz-of-vybe.png', content: brandMarkPng(), cid: BRAND_MARK_CID, contentType: 'image/png' },
+    ],
+    bookingId,
+    template,
+  };
+}
+
+export async function sendPasswordResetEmail(args: {
+  to: string;
+  name: string;
+  resetUrl: string;
+  minutes: number;
+}): Promise<SendResult> {
+  return sendMail(withBrand(resetEmail(args), args.to, 'password-reset'));
+}
+
+export async function sendWelcomeEmail(args: { to: string; name: string }): Promise<SendResult> {
+  return sendMail(withBrand(welcomeEmail({ name: args.name, siteUrl: env.siteUrl }), args.to, 'welcome'));
+}
+
+export async function sendCheckoutNudge(args: {
+  to: string;
+  name: string;
+  bookingId: string;
+  eventName: string;
+  eventDate: string;
+  payUrl: string;
+  passSummary: string;
+  amount: string;
+  posterUrl?: string;
+}): Promise<SendResult> {
+  return sendMail(withBrand(checkoutNudgeEmail(args), args.to, 'checkout-nudge', args.bookingId));
 }

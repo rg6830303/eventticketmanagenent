@@ -242,3 +242,9 @@ export function fieldErrors(error: z.ZodError): Record<string, string[]> {
   }
   return out;
 }
+
+/** Customer account passwords. Length is the rule that actually matters. */
+export const passwordSchema = z
+  .string({ required_error: 'Choose a password' })
+  .min(8, 'Use at least 8 characters')
+  .max(128, 'That password is too long');

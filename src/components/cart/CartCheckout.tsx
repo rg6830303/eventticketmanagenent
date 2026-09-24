@@ -18,6 +18,8 @@ interface Props {
   maxPasses: number;
   /** False when the deployment has no live gateway configured. */
   checkoutEnabled: boolean;
+  /** Signed-in customer. Null means show the sign-in prompt instead of a form. */
+  account: { name: string; email: string; phone: string } | null;
 }
 
 type Phase = 'idle' | 'booking' | 'starting-payment' | 'redirecting' | 'error';
@@ -49,14 +51,80 @@ export function CartCheckout({
   referralCode,
   maxPasses,
   checkoutEnabled,
+  account,
 }: Props) {
+  if (!account) return <SignInToBuy />;
+  return (
+    <CheckoutForm
+      eventSlug={eventSlug}
+      items={items}
+      totalPasses={totalPasses}
+      totalPaise={totalPaise}
+      referralCode={referralCode}
+      maxPasses={maxPasses}
+      checkoutEnabled={checkoutEnabled}
+      account={account}
+    />
+  );
+}
+
+/**
+ * Buying needs an account, so a signed-out cart asks for one — and sends them
+ * straight back here afterwards with the cart intact, because the cart lives in
+ * the browser and survives the round trip.
+ */
+function SignInToBuy() {
+  return (
+    <div className="card-print mt-6 overflow-hidden">
+      <div className="border-b-[1.5px] border-ink bg-vybe-100 px-6 py-4">
+        <p className="font-mono text-[0.6875rem] font-medium uppercase tracking-[0.22em] text-ink">
+          Checkout
+        </p>
+      </div>
+      <div className="space-y-4 px-6 py-6">
+        <p className="font-display text-xl font-bold text-ink">Sign in to buy your passes</p>
+        <p className="text-[0.9375rem] leading-relaxed text-slate">
+          Tickets are tied to your Houz of Vybe account, so your QR passes are always one sign-in
+          away. Your cart is saved — you will land right back here.
+        </p>
+        <div className="flex flex-wrap gap-3 pt-1">
+          <Link href="/login?next=/cart" className="btn-primary">
+            Sign in
+          </Link>
+          <Link href="/signup?next=/cart" className="btn-outline">
+            Create an account
+          </Link>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CheckoutForm({
+  eventSlug,
+  items,
+  totalPasses,
+  totalPaise,
+  referralCode,
+  maxPasses,
+  checkoutEnabled,
+  account,
+}: Props & { account: NonNullable<Props['account']> }) {
   const router = useRouter();
   const reduce = useReducedMotion();
 
   const [phase, setPhase] = useState<Phase>('idle');
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
-  const [form, setForm] = useState({ name: '', email: '', phone: '', consent: false, updates: false });
+  // Prefilled from the account. The email is fixed to it: passes go to the
+  // inbox the customer signed in with, and the server enforces the same.
+  const [form, setForm] = useState({
+    name: account.name,
+    email: account.email,
+    phone: account.phone,
+    consent: false,
+    updates: false,
+  });
 
   // Regenerated per attempt, not per render: a retry after a network timeout
   // must replay the same key so a booking that actually committed is returned
@@ -123,6 +191,13 @@ export function CartCheckout({
           error?: string;
           details?: FieldErrors;
         };
+
+        // The session lapsed between loading the cart and pressing Pay. Send
+        // them to sign in and straight back; the cart is still in the browser.
+        if (response.status === 401) {
+          router.push('/login?next=/cart');
+          return;
+        }
 
         if (!response.ok || !body.data) {
           // The booking never committed, so the cart is still the right place
@@ -216,13 +291,14 @@ export function CartCheckout({
           id="cart-email"
           label="Email"
           type="email"
-          hint="Where the QR passes are sent. Check it twice."
+          hint="Your account email — the QR passes are sent here and saved to your account."
           value={form.email}
           onChange={set('email')}
           autoComplete="email"
           inputMode="email"
           errors={fieldErrors.email}
-          disabled={busy}
+          disabled
+
         />
 
         <Field

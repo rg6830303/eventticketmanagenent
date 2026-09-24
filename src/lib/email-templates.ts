@@ -263,8 +263,7 @@ export function ticketEmailHtml(data: TicketEmailData): string {
             <a href="mailto:${esc(data.supportEmail)}" style="color:${BLUE};text-decoration:none;">${esc(data.supportEmail)}</a>
           </p>
           <p style="margin:0;font:400 11px/1.7 Arial,Helvetica,sans-serif;color:#5d6b93;">
-            Houz of Vybe · Kingdome Klub &amp; Kitchen, 251/8, E/1, Kingdome Klub Rd,<br />
-            Financial District, Hyderabad, Telangana 500075, India<br />
+            Houz of Vybe · Hyderabad, Telangana, India<br />
             You received this because you booked tickets at
             <a href="${esc(data.siteUrl)}" style="color:#5d6b93;">${esc(data.siteUrl.replace(/^https?:\/\//, ''))}</a>.
           </p>

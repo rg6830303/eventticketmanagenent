@@ -51,8 +51,8 @@ export default function NotFound() {
           <Link href="/" className="btn-primary px-7 py-3.5">
             Back home
           </Link>
-          <Link href="/events/offcampus" className="btn-outline px-7 py-3.5">
-            OffCampus
+          <Link href="/events" className="btn-outline px-7 py-3.5">
+            All events
           </Link>
           <Link href="/book" className="btn-outline btn-sm px-7 py-3.5">
             Book tickets

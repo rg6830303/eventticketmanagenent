@@ -759,5 +759,123 @@ export async function maybeReconcile(everySeconds = 90): Promise<boolean> {
     console.error('[payments] automatic sweep failed:', error instanceof Error ? error.message : error);
   }
 
+  // Last, and least urgent: a nudge to people who started paying and stopped.
+  try {
+    const nudged = await sendCheckoutNudges(8_000);
+    if (nudged.sent > 0) console.error(`[payments] sent ${nudged.sent} checkout nudge(s)`);
+  } catch (error) {
+    console.error('[payments] nudge sweep failed:', error instanceof Error ? error.message : error);
+  }
+
   return true;
+}
+
+/**
+ * "You did not finish" — one email per abandoned booking, never a ticket.
+ *
+ * The rules are all about never sending this to the wrong person:
+ *
+ *  - Only bookings left unpaid for at least 30 minutes and at most 48 hours.
+ *    Sooner and we interrupt somebody still in their UPI app; later and it is
+ *    spam about a decision they already made.
+ *  - Only for an event still ahead of us and still on sale.
+ *  - Each booking is asked about at Razorpay FIRST. A payment whose browser
+ *    never reported back looks exactly like an abandoned cart from here, and
+ *    telling someone who has paid that they did not pay is the worst email
+ *    this system could send. If the gateway says paid, they get their ticket
+ *    instead.
+ *  - Not if the same email has a confirmed booking for the same event since —
+ *    they came back and bought on a fresh cart.
+ *  - At most one nudge per email per event in 48 hours, however many carts
+ *    they abandoned.
+ *  - Claimed atomically, so two overlapping sweeps cannot both send.
+ *
+ * It carries no QR, no pass code and nothing that could be mistaken for entry.
+ */
+export async function sendCheckoutNudges(budgetMs = 20_000): Promise<{ checked: number; sent: number }> {
+  const { sendCheckoutNudge } = await import('./mailer');
+  const deadline = Date.now() + budgetMs;
+
+  const candidates = await query<
+    BookingRow & { event_name: string; event_starts_at: string; hero_image: string | null }
+  >(
+    `SELECT b.*, e.name AS event_name, e.starts_at AS event_starts_at, e.hero_image
+       FROM bookings b
+       JOIN events e ON e.id = b.event_id
+      WHERE b.status = 'pending'
+        AND b.amount_paise > 0
+        AND b.nudge_sent_at IS NULL
+        AND b.created_at < now() - interval '30 minutes'
+        AND b.created_at > now() - interval '48 hours'
+        AND e.status = 'published'
+        AND e.starts_at > now()
+        AND NOT EXISTS (
+          SELECT 1 FROM bookings c
+           WHERE lower(c.customer_email) = lower(b.customer_email)
+             AND c.event_id = b.event_id
+             AND (c.status = 'confirmed'
+                  OR (c.nudge_sent_at IS NOT NULL AND c.nudge_sent_at > now() - interval '48 hours'))
+        )
+      ORDER BY b.created_at ASC
+      LIMIT 20`,
+  );
+
+  let sent = 0;
+  const seen = new Set<string>();
+
+  for (const booking of candidates) {
+    if (Date.now() > deadline) break;
+
+    const key = `${booking.customer_email.toLowerCase()}|${booking.event_id}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+
+    // Ask the gateway before accusing anyone of not paying.
+    const settled = await reconcileBooking(booking).catch(() => null);
+    if (!settled || (settled.outcome !== 'unpaid' && settled.outcome !== 'no_order')) continue;
+
+    const claimed = await queryOne<{ id: string }>(
+      `UPDATE bookings SET nudge_sent_at = now()
+        WHERE id = $1 AND status = 'pending' AND nudge_sent_at IS NULL
+        RETURNING id`,
+      [booking.id],
+    );
+    if (!claimed) continue;
+
+    const items = await query<{ tier_name: string; quantity: number }>(
+      'SELECT tier_name, quantity FROM booking_items WHERE booking_id = $1 ORDER BY tier_code',
+      [booking.id],
+    );
+    const passSummary =
+      items.map((i) => `${i.quantity} × ${i.tier_name}`).join(', ') || `${booking.quantity} pass(es)`;
+
+    const result = await sendCheckoutNudge({
+      to: booking.customer_email,
+      name: booking.customer_name,
+      bookingId: booking.id,
+      eventName: booking.event_name,
+      eventDate: new Date(booking.event_starts_at).toLocaleDateString('en-IN', {
+        timeZone: 'Asia/Kolkata',
+        weekday: 'short',
+        day: 'numeric',
+        month: 'short',
+      }),
+      payUrl: `${env.siteUrl}/pay/${booking.reference}`,
+      passSummary,
+      amount: new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(
+        booking.amount_paise / 100,
+      ),
+      posterUrl: booking.hero_image ? `${env.siteUrl}${booking.hero_image}` : undefined,
+    }).catch((error) => ({ ok: false as const, error: String(error) }));
+
+    if (result.ok) {
+      sent += 1;
+    } else {
+      // Hand the claim back so a transient SMTP failure does not cost the one
+      // nudge this booking was ever going to get.
+      await query('UPDATE bookings SET nudge_sent_at = NULL WHERE id = $1', [booking.id]);
+    }
+  }
+
+  return { checked: candidates.length, sent };
 }

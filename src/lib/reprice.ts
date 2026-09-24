@@ -1,5 +1,6 @@
 import 'server-only';
 import { query, transaction } from './db';
+import { PLATFORM_FEE_BPS } from './fees';
 
 /**
  * Bring unpaid bookings up to the current price.
@@ -43,6 +44,7 @@ export async function repricePendingBookings(tierCode?: string): Promise<{
          FROM ticket_tiers t, bookings b
         WHERE t.code = bi.tier_code
           AND b.id = bi.booking_id
+          AND t.event_id = b.event_id
           AND b.status = 'pending'
           AND ($1::text IS NULL OR bi.tier_code = $1)
           AND (bi.unit_price_paise <> t.price_paise
@@ -57,13 +59,16 @@ export async function repricePendingBookings(tierCode?: string): Promise<{
     const bookings = await client.query(
       `UPDATE bookings b
           SET subtotal_paise = s.total,
+              fee_paise      = ROUND(GREATEST(0, s.total - b.discount_paise) * ${PLATFORM_FEE_BPS} / 10000.0)::int,
               amount_paise   = GREATEST(0, s.total - b.discount_paise)
+                               + ROUND(GREATEST(0, s.total - b.discount_paise) * ${PLATFORM_FEE_BPS} / 10000.0)::int
          FROM (SELECT booking_id, SUM(line_total_paise)::int AS total
                  FROM booking_items GROUP BY booking_id) s
         WHERE s.booking_id = b.id
           AND b.status = 'pending'
           AND (b.subtotal_paise <> s.total
-               OR b.amount_paise <> GREATEST(0, s.total - b.discount_paise))`,
+               OR b.amount_paise <> GREATEST(0, s.total - b.discount_paise)
+                                    + ROUND(GREATEST(0, s.total - b.discount_paise) * ${PLATFORM_FEE_BPS} / 10000.0)::int)`,
     );
 
     return { bookings: bookings.rowCount ?? 0, items: items.rowCount ?? 0 };
@@ -89,6 +94,7 @@ export async function repriceBooking(bookingId: string): Promise<boolean> {
          FROM ticket_tiers t, bookings b
         WHERE t.code = bi.tier_code
           AND b.id = bi.booking_id
+          AND t.event_id = b.event_id
           AND b.id = $1
           AND b.status = 'pending'
           AND (bi.unit_price_paise <> t.price_paise
@@ -100,14 +106,17 @@ export async function repriceBooking(bookingId: string): Promise<boolean> {
     const updated = await client.query(
       `UPDATE bookings b
           SET subtotal_paise = s.total,
+              fee_paise      = ROUND(GREATEST(0, s.total - b.discount_paise) * ${PLATFORM_FEE_BPS} / 10000.0)::int,
               amount_paise   = GREATEST(0, s.total - b.discount_paise)
+                               + ROUND(GREATEST(0, s.total - b.discount_paise) * ${PLATFORM_FEE_BPS} / 10000.0)::int
          FROM (SELECT booking_id, SUM(line_total_paise)::int AS total
                  FROM booking_items WHERE booking_id = $1 GROUP BY booking_id) s
         WHERE s.booking_id = b.id
           AND b.id = $1
           AND b.status = 'pending'
           AND (b.subtotal_paise <> s.total
-               OR b.amount_paise <> GREATEST(0, s.total - b.discount_paise))`,
+               OR b.amount_paise <> GREATEST(0, s.total - b.discount_paise)
+                                    + ROUND(GREATEST(0, s.total - b.discount_paise) * ${PLATFORM_FEE_BPS} / 10000.0)::int)`,
       [bookingId],
     );
 
@@ -131,7 +140,7 @@ export async function pendingPriceDrift(): Promise<
             count(*)::int       AS bookings
        FROM booking_items bi
        JOIN bookings b ON b.id = bi.booking_id
-       JOIN ticket_tiers t ON t.code = bi.tier_code
+       JOIN ticket_tiers t ON t.code = bi.tier_code AND t.event_id = b.event_id
       WHERE b.status = 'pending' AND bi.unit_price_paise <> t.price_paise
       GROUP BY 1, 2, 3
       ORDER BY 4 DESC`,

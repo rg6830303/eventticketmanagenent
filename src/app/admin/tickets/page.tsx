@@ -1,6 +1,6 @@
 import { requireSession } from '@/lib/auth';
 import { getEventBySlug, listIssuedBookings, listTiers } from '@/lib/bookings';
-import { FEATURED_EVENT_SLUG } from '@/content/site';
+import { getFeaturedEvent } from '@/lib/event-facts';
 import { IssueTicket, type TierOption } from '@/components/admin/IssueTicket';
 
 export const dynamic = 'force-dynamic';
@@ -17,7 +17,7 @@ export const metadata = { title: 'Tickets', robots: { index: false, follow: fals
 export default async function TicketsPage() {
   await requireSession('manager');
 
-  const event = await getEventBySlug(FEATURED_EVENT_SLUG).catch(() => null);
+  const event = await getFeaturedEvent();
   const tierRows = event ? await listTiers(event.id).catch(() => []) : [];
 
   const tiers: TierOption[] = tierRows.map((tier) => ({

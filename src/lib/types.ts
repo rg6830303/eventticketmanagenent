@@ -70,6 +70,10 @@ export interface BookingRow {
   referral_code: string | null;
   /** What the customer actually owes: subtotal minus discount, never below 0. */
   amount_paise: number;
+  /** Platform fee in paise, included in amount_paise. */
+  fee_paise: number;
+  /** When the one "you did not finish" email went out, if it has. */
+  nudge_sent_at: string | null;
   currency: string;
   status: BookingStatus;
   payment_provider: 'none' | 'razorpay' | 'upi' | 'comp' | 'cash';
@@ -190,6 +194,9 @@ export interface CustomerRow {
   notes: string | null;
   created_at: string;
   updated_at: string;
+  /** Set when the customer created an account; null for guest buyers. */
+  registered_at: string | null;
+  last_login_at: string | null;
 }
 
 /** A customer row plus the derived columns the admin list shows. */

@@ -14,7 +14,7 @@ export const BRAND = {
   shortName: 'HOV',
   tagline: 'Hyderabad day parties',
   description:
-    'OFF Campus is a Freshers day party by Houz of Vybe at Kingdome Klub & Kitchen, Financial District. Saturday 12 September 2026, 12 PM to 4 PM. Book online, get a QR pass by email, walk straight in.',
+    'Houz of Vybe runs Hyderabad’s day parties and festival nights. Create an account, book online, get a QR pass by email and walk straight in.',
   city: 'Hyderabad',
   // TODO(operator): swap in the live inboxes and number before you announce.
   email: 'hello@houzofvybe.com',
@@ -37,9 +37,8 @@ export const PARTNER = {
 export const FEATURED_EVENT_SLUG = 'offcampus';
 
 export const NAV_LINKS = [
-  { href: '/events/offcampus', label: 'The party' },
-  { href: '/#lineup', label: "What's on" },
-  { href: '/#tickets', label: 'Tickets' },
+  { href: '/#upcoming', label: 'Upcoming' },
+  { href: '/events', label: 'Events' },
   { href: '/cart', label: 'Cart' },
   { href: '/gallery', label: 'Gallery' },
   { href: '/faq', label: 'FAQ' },

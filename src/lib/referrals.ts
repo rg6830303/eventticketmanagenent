@@ -285,7 +285,7 @@ async function referralRowsWithTierSales(): Promise<ReferralCodeStats[]> {
                     COALESCE(bool_or(t.active), false)       AS on_sale
                FROM bookings b
                JOIN booking_items bi ON bi.booking_id = b.id
-               LEFT JOIN ticket_tiers t ON t.code = bi.tier_code
+               LEFT JOIN ticket_tiers t ON t.code = bi.tier_code AND t.event_id = b.event_id
               WHERE upper(b.referral_code) = r.code AND b.status = 'confirmed'
               GROUP BY bi.tier_code
            ) x

@@ -1,13 +1,12 @@
 import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
-import { EVENT } from '@/content/site';
+import { getFeaturedEvent } from '@/lib/event-facts';
 
-export const metadata: Metadata = {
-  title: 'Buy tickets',
-  description: `Choose your ${EVENT.name} ${EVENT.edition} ticket and add it to your cart.`,
-  alternates: { canonical: '/events/offcampus#tickets' },
-};
+export const dynamic = 'force-dynamic';
+export const metadata: Metadata = { title: 'Buy tickets', robots: { index: false, follow: true } };
 
-export default function BookPage() {
-  redirect('/events/offcampus#tickets');
+/** Old "buy" links land on whatever the platform is selling now. */
+export default async function BookPage() {
+  const event = await getFeaturedEvent();
+  redirect(event ? `/events/${event.slug}#tickets` : '/events');
 }

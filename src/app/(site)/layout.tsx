@@ -3,6 +3,9 @@ import { Header } from '@/components/site/Header';
 import { Footer } from '@/components/site/Footer';
 import { PageTransition } from '@/components/site/PageTransition';
 import { maybeReconcile } from '@/lib/payments';
+import { getCustomerSession } from '@/lib/customer-auth';
+import { getFeaturedEvent } from '@/lib/event-facts';
+import { formatEventDate } from '@/lib/utils';
 
 /**
  * Chrome for every public page. The admin console and the standalone ticket
@@ -41,7 +44,11 @@ import { maybeReconcile } from '@/lib/payments';
  */
 export const maxDuration = 60;
 
-export default function SiteLayout({ children }: { children: React.ReactNode }) {
+export default async function SiteLayout({ children }: { children: React.ReactNode }) {
+  // The cookie alone, not a database read: the header only needs a first name,
+  // and every public page renders this layout.
+  const [session, featured] = await Promise.all([getCustomerSession(), getFeaturedEvent()]);
+
   after(async () => {
     try {
       await maybeReconcile();
@@ -52,7 +59,15 @@ export default function SiteLayout({ children }: { children: React.ReactNode }) 
 
   return (
     <div className="flex min-h-dvh flex-col">
-      <Header />
+      <Header
+        customerName={session ? session.name.split(' ')[0] || 'there' : null}
+        buyHref={featured ? `/events/${featured.slug}#tickets` : '/events'}
+        featuredLine={
+          featured
+            ? `${featured.name} ${featured.tagline ?? ''} · ${formatEventDate(featured.starts_at)}`.replace(/\s+·/, ' ·')
+            : null
+        }
+      />
       <main id="main" className="flex-1">
         <PageTransition>{children}</PageTransition>
       </main>

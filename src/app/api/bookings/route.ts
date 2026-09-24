@@ -1,6 +1,7 @@
 import type { NextRequest } from 'next/server';
 import { created, fail, handleError, readJson, tooManyRequests } from '@/lib/api';
 import { verifyOrigin } from '@/lib/auth';
+import { getCustomerAccount } from '@/lib/customer-auth';
 import { BookingError, createBooking, markEmailSent } from '@/lib/bookings';
 import { sendTicketEmail } from '@/lib/mailer';
 import { LIMITS, rateLimit } from '@/lib/rate-limit';
@@ -31,6 +32,21 @@ export async function POST(request: NextRequest) {
       return fail('Please check the highlighted fields', 'validation_error', 422, fieldErrors(parsed.error));
     }
     const input = parsed.data;
+
+    /*
+     * Buying requires an account.
+     *
+     * The booking is tied to the signed-in account's email, whatever the form
+     * says, so passes always land in an inbox somebody has proved they own and
+     * always show up under that account afterwards. Name and phone still come
+     * from the form — people buy for a friend, and the name printed on the pass
+     * is theirs to choose.
+     */
+    const account = await getCustomerAccount();
+    if (!account) {
+      return fail('Sign in or create an account to buy tickets.', 'login_required', 401);
+    }
+    input.email = account.email;
 
     // Honeypot. Return a plausible success so scrapers get no signal about
     // which of their submissions were discarded.

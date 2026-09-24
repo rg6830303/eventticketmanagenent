@@ -3,6 +3,7 @@ import { notFound, redirect } from 'next/navigation';
 import type { Metadata } from 'next';
 import { getBookingByReference } from '@/lib/bookings';
 import { reconcileBooking } from '@/lib/payments';
+import { PLATFORM_FEE_LABEL } from '@/lib/fees';
 import { repriceBooking } from '@/lib/reprice';
 import { env } from '@/lib/env';
 import { BRAND, EVENT } from '@/content/site';
@@ -22,7 +23,7 @@ export const maxDuration = 30;
 
 export const metadata: Metadata = {
   title: 'Checkout',
-  description: 'Complete payment for your OFF Campus pass.',
+  description: 'Complete payment for your Houz of Vybe passes.',
   robots: { index: false, follow: false },
 };
 
@@ -118,7 +119,7 @@ export default async function PayPage({
         payeeName: env.upi.payeeName,
         amountPaise: booking.amount_paise,
         reference: booking.reference,
-        note: `${EVENT.name} ${booking.reference}`,
+        note: `${event.name} ${booking.reference}`,
       })
     : null;
   const upiQr = upiUri ? await qrDataUrl(upiUri, 464).catch(() => null) : null;
@@ -159,7 +160,7 @@ export default async function PayPage({
                     Your order
                   </p>
                   <p className="h-card mt-1.5 whitespace-nowrap">
-                    {EVENT.name} <span className="accent text-vybe-600">{EVENT.edition}</span>
+                    {event.name} <span className="accent text-vybe-600">{event.tagline ?? ''}</span>
                   </p>
                 </div>
                 <span className="chip shrink-0">Held · {booking.reference}</span>
@@ -185,6 +186,9 @@ export default async function PayPage({
                     value={`− ${formatInr(booking.discount_paise)}`}
                     tone="credit"
                   />
+                )}
+                {(booking.fee_paise ?? 0) > 0 && (
+                  <Line label={PLATFORM_FEE_LABEL} value={formatInr(booking.fee_paise)} />
                 )}
                 <div className="rule-receipt my-4" />
                 <div className="flex items-baseline justify-between">
@@ -221,7 +225,7 @@ export default async function PayPage({
                     <RazorpayCheckout
                       reference={booking.reference}
                       amountPaise={booking.amount_paise}
-                      eventName={`${EVENT.name} ${EVENT.edition}`}
+                      eventName={`${event.name} ${event.tagline ?? ''}`.trim()}
                       tierName={tier?.name ?? 'Entry'}
                       quantity={booking.quantity}
                       customer={{

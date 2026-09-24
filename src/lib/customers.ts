@@ -1,5 +1,15 @@
 import 'server-only';
 import { query, queryOne } from './db';
+
+/**
+ * Every customers column EXCEPT password_hash.
+ *
+ * Accounts live on this table, so `SELECT *` would now pull a bcrypt hash into
+ * anything that reads a customer — booking details, the console list, exports —
+ * and some of those are serialised to a browser. Name the columns instead.
+ */
+export const CUSTOMER_COLUMNS = 'id, email, phone, name, first_seen_at, last_seen_at, bookings_count, tickets_count, lifetime_paise, marketing_opt_in, first_source, last_ip, last_user_agent, notes, created_at, updated_at, registered_at, last_login_at';
+const CUSTOMER_COLUMNS_C = 'c.id, c.email, c.phone, c.name, c.first_seen_at, c.last_seen_at, c.bookings_count, c.tickets_count, c.lifetime_paise, c.marketing_opt_in, c.first_source, c.last_ip, c.last_user_agent, c.notes, c.created_at, c.updated_at, c.registered_at, c.last_login_at';
 import type { CustomerRow, CustomerWithBookings } from './types';
 
 /**
@@ -58,13 +68,18 @@ export async function upsertCustomerInTransaction(
        email, name, phone, first_source, last_ip, last_user_agent, marketing_opt_in
      ) VALUES ($1,$2,$3,$4,$5,$6,$7)
      ON CONFLICT (email) DO UPDATE SET
-       name             = EXCLUDED.name,
-       phone            = COALESCE(NULLIF(EXCLUDED.phone, ''), customers.phone),
+       -- A registered account keeps its own name and number. People buy for
+       -- friends, and the name typed at checkout is for the pass, not a
+       -- rename of the account holder.
+       name             = CASE WHEN customers.registered_at IS NULL THEN EXCLUDED.name ELSE customers.name END,
+       phone            = CASE WHEN customers.registered_at IS NULL
+                               THEN COALESCE(NULLIF(EXCLUDED.phone, ''), customers.phone)
+                               ELSE customers.phone END,
        last_seen_at     = now(),
        last_ip          = COALESCE(EXCLUDED.last_ip, customers.last_ip),
        last_user_agent  = COALESCE(EXCLUDED.last_user_agent, customers.last_user_agent),
        marketing_opt_in = customers.marketing_opt_in OR EXCLUDED.marketing_opt_in
-     RETURNING *`,
+     RETURNING ${CUSTOMER_COLUMNS}`,
     [
       email,
       args.name.trim(),
@@ -91,6 +106,8 @@ export interface ListCustomersArgs {
   buyersOnly?: boolean;
   /** Pending/failed bookings with no ticket issued for that booking. */
   withoutTicketsOnly?: boolean;
+  /** Only customers who have created an account. */
+  registeredOnly?: boolean;
 }
 
 export interface ListCustomersResult {
@@ -121,6 +138,9 @@ export async function listCustomers(args: ListCustomersArgs = {}): Promise<ListC
   if (args.buyersOnly) {
     conditions.push('c.bookings_count > 0');
   }
+  if (args.registeredOnly) {
+    conditions.push('c.registered_at IS NOT NULL');
+  }
   if (args.withoutTicketsOnly) {
     conditions.push(`EXISTS (
       SELECT 1 FROM bookings unresolved
@@ -143,7 +163,9 @@ export async function listCustomers(args: ListCustomersArgs = {}): Promise<ListC
   const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
 
   const rows = await query<CustomerWithBookings & { total_count: string }>(
-    `SELECT c.*,
+    // Explicit columns, never c.*: the row now carries a password hash, and
+    // this result is serialised straight to the console's browser.
+    `SELECT ${CUSTOMER_COLUMNS_C},
             ${matchingBooking} AS unresolved_booking,
             COUNT(*) OVER()::text AS total_count,
             (SELECT b.reference FROM bookings b
@@ -177,13 +199,13 @@ export async function listCustomers(args: ListCustomersArgs = {}): Promise<ListC
 }
 
 export async function getCustomerByEmail(email: string): Promise<CustomerRow | null> {
-  return queryOne<CustomerRow>('SELECT * FROM customers WHERE email = $1', [
+  return queryOne<CustomerRow>(`SELECT ${CUSTOMER_COLUMNS} FROM customers WHERE email = $1`, [
     email.trim().toLowerCase(),
   ]);
 }
 
 export async function getCustomerById(id: string): Promise<CustomerRow | null> {
-  return queryOne<CustomerRow>('SELECT * FROM customers WHERE id = $1', [id]);
+  return queryOne<CustomerRow>(`SELECT ${CUSTOMER_COLUMNS} FROM customers WHERE id = $1`, [id]);
 }
 
 /** Headline numbers for the admin dashboard. */
@@ -193,6 +215,7 @@ export async function customerStats(): Promise<{
   repeatBuyers: number;
   lifetimePaise: number;
   optedIn: number;
+  registered: number;
 }> {
   const row = await queryOne<{
     total: string;
@@ -200,12 +223,14 @@ export async function customerStats(): Promise<{
     repeat_buyers: string;
     lifetime_paise: string;
     opted_in: string;
+    registered: string;
   }>(
     `SELECT count(*)::text                                             AS total,
             count(*) FILTER (WHERE bookings_count > 0)::text           AS buyers,
             count(*) FILTER (WHERE bookings_count > 1)::text           AS repeat_buyers,
             COALESCE(sum(lifetime_paise), 0)::text                     AS lifetime_paise,
-            count(*) FILTER (WHERE marketing_opt_in)::text             AS opted_in
+            count(*) FILTER (WHERE marketing_opt_in)::text             AS opted_in,
+            count(*) FILTER (WHERE registered_at IS NOT NULL)::text    AS registered
        FROM customers`,
   );
 
@@ -215,5 +240,6 @@ export async function customerStats(): Promise<{
     repeatBuyers: Number(row?.repeat_buyers ?? 0),
     lifetimePaise: Number(row?.lifetime_paise ?? 0),
     optedIn: Number(row?.opted_in ?? 0),
+    registered: Number(row?.registered ?? 0),
   };
 }

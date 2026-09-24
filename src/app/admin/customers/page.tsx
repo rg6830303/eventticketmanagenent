@@ -29,6 +29,7 @@ export default async function CustomersPage() {
       repeatBuyers: 0,
       lifetimePaise: 0,
       optedIn: 0,
+      registered: 0,
     })),
   ]);
 
@@ -43,7 +44,11 @@ export default async function CustomersPage() {
       </div>
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <StatCard label="People" value={String(stats.total)} hint="Unique email addresses" />
+        <StatCard
+          label="People"
+          value={String(stats.total)}
+          hint={`${stats.registered} with an account`}
+        />
         <StatCard label="Buyers" value={String(stats.buyers)} hint="With a confirmed booking" />
         <StatCard
           label="Repeat"

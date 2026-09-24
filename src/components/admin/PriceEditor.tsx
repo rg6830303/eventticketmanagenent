@@ -15,6 +15,8 @@ export interface PriceTier {
   price_unit: string;
   active: boolean;
   sold: number;
+  event_name?: string;
+  event_tagline?: string | null;
   confirmed: number;
   pending: number;
 }
@@ -59,7 +61,7 @@ export function PriceEditor({ initialTiers }: { initialTiers: PriceTier[] }) {
   function startEdit(tier: PriceTier) {
     setError(null);
     setNotice(null);
-    setEditing(tier.code);
+    setEditing(tier.id);
     setDraft({
       name: tier.name,
       priceRupees: String(tier.price_paise / 100),
@@ -70,7 +72,7 @@ export function PriceEditor({ initialTiers }: { initialTiers: PriceTier[] }) {
     });
   }
 
-  async function save(code: string) {
+  async function save(code: string, id: string) {
     if (!draft) return;
     setBusy(true);
     setError(null);
@@ -80,6 +82,7 @@ export function PriceEditor({ initialTiers }: { initialTiers: PriceTier[] }) {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          id,
           code,
           name: draft.name,
           description: draft.description || null,
@@ -127,7 +130,7 @@ export function PriceEditor({ initialTiers }: { initialTiers: PriceTier[] }) {
       const response = await fetch('/api/admin/prices', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: tier.code, active: !tier.active }),
+        body: JSON.stringify({ id: tier.id, code: tier.code, active: !tier.active }),
       });
       const body = (await response.json()) as { error?: string };
       if (!response.ok) setError(body.error ?? 'Could not update that pass.');
@@ -150,12 +153,19 @@ export function PriceEditor({ initialTiers }: { initialTiers: PriceTier[] }) {
       </div>
 
       <div className="space-y-3">
-        {tiers.map((tier) => {
-          const isEditing = editing === tier.code;
+        {tiers.map((tier, index) => {
+          const isEditing = editing === tier.id;
+          const eventLabel = `${tier.event_name ?? ''} ${tier.event_tagline ?? ''}`.trim();
+          const newEvent = index === 0 || tiers[index - 1].event_name !== tier.event_name;
 
           return (
+            <div key={tier.id}>
+            {newEvent && eventLabel && (
+              <p className="mb-2 mt-5 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted first:mt-0">
+                {eventLabel}
+              </p>
+            )}
             <div
-              key={tier.id}
               className={cn(
                 'rounded-xl border p-4',
                 tier.active ? 'border-edge bg-canvas' : 'border-edge/60 bg-frost opacity-70',
@@ -274,7 +284,7 @@ export function PriceEditor({ initialTiers }: { initialTiers: PriceTier[] }) {
                         <button
                           type="button"
                           disabled={busy}
-                          onClick={() => save(tier.code)}
+                          onClick={() => save(tier.code, tier.id)}
                           className="btn-primary px-5 py-2 text-[13px] disabled:opacity-40"
                         >
                           {busy ? 'Saving…' : 'Save and publish'}
@@ -284,6 +294,7 @@ export function PriceEditor({ initialTiers }: { initialTiers: PriceTier[] }) {
                   </motion.div>
                 )}
               </AnimatePresence>
+            </div>
             </div>
           );
         })}

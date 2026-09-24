@@ -54,15 +54,15 @@ const siteUrl = getSiteUrl();
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
-    default: `${BRAND.name} — ${EVENT.name} ${EVENT.editionShort}, ${EVENT.venue.area}`,
+    default: `${BRAND.name} — Hyderabad events, tickets and nights out`,
     template: `%s · ${BRAND.name}`,
   },
   description: BRAND.description,
   applicationName: BRAND.name,
   keywords: [
-    'OFF Campus Hyderabad',
-    'freshers party Hyderabad',
-    'Kingdome Klub Financial District',
+    'Dandiya Hyderabad',
+    'garba night Hyderabad',
+    'Navratri events Hyderabad',
     'college party Hyderabad',
     'day party Hyderabad',
     'Houz of Vybe',
@@ -75,12 +75,12 @@ export const metadata: Metadata = {
     locale: 'en_IN',
     url: siteUrl,
     siteName: BRAND.name,
-    title: `${EVENT.name} ${EVENT.editionShort} — ${EVENT.dateLabel}, ${EVENT.venue.name}`,
+    title: `${BRAND.name} — Hyderabad events and nights out`,
     description: BRAND.description,
   },
   twitter: {
     card: 'summary_large_image',
-    title: `${EVENT.name} ${EVENT.editionShort} — ${EVENT.dateLabel}`,
+    title: `${BRAND.name} — Hyderabad events and nights out`,
     description: BRAND.description,
   },
   robots: {

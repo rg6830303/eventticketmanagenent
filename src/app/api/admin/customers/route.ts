@@ -21,6 +21,7 @@ export async function GET(request: NextRequest) {
     const url = new URL(request.url);
     const q = (url.searchParams.get('q') ?? '').trim();
     const buyersOnly = url.searchParams.get('buyers') === '1';
+    const registeredOnly = url.searchParams.get('registered') === '1';
     const ticketFilter = url.searchParams.get('tickets');
     if (ticketFilter !== null && ticketFilter !== 'none') {
       return fail('Invalid ticket filter.', 'invalid_filter');
@@ -36,7 +37,7 @@ export async function GET(request: NextRequest) {
     );
 
     const [{ customers, total }, stats] = await Promise.all([
-      listCustomers({ search: q, buyersOnly, withoutTicketsOnly, limit, offset: (page - 1) * limit }),
+      listCustomers({ search: q, buyersOnly, withoutTicketsOnly, registeredOnly, limit, offset: (page - 1) * limit }),
       customerStats(),
     ]);
 

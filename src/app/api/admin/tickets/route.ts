@@ -5,6 +5,7 @@ import { recordAudit } from '@/lib/audit';
 import { clientIp } from '@/lib/validation.server';
 import { BookingError, issueBookingManually, listIssuedBookings, markEmailSent } from '@/lib/bookings';
 import { sendTicketEmail } from '@/lib/mailer';
+import { getFeaturedEvent } from '@/lib/event-facts';
 import { emailSchema, nameSchema, phoneSchema } from '@/lib/validation';
 
 export const runtime = 'nodejs';
@@ -67,7 +68,8 @@ export async function POST(request: NextRequest) {
     }
 
     const detail = await issueBookingManually({
-      eventSlug: body.eventSlug || 'offcampus',
+      // The event the platform is currently selling, unless told otherwise.
+      eventSlug: body.eventSlug || (await getFeaturedEvent())?.slug || 'offcampus',
       name: name.data,
       email: email.data,
       phone: phone.data,

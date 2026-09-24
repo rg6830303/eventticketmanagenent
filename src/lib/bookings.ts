@@ -2,8 +2,9 @@ import 'server-only';
 import { query, queryOne, transaction } from './db';
 import { generateBookingReference, generateTicketCode } from './tickets';
 import { applyReferralInTransaction, releaseReferral, type ReferralCheck } from './referrals';
-import { upsertCustomerInTransaction } from './customers';
+import { CUSTOMER_COLUMNS, upsertCustomerInTransaction } from './customers';
 import { env } from './env';
+import { platformFeePaise } from './fees';
 import type {
   BookingDetail,
   BookingItemRow,
@@ -72,7 +73,7 @@ export async function getBookingByReference(reference: string): Promise<BookingD
       [booking.id],
     ),
     booking.customer_id
-      ? queryOne<CustomerRow>('SELECT * FROM customers WHERE id = $1', [booking.customer_id])
+      ? queryOne<CustomerRow>(`SELECT ${CUSTOMER_COLUMNS} FROM customers WHERE id = $1`, [booking.customer_id])
       : Promise.resolve(null),
   ]);
 
@@ -269,7 +270,11 @@ export async function createBooking(args: CreateBookingArgs): Promise<CreateBook
     // and the last ticket cannot both be handed to two people at once.
     referral = await applyReferralInTransaction(client, args.referralCode, subtotalPaise);
     const discountPaise = referral.valid ? referral.discountPaise : 0;
-    const amountPaise = Math.max(0, subtotalPaise - discountPaise);
+    const netPaise = Math.max(0, subtotalPaise - discountPaise);
+    // Platform fee on what the customer is actually paying for passes, charged
+    // through Razorpay with the rest so there is one total everywhere.
+    const feePaise = platformFeePaise(netPaise);
+    const amountPaise = netPaise + feePaise;
 
     // Whether this booking may be confirmed without a payment.
     //
@@ -321,8 +326,8 @@ export async function createBooking(args: CreateBookingArgs): Promise<CreateBook
          customer_name, customer_email, customer_phone,
          quantity, subtotal_paise, discount_paise, referral_code, amount_paise,
          status, payment_provider, idempotency_key,
-         source, ip_address, user_agent, paid_at
-       ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19)
+         source, ip_address, user_agent, paid_at, fee_paise
+       ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20)
        RETURNING *`,
       [
         bookingReference,
@@ -344,6 +349,7 @@ export async function createBooking(args: CreateBookingArgs): Promise<CreateBook
         args.ipAddress ?? null,
         args.userAgent ?? null,
         paid ? new Date().toISOString() : null,
+        feePaise,
       ],
     );
     const booking = bookingResult.rows[0];

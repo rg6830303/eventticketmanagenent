@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { formatInr } from '@/lib/utils';
+import { PLATFORM_FEE_LABEL, platformFeePaise } from '@/lib/fees';
 import { addToCart, clearCart, loadCart, removeFromCart, setCartQuantity, type CartItem } from '@/lib/cart';
 import { REFERRAL } from '@/content/site';
 import type { TierOption } from '@/components/booking/BookingForm';
@@ -20,6 +21,8 @@ interface CartClientProps {
   maxPasses: number;
   /** False when the deployment has no live payment gateway configured. */
   checkoutEnabled: boolean;
+  /** The signed-in customer, or null. Buying requires an account. */
+  account: { name: string; email: string; phone: string } | null;
 }
 
 type ReferralStatus = 'empty' | 'checking' | 'valid' | 'invalid';
@@ -35,6 +38,7 @@ export function CartClient({
   doorsAt,
   maxPasses,
   checkoutEnabled,
+  account,
 }: CartClientProps) {
   const reduce = useReducedMotion();
   const tierMap = useMemo(() => new Map(tiers.map((tier) => [tier.code, tier])), [tiers]);
@@ -89,7 +93,11 @@ export function CartClient({
     0,
   );
   const discount = referralStatus === 'valid' ? Math.min(referralDiscount, subtotal) : 0;
-  const total = Math.max(0, subtotal - discount);
+  const net = Math.max(0, subtotal - discount);
+  // Same arithmetic as the server, from the same module, so the figure shown
+  // here is the figure Razorpay is asked for — to the paisa.
+  const fee = platformFeePaise(net);
+  const total = net + fee;
 
   useEffect(() => {
     const raw = referralInput.trim();
@@ -348,9 +356,10 @@ export function CartClient({
             <div className="rule-receipt my-4" />
 
             <Row label="Referral discount" value={discount > 0 ? `− ${formatInr(discount)}` : '₹0'} />
+            <Row label={PLATFORM_FEE_LABEL} value={formatInr(fee)} />
 
             <div className="flex items-baseline justify-between gap-4">
-              <span className="font-semibold text-ink">Total cart value</span>
+              <span className="font-semibold text-ink">Total payable</span>
               <span className="text-right">
                 {discount > 0 && (
                   <span className="tnum mr-2 text-[0.8125rem] text-muted line-through">
@@ -381,6 +390,7 @@ export function CartClient({
             referralCode={referralStatus === 'valid' ? referralInput.trim().toUpperCase() : ''}
             maxPasses={maxPasses}
             checkoutEnabled={checkoutEnabled}
+            account={account}
           />
         )}
 

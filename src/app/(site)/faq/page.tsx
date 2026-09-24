@@ -8,7 +8,7 @@ import { Accordion } from '@/components/events/Accordion';
 export const metadata: Metadata = {
   title: 'FAQ',
   description:
-    'How booking works for OFF Campus: payment, QR delivery, entry, ID, referral codes, transfers and refunds.',
+    'How booking works at Houz of Vybe: accounts, payment, QR delivery, entry, referral codes, transfers and refunds.',
   alternates: { canonical: '/faq' },
 };
 

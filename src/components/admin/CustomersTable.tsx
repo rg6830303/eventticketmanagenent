@@ -30,7 +30,7 @@ export function CustomersTable({ initialRows, initialTotal }: Props) {
   const [total, setTotal] = useState(initialTotal);
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
-  const [filter, setFilter] = useState<'all' | 'buyers' | 'due'>('all');
+  const [filter, setFilter] = useState<'all' | 'buyers' | 'due' | 'registered'>('all');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -38,7 +38,7 @@ export function CustomersTable({ initialRows, initialTotal }: Props) {
   // repainting the table with stale results.
   const requestSeq = useRef(0);
 
-  const load = useCallback(async (nextPage: number, q: string, selection: 'all' | 'buyers' | 'due') => {
+  const load = useCallback(async (nextPage: number, q: string, selection: 'all' | 'buyers' | 'due' | 'registered') => {
     const seq = ++requestSeq.current;
     setLoading(true);
     setError(null);
@@ -51,6 +51,7 @@ export function CustomersTable({ initialRows, initialTotal }: Props) {
       if (q) params.set('q', q);
       if (selection === 'buyers') params.set('buyers', '1');
       if (selection === 'due') params.set('tickets', 'none');
+      if (selection === 'registered') params.set('registered', '1');
 
       const response = await fetch(`/api/admin/customers?${params.toString()}`);
       const body = (await response.json()) as {
@@ -109,12 +110,13 @@ export function CustomersTable({ initialRows, initialTotal }: Props) {
           <select
             id="customer-filter"
             value={filter}
-            onChange={(event) => setFilter(event.target.value as 'all' | 'buyers' | 'due')}
+            onChange={(event) => setFilter(event.target.value as 'all' | 'buyers' | 'due' | 'registered')}
             className="field"
           >
             <option value="all">All customers</option>
             <option value="buyers">Buyers only</option>
             <option value="due">Due customers</option>
+            <option value="registered">Registered accounts</option>
           </select>
         </div>
 
@@ -161,6 +163,14 @@ export function CustomersTable({ initialRows, initialTotal }: Props) {
                 <tr key={customer.id} className="border-b border-edge/60 last:border-0">
                   <Td>
                     <span className="font-medium text-ink">{customer.name}</span>
+                    {customer.registered_at && (
+                      <span
+                        className="ml-2 rounded-md bg-vybe-100 px-1.5 py-0.5 text-[11px] font-medium text-vybe-700"
+                        title={`Account since ${new Date(customer.registered_at).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' })}`}
+                      >
+                        account
+                      </span>
+                    )}
                     {customer.pending_count > 0 && (
                       <span className="ml-2 rounded-md bg-flare-200/40 px-1.5 py-0.5 text-[11px] font-medium text-flare-600">
                         {customer.pending_count} unpaid

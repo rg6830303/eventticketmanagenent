@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { BRAND, EVENT, FOOTER_LINKS, PARTNER } from '@/content/site';
+import { BRAND, FOOTER_LINKS } from '@/content/site';
 import { Logo } from '@/components/brand/Logo';
 
 export function Footer() {
@@ -16,14 +16,14 @@ export function Footer() {
         <div className="shell relative flex flex-col items-start gap-6 py-10 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="font-display text-[1.5rem] font-semibold tracking-[-0.03em] text-ink">
-              {EVENT.name} <span className="accent text-vybe-600">{EVENT.edition}</span>
+              The next night is <span className="accent text-vybe-600">already on the calendar.</span>
             </p>
             <p className="mt-1 text-[0.9375rem] text-slate">
-              {EVENT.dateLabel} · {EVENT.timeLabel} · {EVENT.venue.name}, {EVENT.venue.area}
+              One account, every Houz of Vybe event. Sign up once and checkout takes seconds.
             </p>
           </div>
-          <Link href="/book" className="btn-primary shrink-0">
-            Buy tickets
+          <Link href="/#upcoming" className="btn-primary shrink-0">
+            See what&rsquo;s on
           </Link>
         </div>
       </div>
@@ -35,13 +35,7 @@ export function Footer() {
             <p className="mt-5 max-w-sm text-[0.9375rem] leading-relaxed text-slate">
               {BRAND.description}
             </p>
-            <address className="mt-6 not-italic text-[0.875rem] leading-relaxed text-muted">
-              <span className="block font-medium text-slate">{EVENT.venue.name}</span>
-              {EVENT.venue.addressLines.join(', ')}
-            </address>
-            <p className="mt-4 text-[0.8125rem] text-muted">
-              {PARTNER.role}: {PARTNER.name}
-            </p>
+            <p className="mt-6 text-[0.875rem] leading-relaxed text-muted">Hyderabad, Telangana</p>
             <div className="mt-6 flex flex-wrap gap-2.5">
               {BRAND.socials.map((social) => (
                 <a

@@ -56,6 +56,7 @@ export async function PATCH(request: NextRequest) {
     if (!verifyOrigin(request.headers)) return fail('Request blocked', 'bad_origin', 403);
 
     const body = (await readJson(request)) as {
+      id?: string;
       code?: string;
       name?: string;
       description?: string | null;
@@ -70,9 +71,11 @@ export async function PATCH(request: NextRequest) {
     if (!body.code) return fail('Which pass?', 'missing_code', 422);
     const code = body.code.trim().toUpperCase();
 
-    const existing = await queryOne<TierWithUnit>('SELECT * FROM ticket_tiers WHERE code = $1', [
-      code,
-    ]);
+    // By id when the editor sends one. Codes are only unique within an event,
+    // and two events can both have a "GA".
+    const existing = body.id
+      ? await queryOne<TierWithUnit>('SELECT * FROM ticket_tiers WHERE id = $1', [body.id])
+      : await queryOne<TierWithUnit>('SELECT * FROM ticket_tiers WHERE code = $1', [code]);
     if (!existing) return fail(`${code} does not exist`, 'not_found', 404);
 
     // --- Validation ------------------------------------------------------
@@ -131,10 +134,10 @@ export async function PATCH(request: NextRequest) {
          price_unit       = COALESCE($7, price_unit),
          active           = COALESCE($8, active),
          perks            = COALESCE($9::jsonb, perks)
-       WHERE code = $1
+       WHERE id = $1
        RETURNING *`,
       [
-        code,
+        existing.id,
         body.name?.trim() ?? null,
         body.description?.trim() ?? null,
         pricePaise,
@@ -200,7 +203,7 @@ export async function PATCH(request: NextRequest) {
     // belt and braces against a CDN holding a rendered copy — the requirement
     // is that no old figure survives anywhere, and a stale price on one page is
     // the kind of thing a customer finds before anybody else does.
-    for (const path of ['/', '/events/offcampus', '/events', '/cart', '/book']) {
+    for (const path of ['/', '/events/offcampus', '/events', '/events/dandiya-project', '/cart', '/book']) {
       revalidatePath(path);
     }
 

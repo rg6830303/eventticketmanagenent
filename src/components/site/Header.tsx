@@ -10,7 +10,7 @@ import {
   useMotionValueEvent,
 } from 'framer-motion';
 import { useEffect, useState } from 'react';
-import { NAV_LINKS, EVENT } from '@/content/site';
+import { NAV_LINKS } from '@/content/site';
 import { cn } from '@/lib/utils';
 import { Logo } from '@/components/brand/Logo';
 
@@ -22,7 +22,16 @@ import { Logo } from '@/components/brand/Logo';
  * a grey stripe. The CTA is always visible: on a single-event site, every
  * screen is a chance to sell the one ticket.
  */
-export function Header() {
+export interface HeaderProps {
+  /** First name of the signed-in customer, or null. */
+  customerName: string | null;
+  /** Where "Buy tickets" goes: the featured event's ticket section. */
+  buyHref: string;
+  /** One-line summary of the featured event for the mobile menu. */
+  featuredLine: string | null;
+}
+
+export function Header({ customerName, buyHref, featuredLine }: HeaderProps) {
   const pathname = usePathname();
   const [landed, setLanded] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -113,13 +122,16 @@ export function Header() {
 
           <div className="flex items-center gap-2">
             <Link
-              href="/events/offcampus#tickets"
+              href={buyHref}
               className="btn-primary hidden py-3 text-[0.875rem] sm:inline-flex"
             >
               Buy tickets
             </Link>
-            <Link href="/cart" className="btn-outline hidden py-3 text-[0.875rem] sm:inline-flex">
-              Cart
+            <Link
+              href={customerName ? '/account' : '/login'}
+              className="btn-outline hidden py-3 text-[0.875rem] sm:inline-flex"
+            >
+              {customerName ? `Hi, ${customerName}` : 'Sign in'}
             </Link>
 
             <button
@@ -213,14 +225,20 @@ export function Header() {
                 transition={{ delay: 0.32 }}
                 className="mt-8"
               >
-                <Link href="/events/offcampus#tickets" className="btn-primary w-full">
+                <Link href={buyHref} className="btn-primary w-full">
                   Buy tickets
                 </Link>
-                <p className="mt-4 text-center text-[0.8125rem] text-slate">
-                  {EVENT.dateLabel} · {EVENT.timeLabel}
-                  <br />
-                  {EVENT.venue.name}, {EVENT.venue.area}
-                </p>
+                <div className="mt-3 grid grid-cols-2 gap-3">
+                  <Link href={customerName ? '/account' : '/login'} className="btn-outline w-full">
+                    {customerName ? 'My tickets' : 'Sign in'}
+                  </Link>
+                  <Link href={customerName ? '/cart' : '/signup'} className="btn-outline w-full">
+                    {customerName ? 'Cart' : 'Sign up'}
+                  </Link>
+                </div>
+                {featuredLine && (
+                  <p className="mt-4 text-center text-[0.8125rem] text-slate">{featuredLine}</p>
+                )}
               </motion.div>
             </div>
           </motion.div>

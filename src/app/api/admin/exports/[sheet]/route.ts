@@ -122,6 +122,8 @@ async function customersSheet(): Promise<AnySheet> {
       { header: 'First seen', width: 20, value: (r) => asDate(r.first_seen_at) },
       { header: 'Last seen', width: 20, value: (r) => asDate(r.last_seen_at) },
       { header: 'Source', width: 10, value: (r) => r.first_source },
+      { header: 'Account created', width: 20, value: (r) => (r.registered_at ? asDate(r.registered_at) : '') },
+      { header: 'Last sign-in', width: 20, value: (r) => (r.last_login_at ? asDate(r.last_login_at) : '') },
     ],
   };
 }

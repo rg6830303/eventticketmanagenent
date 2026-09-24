@@ -16,7 +16,7 @@ export default async function PricesPage() {
   await requireSession('manager');
 
   const tiers = await query<PriceTier>(
-    `SELECT t.*,
+    `SELECT t.*, e.name AS event_name, e.tagline AS event_tagline, e.starts_at AS event_starts_at,
             (SELECT COALESCE(SUM(bi.quantity), 0)::int FROM booking_items bi
                JOIN bookings b ON b.id = bi.booking_id
               WHERE bi.tier_id = t.id AND b.status = 'confirmed') AS confirmed,
@@ -24,7 +24,10 @@ export default async function PricesPage() {
                JOIN bookings b ON b.id = bi.booking_id
               WHERE bi.tier_id = t.id AND b.status = 'pending') AS pending
        FROM ticket_tiers t
-      ORDER BY t.active DESC, t.sort_order ASC, t.price_paise ASC`,
+       JOIN events e ON e.id = t.event_id
+      -- Newest event first, so the one being sold is at the top and past
+      -- events sit below as a record.
+      ORDER BY e.starts_at DESC, t.active DESC, t.sort_order ASC, t.price_paise ASC`,
   ).catch(() => []);
 
   return (
