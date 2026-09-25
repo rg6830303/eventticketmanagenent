@@ -26,12 +26,19 @@ interface StatusStyle {
  * Red is the logo colour and is used here strictly as a signal: a pass that is
  * spent or void gets the flare stripe, everything valid stays blue.
  */
-const STATUS: Record<TicketStatus | 'pending', StatusStyle> = {
+const STATUS: Record<TicketStatus | 'pending' | 'deactivated', StatusStyle> = {
   pending: {
     label: 'Pending activation',
     stripe: 'bg-gradient-to-b from-amber-300 via-amber-400 to-amber-600',
     pill: 'border-amber-400/60 bg-amber-100 text-amber-800',
     stamp: 'Pending activation',
+    live: false,
+  },
+  deactivated: {
+    label: 'Deactivated',
+    stripe: 'bg-gradient-to-b from-flare-300 via-flare-500 to-flare-600',
+    pill: 'border-flare-500/45 bg-flare-500/10 text-flare-600',
+    stamp: 'Deactivated',
     live: false,
   },
   valid: {
@@ -67,7 +74,14 @@ const STATUS: Record<TicketStatus | 'pending', StatusStyle> = {
 export async function TicketCard({ ticket, event, tier, index, total }: TicketCardProps) {
   const qr = await qrDataUrl(await buildQrPayload(ticket.code), 512);
   // A promoter pass exists before it is paid for; it only goes live when the organiser activates it.
-  const style = STATUS[ticket.status === 'valid' && ticket.active === false ? 'pending' : ticket.status];
+  const style =
+    STATUS[
+      ticket.status === 'valid' && ticket.active === false
+        ? ticket.activated_at
+          ? 'deactivated'
+          : 'pending'
+        : ticket.status
+    ];
   const spent = ticket.status !== 'valid';
 
   return (

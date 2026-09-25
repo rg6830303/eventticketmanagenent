@@ -79,13 +79,21 @@ export default async function PromoterPage() {
                         : 'shrink-0 rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-800'
                   }
                 >
-                  {t.status === 'void' ? 'Cancelled' : t.status === 'used' ? 'Checked in' : t.active ? 'Active' : 'Pending'}
+                  {t.status === 'void'
+                    ? 'Cancelled'
+                    : t.status === 'used'
+                      ? 'Checked in'
+                      : t.active
+                        ? 'Active'
+                        : t.activated_at
+                          ? 'Deactivated'
+                          : 'Pending'}
                 </span>
               </li>
             ))}
           </ul>
           <p className="mt-2 text-[12px] text-muted">
-            Pending passes become Active once the organiser confirms your payment. Customers get an email when theirs goes live.
+            Pending passes become Active once the organiser confirms your payment. Customers can check their pass status from the link in their email.
           </p>
         </section>
       )}

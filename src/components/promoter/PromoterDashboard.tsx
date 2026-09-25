@@ -3,19 +3,33 @@
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
-async function post<T>(url: string, body?: unknown): Promise<{ ok: boolean; data: T | null; error: string | null; details?: Record<string, string[]> }> {
+/** Give up waiting after this long; the caller then reloads to show the true state. */
+const REQUEST_TIMEOUT_MS = 20_000;
+
+async function post<T>(
+  url: string,
+  body?: unknown,
+): Promise<{ ok: boolean; data: T | null; error: string | null; details?: Record<string, string[]>; timedOut?: boolean }> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
   try {
     const response = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body ?? {}),
+      signal: controller.signal,
     });
     const json = (await response.json().catch(() => ({}))) as { data?: T; error?: string; details?: Record<string, string[]> };
     if (response.status === 429) return { ok: false, data: null, error: 'Too many attempts. Wait a few minutes and try again.' };
     if (!response.ok) return { ok: false, data: null, error: json.error ?? 'Something went wrong', details: json.details };
     return { ok: true, data: json.data ?? null, error: null };
-  } catch {
+  } catch (error) {
+    if ((error as Error)?.name === 'AbortError') {
+      return { ok: false, data: null, error: 'The connection is slow — checking whether it went through…', timedOut: true };
+    }
     return { ok: false, data: null, error: 'Could not reach the server. Check your connection.' };
+  } finally {
+    clearTimeout(timer);
   }
 }
 
@@ -108,12 +122,8 @@ export function PromoterIssue({ remaining }: { remaining: number }) {
           {done.codes.length === 1 ? 'Pass issued' : `${done.codes.length} passes issued`}
         </p>
         <p className="mt-1 text-[14px] text-slate">
-          {done.emailSent ? (
-            <>Sent to <strong className="break-all text-ink">{done.sentTo}</strong>.</>
-          ) : (
-            <>Issued, but the email to <strong className="break-all">{done.sentTo}</strong> did not go through — the organiser can resend it.</>
-          )}{' '}
-          It stays pending until the organiser activates it.
+          Emailing it to <strong className="break-all text-ink">{done.sentTo}</strong> now — it usually lands within a
+          minute. It stays pending until the organiser activates it.
         </p>
         <p className="mt-2 font-mono text-[12px] text-muted">{done.codes.join(' · ')}</p>
         <button type="button" className="btn-primary mt-4 w-full py-3" onClick={() => setDone(null)}>
@@ -135,6 +145,13 @@ export function PromoterIssue({ remaining }: { remaining: number }) {
         setError(null);
         setFieldErrors({});
         const result = await post<{ sentTo: string; codes: string[]; emailSent: boolean }>('/api/promoter/issue', { ...form, quantity });
+        if (result.timedOut) {
+          // The pass may well have been issued; the reloaded dashboard shows it
+          // under "Recently issued" rather than leaving a spinner up forever.
+          setError(result.error);
+          window.location.reload();
+          return;
+        }
         setBusy(false);
         if (!result.ok || !result.data) {
           if (result.error?.includes('session')) {
@@ -177,7 +194,7 @@ export function PromoterIssue({ remaining }: { remaining: number }) {
       {error && <p role="alert" className="mt-3 rounded-lg bg-flare-200/40 px-3 py-2 text-[13px] font-medium text-flare-600">{error}</p>}
 
       <button type="submit" disabled={busy} className="btn-primary mt-5 w-full py-3.5 text-[15px] disabled:opacity-50">
-        {busy ? 'Issuing and emailing…' : `Issue ${quantity} pass${quantity === 1 ? '' : 'es'}`}
+        {busy ? 'Issuing…' : `Issue ${quantity} pass${quantity === 1 ? '' : 'es'}`}
       </button>
     </form>
   );

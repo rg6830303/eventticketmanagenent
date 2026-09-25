@@ -1,10 +1,7 @@
-import { after } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { fail, handleError, ok, readJson } from '@/lib/api';
 import { requireSession, verifyOrigin } from '@/lib/auth';
 import { recordAudit } from '@/lib/audit';
-import { getBookingByReference } from '@/lib/bookings';
-import { sendTicketEmail } from '@/lib/mailer';
 import { setTicketsActive } from '@/lib/promoters';
 import { clientIp } from '@/lib/validation.server';
 
@@ -14,18 +11,18 @@ export const dynamic = 'force-dynamic';
 /**
  * Activate or deactivate promoter passes.
  *
- * { ticketIds: string[], active: boolean, notify?: boolean }
+ * { ticketIds: string[], active: boolean }
  *
- * Activation emails the customer that the QR they already hold now works —
- * sent after the response so activating two hundred passes does not wait on
- * two hundred SMTP round trips.
+ * Silent on purpose: switching a pass on and off must not spam the customer.
+ * The QR they already hold is checked live at the door, and the pass link in
+ * their email shows its current state (pending, active, deactivated, admitted).
  */
 export async function POST(request: NextRequest) {
   try {
     const session = await requireSession('manager');
     if (!verifyOrigin(request.headers)) return fail('Request blocked', 'bad_origin', 403);
 
-    const body = (await readJson(request)) as { ticketIds?: unknown; active?: unknown; notify?: unknown };
+    const body = (await readJson(request)) as { ticketIds?: unknown; active?: unknown };
     const ids = Array.isArray(body.ticketIds)
       ? body.ticketIds.filter((v): v is string => typeof v === 'string' && /^[0-9a-f-]{36}$/i.test(v))
       : [];
@@ -43,21 +40,7 @@ export async function POST(request: NextRequest) {
       ipAddress: clientIp(request.headers),
     });
 
-    if (body.active && body.notify !== false && result.activatedReferences.length > 0) {
-      const references = result.activatedReferences;
-      after(async () => {
-        for (const reference of references) {
-          try {
-            const detail = await getBookingByReference(reference);
-            if (detail) await sendTicketEmail(detail, { activated: true });
-          } catch (error) {
-            console.error('[promoters] activation email failed', reference, error);
-          }
-        }
-      });
-    }
-
-    return ok({ changed: result.changed, emailing: body.active ? result.activatedReferences.length : 0 });
+    return ok({ changed: result.changed });
   } catch (error) {
     return handleError(error, 'admin.promoters.tickets');
   }

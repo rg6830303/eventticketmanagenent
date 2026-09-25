@@ -51,26 +51,23 @@ export interface TicketEmailData {
   supportEmail: string;
   siteUrl: string;
   /**
-   * Promoter passes: 'pending' when issued (the QR will not scan until the
-   * organiser activates it), 'activated' when that happens.
+   * Promoter passes: 'pending' when issued — the QR will not scan until the
+   * organiser activates it. Status changes after that send no further mail;
+   * the pass link shows the live state.
    */
-  notice?: 'pending' | 'activated' | null;
+  notice?: 'pending' | null;
 }
 
 function noticeBanner(notice: TicketEmailData['notice']): string {
   if (!notice) return '';
-  const pending = notice === 'pending';
   return `
       <tr>
         <td style="padding:0 0 16px 0;">
-          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${pending ? '#fff7e6' : '#ecfdf3'};border:1px solid ${pending ? '#f5b544' : '#34b36b'};border-radius:14px;">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#fff7e6;border:1px solid #f5b544;border-radius:14px;">
             <tr><td style="padding:16px 20px;font:400 14px/1.55 Arial,Helvetica,sans-serif;color:${TEXT};">
-              <strong style="display:block;margin-bottom:4px;font-size:15px;">${pending ? 'Pending activation' : 'Your pass is now active'}</strong>
-              ${
-                pending
-                  ? 'This pass was issued by your promoter. It becomes valid at the door once the organiser activates it — you will get an email the moment that happens. Keep this QR; it does not change.'
-                  : 'The organiser has activated your pass. The same QR below is now valid for entry — see you on the floor.'
-              }
+              <strong style="display:block;margin-bottom:4px;font-size:15px;">Pending activation</strong>
+              This pass was issued by your promoter and goes live once the organiser activates it. Keep this QR — it
+              does not change. Tap &ldquo;View pass&rdquo; below any time to see its live status.
             </td></tr>
           </table>
         </td>
@@ -107,9 +104,6 @@ export function ticketEmailSubject(data: TicketEmailData): string {
   const noun = data.quantity === 1 ? 'ticket is' : `${data.quantity} tickets are`;
   if (data.notice === 'pending') {
     return `Your pass for ${data.eventName} (pending activation) — ${data.bookingReference}`;
-  }
-  if (data.notice === 'activated') {
-    return `Your ${noun} now active — ${data.eventName} (${data.bookingReference})`;
   }
   return `Your ${noun} confirmed — ${data.eventName} (${data.bookingReference})`;
 }
@@ -278,7 +272,7 @@ export function ticketEmailHtml(data: TicketEmailData): string {
                shape every promotional email uses, and this is a receipt. -->
           <a href="${esc(data.manageUrl)}"
              style="display:inline-block;border:1px solid ${BLUE};color:${BLUE};text-decoration:none;padding:13px 28px;border-radius:8px;font:700 13px/1 Arial,Helvetica,sans-serif;">
-            View this booking online
+            View pass &amp; live status
           </a>
         </td></tr>
 
@@ -322,10 +316,8 @@ export function ticketEmailText(data: TicketEmailData): string {
     'HOUZ OF VYBE — HYDERABAD',
     '',
     data.notice === 'pending'
-      ? `Hey ${data.customerName.split(' ')[0]}, here is your pass. It is PENDING ACTIVATION: it becomes valid at the door once the organiser activates it, and we will email you when it does.`
-      : data.notice === 'activated'
-        ? `Hey ${data.customerName.split(' ')[0]}, your pass is now ACTIVE. The same QR is valid for entry.`
-        : `Hey ${data.customerName.split(' ')[0]}, your booking is confirmed.`,
+      ? `Hey ${data.customerName.split(' ')[0]}, here is your pass. It is PENDING ACTIVATION: it goes live once the organiser activates it. Open the pass link any time to see its live status.`
+      : `Hey ${data.customerName.split(' ')[0]}, your booking is confirmed.`,
     '',
     `Event:      ${data.eventName}`,
     `Date:       ${formatEventDate(data.startsAt)}`,

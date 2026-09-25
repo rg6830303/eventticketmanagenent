@@ -25,6 +25,12 @@
     },
     "src/app/api/cron/reconcile/route.ts": {
       "maxDuration": 60
+    },
+    "src/app/api/promoter/issue/route.ts": {
+      "maxDuration": 30
+    },
+    "src/app/api/admin/promoters/tickets/route.ts": {
+      "maxDuration": 30
     }
   },
   "crons": [

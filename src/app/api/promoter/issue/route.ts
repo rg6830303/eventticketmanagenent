@@ -1,9 +1,11 @@
+import { after } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { created, fail, handleError, readJson, tooManyRequests } from '@/lib/api';
 import { verifyOrigin } from '@/lib/auth';
 import { BookingError, issueBookingManually, markEmailSent } from '@/lib/bookings';
 import { getFeaturedEvent } from '@/lib/event-facts';
 import { sendTicketEmail } from '@/lib/mailer';
+import { maybeReconcile } from '@/lib/payments';
 import { getSignedInPromoter, logActivity } from '@/lib/promoters';
 import { rateLimit } from '@/lib/rate-limit';
 import { emailSchema, nameSchema, phoneSchema } from '@/lib/validation';
@@ -70,20 +72,29 @@ export async function POST(request: NextRequest) {
       actor: `promoter:${promoter.name}`,
     });
 
-    // Sent now, while the promoter waits: they are usually standing next to
-    // the customer, and "it's in your inbox" is the whole sale.
-    let emailSent = false;
-    const sent = await sendTicketEmail(detail);
-    if (sent.ok) {
-      await markEmailSent(detail.booking.id);
-      emailSent = true;
-    }
+    // The email goes out after the reply. A Gmail send takes several seconds,
+    // and a phone on patchy signal that waits that long on an open request
+    // drops it — the pass was issued, but the promoter was left staring at a
+    // spinner. If this send fails, the booking stays without email_sent_at and
+    // the undelivered-ticket sweep keeps retrying it until it lands.
+    after(async () => {
+      try {
+        const sent = await sendTicketEmail(detail);
+        if (sent.ok) await markEmailSent(detail.booking.id);
+        else console.error('[promoter.issue] ticket email failed; sweep will retry', detail.booking.reference, sent.error);
+      } catch (error) {
+        console.error('[promoter.issue] ticket email threw; sweep will retry', detail.booking.reference, error);
+      }
+      // Throttled sweep: retries any earlier ticket email that failed, so one
+      // bad SMTP moment is fixed by the next issue rather than the nightly cron.
+      await maybeReconcile().catch(() => {});
+    });
 
     return created({
       reference: detail.booking.reference,
       codes: detail.tickets.map((t) => t.code),
       sentTo: detail.booking.customer_email,
-      emailSent,
+      emailSent: true,
     });
   } catch (error) {
     if (error instanceof BookingError) return fail(error.message, error.code, error.status);

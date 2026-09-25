@@ -22,17 +22,19 @@ export interface TicketLine {
   promoter_name?: string | null;
 }
 
-type Filter = 'all' | 'pending' | 'active' | 'admitted' | 'void';
+type Filter = 'all' | 'pending' | 'active' | 'deactivated' | 'admitted' | 'void';
 
 function stateOf(t: TicketLine): Exclude<Filter, 'all'> {
   if (t.status === 'void') return 'void';
   if (t.status === 'used') return 'admitted';
-  return t.active ? 'active' : 'pending';
+  if (t.active) return 'active';
+  return t.activated_at ? 'deactivated' : 'pending';
 }
 
 const BADGE: Record<Exclude<Filter, 'all'>, { label: string; cls: string }> = {
   pending: { label: 'Pending', cls: 'bg-amber-100 text-amber-800 border-amber-300' },
   active: { label: 'Active', cls: 'bg-leaf-600/10 text-leaf-600 border-leaf-600/30' },
+  deactivated: { label: 'Deactivated', cls: 'bg-flare-200/40 text-flare-600 border-flare-300' },
   admitted: { label: 'Admitted', cls: 'bg-vybe-100 text-vybe-700 border-vybe-300' },
   void: { label: 'Void', cls: 'bg-mist text-muted border-edge' },
 };
@@ -45,7 +47,8 @@ const fmt = (iso: string) =>
  *
  * Built for hundreds of rows on a phone: filter by state, search by customer
  * or code, tick the ones you have been paid for (or "select all shown"), and
- * activate in one tap. Activating emails each customer that their QR now works.
+ * activate in one tap. Changes take effect at the door immediately and send no
+ * email; the customer's pass link shows the live state.
  */
 export function PromoterTickets({ tickets, showPromoter = false }: { tickets: TicketLine[]; showPromoter?: boolean }) {
   const router = useRouter();
@@ -57,7 +60,7 @@ export function PromoterTickets({ tickets, showPromoter = false }: { tickets: Ti
   const [limit, setLimit] = useState(100);
 
   const counts = useMemo(() => {
-    const c = { all: tickets.length, pending: 0, active: 0, admitted: 0, void: 0 };
+    const c = { all: tickets.length, pending: 0, active: 0, deactivated: 0, admitted: 0, void: 0 };
     for (const t of tickets) c[stateOf(t)] += 1;
     return c;
   }, [tickets]);
@@ -105,7 +108,7 @@ export function PromoterTickets({ tickets, showPromoter = false }: { tickets: Ti
     if (!active && !window.confirm(`Deactivate ${ids.length} pass${ids.length === 1 ? '' : 'es'}? They will be refused at the door until reactivated.`)) return;
     setBusy(true);
     setNote(null);
-    const result = await call<{ changed: number; emailing: number }>('/api/admin/promoters/tickets', 'POST', { ticketIds: ids, active });
+    const result = await call<{ changed: number }>('/api/admin/promoters/tickets', 'POST', { ticketIds: ids, active });
     setBusy(false);
     if (!result.ok || !result.data) {
       setNote({ tone: 'bad', text: result.error ?? 'Failed' });
@@ -113,9 +116,7 @@ export function PromoterTickets({ tickets, showPromoter = false }: { tickets: Ti
     }
     setNote({
       tone: 'ok',
-      text: active
-        ? `Activated ${result.data.changed}. Emailing ${result.data.emailing} customer${result.data.emailing === 1 ? '' : 's'} that their pass is live.`
-        : `Deactivated ${result.data.changed}.`,
+      text: `${active ? 'Activated' : 'Deactivated'} ${result.data.changed}. Live at the door now — no email sent.`,
     });
     setSelected(new Set());
     router.refresh();
@@ -125,7 +126,7 @@ export function PromoterTickets({ tickets, showPromoter = false }: { tickets: Ti
     <div className="space-y-3">
       {/* Filters */}
       <div className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1">
-        {(['pending', 'active', 'admitted', 'void', 'all'] as Filter[]).map((f) => (
+        {(['pending', 'active', 'deactivated', 'admitted', 'void', 'all'] as Filter[]).map((f) => (
           <button
             key={f}
             type="button"

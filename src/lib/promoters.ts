@@ -405,15 +405,16 @@ export async function deletePromoter(id: string): Promise<{ name: string } | nul
 }
 
 /**
- * Activate or deactivate passes. Returns the booking references whose passes
- * were newly activated, so the caller can email those customers.
+ * Activate or deactivate passes. `activated_at` is kept once set, so a pass
+ * that is inactive but has an activation time was deliberately deactivated
+ * rather than never activated.
  */
 export async function setTicketsActive(
   ticketIds: string[],
   active: boolean,
   actor: string,
-): Promise<{ changed: number; activatedReferences: string[] }> {
-  if (ticketIds.length === 0) return { changed: 0, activatedReferences: [] };
+): Promise<{ changed: number }> {
+  if (ticketIds.length === 0) return { changed: 0 };
   const rows = await query<{ id: string; promoter_id: string | null; reference: string; code: string }>(
     `UPDATE tickets t
         SET active = $2, activated_at = CASE WHEN $2 THEN now() ELSE t.activated_at END
@@ -436,7 +437,7 @@ export async function setTicketsActive(
       note: codes.slice(0, 20).join(', ') + (codes.length > 20 ? ` +${codes.length - 20} more` : ''),
     });
   }
-  return { changed: rows.length, activatedReferences: active ? [...new Set(rows.map((r) => r.reference))] : [] };
+  return { changed: rows.length };
 }
 
 // ---------------------------------------------------------------------------
