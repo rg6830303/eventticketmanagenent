@@ -64,7 +64,10 @@ export default async function EventRecordPage({ params }: { params: Promise<{ id
          count(*) FILTER (WHERE b.status = 'confirmed')::int AS confirmed,
          count(*) FILTER (WHERE b.status = 'pending')::int AS pending,
          COALESCE(sum(b.quantity) FILTER (WHERE b.status = 'confirmed'), 0)::int AS passes,
-         (SELECT count(*)::int FROM tickets t WHERE t.event_id = $1 AND t.checked_in_at IS NOT NULL) AS admitted,
+         GREATEST(
+           (SELECT count(*)::int FROM tickets t WHERE t.event_id = $1 AND t.checked_in_at IS NOT NULL),
+           COALESCE(sum(b.admitted_count), 0)::int
+         ) AS admitted,
          COALESCE(sum(b.amount_paise) FILTER (WHERE b.status = 'confirmed'), 0)::bigint AS gross_paise,
          COALESCE(sum(b.fee_paise) FILTER (WHERE b.status = 'confirmed'), 0)::bigint AS fee_paise,
          COALESCE(sum(b.discount_paise) FILTER (WHERE b.status = 'confirmed'), 0)::bigint AS discount_paise,
@@ -91,7 +94,8 @@ export default async function EventRecordPage({ params }: { params: Promise<{ id
     query<BookingLine>(
       `SELECT b.reference, b.customer_name, b.customer_email, b.customer_phone, b.quantity,
               b.amount_paise, b.status, b.source, b.referral_code, b.paid_at, b.created_at, b.email_sent_at,
-              (SELECT count(*)::int FROM tickets t WHERE t.booking_id = b.id AND t.checked_in_at IS NOT NULL) AS admitted
+              COALESCE(b.admitted_count,
+                (SELECT count(*)::int FROM tickets t WHERE t.booking_id = b.id AND t.checked_in_at IS NOT NULL)) AS admitted
          FROM bookings b
         WHERE b.event_id = $1 AND b.status = 'confirmed'
         ORDER BY b.paid_at DESC NULLS LAST

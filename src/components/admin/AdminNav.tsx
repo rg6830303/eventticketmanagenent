@@ -11,6 +11,7 @@ const ITEMS = [
   { href: '/admin/bookings', label: 'Bookings', icon: ListIcon },
   { href: '/admin/events', label: 'Events', icon: CalendarIcon, minRole: 'manager' as const },
   { href: '/admin/tickets', label: 'Tickets', icon: TicketIcon, minRole: 'manager' as const },
+  { href: '/admin/promoters', label: 'Promoters', icon: MegaphoneIcon, minRole: 'manager' as const },
   // Manager and above only. The page itself re-checks, but a link that always
   // 403s for gate staff is a link that teaches them the console is broken.
   { href: '/admin/customers', label: 'Customers', icon: PeopleIcon, minRole: 'manager' as const },
@@ -213,6 +214,16 @@ function PeopleIcon({ className }: IconProps) {
       <path d="M3.5 20a5.5 5.5 0 0 1 11 0" strokeLinecap="round" />
       <path d="M16 5.4a3.2 3.2 0 0 1 0 5.2" strokeLinecap="round" />
       <path d="M17.5 14.2A5.5 5.5 0 0 1 20.5 20" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function MegaphoneIcon({ className }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" className={className} aria-hidden>
+      <path d="M3.5 10v4a1 1 0 0 0 1 1H7l7 4.5v-15L7 9H4.5a1 1 0 0 0-1 1Z" strokeLinejoin="round" />
+      <path d="M17.5 9a4 4 0 0 1 0 6" strokeLinecap="round" />
+      <path d="M8 15.2 9.2 20" strokeLinecap="round" />
     </svg>
   );
 }

@@ -18,6 +18,7 @@ interface PassRow {
   holder_name: string;
   seat_label: string | null;
   status: string;
+  active: boolean;
   checked_in_at: string | null;
   booking_reference: string;
   booking_status: string;
@@ -53,7 +54,7 @@ export default async function TicketPage({ params }: { params: Promise<{ payload
   }
 
   const pass = await queryOne<PassRow>(
-    `SELECT t.code, t.holder_name, t.seat_label, t.status, t.checked_in_at,
+    `SELECT t.code, t.holder_name, t.seat_label, t.status, t.checked_in_at, t.active,
             b.reference AS booking_reference, b.status AS booking_status,
             e.name AS event_name, e.slug AS event_slug, e.venue_name, e.venue_address,
             e.starts_at, e.doors_at, e.age_limit,
@@ -78,6 +79,8 @@ export default async function TicketPage({ params }: { params: Promise<{ payload
     pass.booking_status === 'cancelled' ||
     pass.booking_status === 'refunded';
   const used = pass.status === 'used';
+  // A promoter pass not yet activated by the organiser.
+  const pending = !dead && !used && pass.active === false;
 
   return (
     <div className="min-h-dvh bg-canvas">
@@ -109,7 +112,7 @@ export default async function TicketPage({ params }: { params: Promise<{ payload
                 alt={`QR entry pass ${pass.code}`}
                 width={620}
                 height={620}
-                className={dead || used ? 'w-full opacity-25' : 'w-full'}
+                className={dead || used || pending ? 'w-full opacity-25' : 'w-full'}
               />
               {(dead || used) && (
                 <span className="absolute inset-0 flex items-center justify-center">
@@ -118,10 +121,23 @@ export default async function TicketPage({ params }: { params: Promise<{ payload
                   </span>
                 </span>
               )}
+              {pending && (
+                <span className="absolute inset-0 flex items-center justify-center">
+                  <span className="-rotate-12 rounded-lg border-4 border-amber-500 bg-white/80 px-4 py-2 text-center font-display text-xl font-extrabold uppercase tracking-wider text-amber-600">
+                    Pending activation
+                  </span>
+                </span>
+              )}
             </div>
             <p className="mt-3 text-center font-mono text-[13px] font-bold tracking-[0.12em] text-[#050b1c]">
               {pass.code}
             </p>
+            {pending && (
+              <p className="mt-2 text-center text-[12px] leading-snug text-[#7a4b00]">
+                Issued by your promoter. It works at the door once the organiser activates it — you will get an email
+                when it does.
+              </p>
+            )}
           </div>
 
           <div className="space-y-3 p-5">

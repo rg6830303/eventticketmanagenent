@@ -52,8 +52,14 @@ export async function listUpcomingEvents(): Promise<EventRow[]> {
 }
 
 const STATS = `
-  (SELECT count(*)::int FROM tickets t WHERE t.event_id = e.id AND t.status IN ('valid','used')) AS tickets_sold,
-  (SELECT count(*)::int FROM tickets t WHERE t.event_id = e.id AND t.checked_in_at IS NOT NULL) AS checked_in,
+  GREATEST(
+    (SELECT count(*)::int FROM tickets t WHERE t.event_id = e.id AND t.status IN ('valid','used')),
+    (SELECT COALESCE(sum(b.quantity), 0)::int FROM bookings b WHERE b.event_id = e.id AND b.status = 'confirmed' AND b.admitted_count IS NOT NULL)
+  ) AS tickets_sold,
+  GREATEST(
+    (SELECT count(*)::int FROM tickets t WHERE t.event_id = e.id AND t.checked_in_at IS NOT NULL),
+    (SELECT COALESCE(sum(b.admitted_count), 0)::int FROM bookings b WHERE b.event_id = e.id)
+  ) AS checked_in,
   (SELECT count(*)::int FROM bookings b WHERE b.event_id = e.id AND b.status = 'confirmed') AS bookings,
   (SELECT COALESCE(sum(b.amount_paise),0)::bigint FROM bookings b WHERE b.event_id = e.id AND b.status = 'confirmed') AS revenue_paise`;
 

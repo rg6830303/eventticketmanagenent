@@ -111,6 +111,13 @@ export interface TicketRow {
   redeemable_paise: number;
   booking_item_id: string | null;
   created_at: string;
+  /**
+   * False for a promoter's pass until an admin has been paid for it. The QR
+   * exists and has been emailed, but the door refuses it while this is false.
+   */
+  active: boolean;
+  promoter_id: string | null;
+  activated_at: string | null;
 }
 
 export interface AdminUserRow {

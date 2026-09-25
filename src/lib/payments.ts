@@ -619,8 +619,12 @@ export async function undeliveredTickets(): Promise<UndeliveredBooking[]> {
               WHERE l.booking_id = b.id AND l.status = 'failed'
               ORDER BY l.created_at DESC LIMIT 1) AS last_error
        FROM bookings b
+       JOIN events e ON e.id = b.event_id
       WHERE b.status = 'confirmed'
         AND b.email_sent_at IS NULL
+        -- A night that is over needs no pass, and its tickets may have been
+        -- purged to save space: re-minting them would email every buyer again.
+        AND COALESCE(e.ends_at, e.starts_at + interval '12 hours') > now()
       ORDER BY b.paid_at ASC
       LIMIT 200`,
   );

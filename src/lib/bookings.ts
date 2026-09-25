@@ -745,6 +745,17 @@ export async function checkInTicket(args: CheckInArgs): Promise<ScanOutcome> {
     };
   }
 
+  if (ticket.active === false) {
+    await logScan(ticket.id, ticket.event_id, args, 'void', 'Promoter pass not activated');
+    return {
+      ...base,
+      result: 'void',
+      ok: false,
+      title: 'Not activated',
+      message: 'This promoter pass has not been activated yet. Entry refused — ask the promoter to settle with the organiser.',
+    };
+  }
+
   if (ticket.status === 'refunded' || ticket.booking_status === 'refunded') {
     await logScan(ticket.id, ticket.event_id, args, 'refunded', 'Ticket refunded');
     return {
@@ -787,7 +798,7 @@ export async function checkInTicket(args: CheckInArgs): Promise<ScanOutcome> {
   const updated = await queryOne<TicketRow>(
     `UPDATE tickets
        SET status = 'used', checked_in_at = now(), checked_in_by = $2, checked_in_gate = $3
-     WHERE id = $1 AND status = 'valid'
+     WHERE id = $1 AND status = 'valid' AND active
      RETURNING *`,
     [ticket.id, args.operatorId ?? null, args.gate ?? null],
   );
@@ -958,7 +969,16 @@ export interface IssueBookingArgs {
   /** The admin doing this. Recorded on the booking and in the audit log. */
   issuedBy: string;
   issuedByEmail: string;
+  /**
+   * Issued by a promoter out of their allocation. The allocation is checked
+   * under a row lock in the same transaction as the mint, so two phones
+   * issuing at once cannot overdraw it, and the passes are minted inactive.
+   */
+  promoterId?: string | null;
 }
+
+/** Thrown when a promoter tries to issue more passes than they hold. */
+export class AllocationError extends BookingError {}
 
 /**
  * Issue passes by hand, already confirmed.
@@ -1019,6 +1039,31 @@ export async function issueBookingManually(args: IssueBookingArgs): Promise<Book
     const tierName = tier?.name ?? (args.customLabel?.trim() || 'Guest pass');
     const bookingReference = generateBookingReference();
 
+    let promoterName: string | null = null;
+    if (args.promoterId) {
+      const { rows } = await client.query<{ name: string; allocated: number; active: boolean }>(
+        'SELECT name, allocated, active FROM promoters WHERE id = $1 FOR UPDATE',
+        [args.promoterId],
+      );
+      const promoter = rows[0];
+      if (!promoter || !promoter.active) {
+        throw new AllocationError('This promoter account is not active', 'promoter_inactive', 403);
+      }
+      const { rows: used } = await client.query<{ n: number }>(
+        `SELECT count(*)::int AS n FROM tickets WHERE promoter_id = $1 AND status <> 'void'`,
+        [args.promoterId],
+      );
+      const left = promoter.allocated - (used[0]?.n ?? 0);
+      if (quantity > left) {
+        throw new AllocationError(
+          left <= 0 ? 'You have no passes left to issue. Ask the admin for more.' : `You only have ${left} left to issue.`,
+          'allocation_exhausted',
+          409,
+        );
+      }
+      promoterName = promoter.name;
+    }
+
     const customer = await upsertCustomerInTransaction(client, {
       email: args.email,
       name: args.name,
@@ -1031,8 +1076,8 @@ export async function issueBookingManually(args: IssueBookingArgs): Promise<Book
          reference, event_id, tier_id, customer_id,
          customer_name, customer_email, customer_phone,
          quantity, subtotal_paise, discount_paise, amount_paise,
-         status, payment_provider, source, notes, paid_at
-       ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,0,$10,'confirmed',$11,'admin',$12,now())
+         status, payment_provider, source, notes, paid_at, promoter_id
+       ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,0,$10,'confirmed',$11,$13,$12,now(),$14)
        RETURNING *`,
       [
         bookingReference,
@@ -1047,8 +1092,13 @@ export async function issueBookingManually(args: IssueBookingArgs): Promise<Book
         amountPaise,
         // 'comp' when nothing was collected, 'cash' when money changed hands
         // off-gateway. Both are honest; neither claims a gateway payment.
-        amountPaise === 0 ? 'comp' : 'cash',
-        [`Issued by ${args.issuedByEmail}`, args.note?.trim()].filter(Boolean).join(' · ').slice(0, 500),
+        args.promoterId ? 'promoter' : amountPaise === 0 ? 'comp' : 'cash',
+        [promoterName ? `Promoter: ${promoterName}` : `Issued by ${args.issuedByEmail}`, args.note?.trim()]
+          .filter(Boolean)
+          .join(' · ')
+          .slice(0, 500),
+        args.promoterId ? 'promoter' : 'admin',
+        args.promoterId ?? null,
       ],
     );
     const booking = bookingResult.rows[0];
@@ -1079,6 +1129,13 @@ export async function issueBookingManually(args: IssueBookingArgs): Promise<Book
     }
 
     await mintTickets(client, booking.id);
+    if (args.promoterId) {
+      // Inactive until the admin has been paid for them.
+      await client.query('UPDATE tickets SET active = false, promoter_id = $2 WHERE booking_id = $1', [
+        booking.id,
+        args.promoterId,
+      ]);
+    }
     return bookingReference;
   });
 

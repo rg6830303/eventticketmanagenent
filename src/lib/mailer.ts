@@ -187,8 +187,19 @@ async function logEmail(
  * transient SMTP failure before giving up — Gmail occasionally closes a pooled
  * socket between messages.
  */
-export async function sendTicketEmail(detail: BookingDetail): Promise<SendResult> {
-  const { booking, event, tier, tickets, items } = detail;
+export async function sendTicketEmail(
+  detail: BookingDetail,
+  options: { activated?: boolean } = {},
+): Promise<SendResult> {
+  const { booking, event, tier, items } = detail;
+  // A pass that has been deactivated is not re-sent as if it were live, and an
+  // activation email carries only the passes that are actually active.
+  const tickets = options.activated ? detail.tickets.filter((t) => t.active !== false) : detail.tickets;
+  const notice: 'pending' | 'activated' | null = options.activated
+    ? 'activated'
+    : tickets.some((t) => t.active === false)
+      ? 'pending'
+      : null;
 
   // The last line of defence, and the only one that is unconditional.
   //
@@ -366,6 +377,7 @@ export async function sendTicketEmail(detail: BookingDetail): Promise<SendResult
     manageUrl: `${env.siteUrl}/booking/${booking.reference}`,
     supportEmail: env.smtp.replyTo || env.smtp.fromAddress,
     siteUrl: env.siteUrl,
+    notice,
   };
 
   const payload: SendArgs = {
