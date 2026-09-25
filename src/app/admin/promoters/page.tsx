@@ -1,10 +1,10 @@
 import Link from 'next/link';
 import { requireSession } from '@/lib/auth';
-import { listOrphanedPromoterTickets, listPromoterStats, listRecentActivity } from '@/lib/promoters';
-import { cn, formatInr } from '@/lib/utils';
+import { listOrphanedPromoterTickets, listPromoterStats, listRecentActivity, listSerialRanges } from '@/lib/promoters';
+import { cn, formatInr, serialRanges } from '@/lib/utils';
 import { CreatePromoter } from '@/components/admin/promoters/CreatePromoter';
 import { ActivityList } from '@/components/admin/promoters/ActivityList';
-import { PromoterTickets } from '@/components/admin/promoters/PromoterTickets';
+import { TicketTable } from '@/components/admin/TicketTable';
 
 export const dynamic = 'force-dynamic';
 export const metadata = { title: 'Promoters', robots: { index: false, follow: false } };
@@ -23,6 +23,7 @@ export default async function PromotersPage() {
     listRecentActivity(30),
     listOrphanedPromoterTickets(),
   ]);
+  const ranges = await listSerialRanges();
 
   const sum = (key: 'allocated' | 'issued' | 'remaining' | 'pending' | 'activated' | 'admitted' | 'received_paise' | 'due_paise' | 'paid_tickets') =>
     promoters.reduce((acc, p) => acc + Number(p[key] ?? 0), 0);
@@ -71,6 +72,9 @@ export default async function PromotersPage() {
                   {!p.active && <span className="shrink-0 rounded-full bg-mist px-2 py-0.5 text-[10.5px] font-semibold text-muted">Suspended</span>}
                 </div>
                 <Bar issued={p.issued} allocated={p.allocated} />
+                {ranges.get(p.id) && (
+                  <p className="mt-1 break-words font-mono text-[11px] text-slate">#{serialRanges(ranges.get(p.id) ?? [])}</p>
+                )}
                 <div className="mt-2 grid grid-cols-4 gap-1 text-center">
                   <Mini label="Issued" value={p.issued} />
                   <Mini label="Left" value={p.remaining} />
@@ -94,6 +98,7 @@ export default async function PromotersPage() {
                 <tr>
                   <th className="px-3 py-2">Promoter</th>
                   <th className="px-2 py-2">Usage</th>
+                  <th className="px-2 py-2">Serials</th>
                   <th className="px-2 py-2 text-right">Allocated</th>
                   <th className="px-2 py-2 text-right">Issued</th>
                   <th className="px-2 py-2 text-right">Left</th>
@@ -117,6 +122,7 @@ export default async function PromotersPage() {
                       </p>
                     </td>
                     <td className="w-40 px-2 py-2.5"><Bar issued={p.issued} allocated={p.allocated} /></td>
+                    <td className="max-w-[180px] px-2 py-2.5 font-mono text-[11.5px] text-slate">{serialRanges(ranges.get(p.id) ?? []) || '—'}</td>
                     <td className="tnum px-2 py-2.5 text-right">{p.allocated}</td>
                     <td className="tnum px-2 py-2.5 text-right">{p.issued}</td>
                     <td className="tnum px-2 py-2.5 text-right">{p.remaining}</td>
@@ -139,7 +145,7 @@ export default async function PromotersPage() {
             Passes from deleted promoters ({orphaned.length})
           </h2>
           <p className="text-[12px] text-slate">Their accounts are gone but the customers still hold these passes. Activate or deactivate them here.</p>
-          <PromoterTickets tickets={orphaned} />
+          <TicketTable tickets={orphaned} />
         </section>
       )}
 

@@ -215,6 +215,7 @@ export function ScanResult({ outcome, mode }: { outcome: ScanOutcome | null; mod
                   <Row label="Ticket" value={ticket.code} mono />
                   <Row label="Booking" value={ticket.bookingReference} mono />
                   {ticket.tierName && <Row label="Tier" value={ticket.tierName} />}
+                  {ticket.serial ? <Row label="Serial" value={`#${ticket.serial}`} mono /> : null}
                   {ticket.seatLabel && <Row label="Pass" value={ticket.seatLabel} mono />}
                   {ticket.quantity > 1 && <Row label="In booking" value={`${ticket.quantity} tickets`} />}
                   {outcome.event && <Row label="Event" value={outcome.event.name} />}

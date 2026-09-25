@@ -96,3 +96,17 @@ export function countdownParts(target: string | Date) {
     seconds: Math.floor((diff % 60_000) / 1000),
   };
 }
+
+/** [1000,1001,1002,1005] → "1000–1002, 1005". Empty string for none. */
+export function serialRanges(serials: number[]): string {
+  const sorted = [...new Set(serials)].sort((a, b) => a - b);
+  const parts: string[] = [];
+  let i = 0;
+  while (i < sorted.length) {
+    let j = i;
+    while (j + 1 < sorted.length && sorted[j + 1] === sorted[j] + 1) j += 1;
+    parts.push(i === j ? `${sorted[i]}` : `${sorted[i]}–${sorted[j]}`);
+    i = j + 1;
+  }
+  return parts.join(', ');
+}

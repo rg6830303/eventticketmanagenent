@@ -568,7 +568,7 @@ export function QrScanner({ events }: { events: EventOption[] }) {
                 id="manual"
                 value={manualCode}
                 onChange={(event) => setManualCode(event.target.value.toUpperCase())}
-                placeholder="HOV1.HOV-OFFC-…"
+                placeholder="Serial (e.g. 1000), code or booking ref"
                 className="field font-mono text-[12px]"
                 autoComplete="off"
                 spellCheck={false}

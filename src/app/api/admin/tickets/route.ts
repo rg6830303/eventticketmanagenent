@@ -120,6 +120,7 @@ export async function POST(request: NextRequest) {
       tierName: detail.items[0]?.tier_name ?? null,
       tickets: detail.tickets.map((ticket) => ({
         code: ticket.code,
+        serial: ticket.serial ?? null,
         admits: ticket.admits,
         holderName: ticket.holder_name,
       })),

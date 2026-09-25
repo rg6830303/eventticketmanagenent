@@ -20,12 +20,26 @@ function firstNonEmpty(...candidates: Array<string | undefined | null>): string 
 
 const LOCAL_FALLBACK = 'http://localhost:3000';
 
+/**
+ * The public domain, used in production when NEXT_PUBLIC_SITE_URL is missing.
+ *
+ * Falling back to VERCEL_URL there was a real bug: that is the address of one
+ * specific deployment, frozen forever, so every email link pointed customers
+ * at whatever code happened to be live the day it was sent.
+ */
+const PRODUCTION_ORIGIN = 'https://www.houzofvybe.com';
+
 export function getSiteUrl(): string {
   // Referenced literally so Next can still inline NEXT_PUBLIC_* at build time.
   const configured = process.env.NEXT_PUBLIC_SITE_URL;
   const vercelHost = process.env.VERCEL_URL?.trim();
 
-  const raw = firstNonEmpty(configured, vercelHost ? `https://${vercelHost}` : null);
+  const isProductionDeploy = process.env.VERCEL_ENV === 'production';
+  const raw = firstNonEmpty(
+    configured,
+    isProductionDeploy ? PRODUCTION_ORIGIN : null,
+    vercelHost ? `https://${vercelHost}` : null,
+  );
   if (!raw) return LOCAL_FALLBACK;
 
   // VERCEL_URL and hand-typed domains both arrive without a scheme.

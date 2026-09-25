@@ -99,7 +99,7 @@ export function PromoterIssue({ remaining }: { remaining: number }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
-  const [done, setDone] = useState<{ sentTo: string; codes: string[]; emailSent: boolean } | null>(null);
+  const [done, setDone] = useState<{ sentTo: string; codes: string[]; serials?: Array<number | null>; emailSent: boolean } | null>(null);
 
   const set = (key: keyof typeof EMPTY) => (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm((f) => ({ ...f, [key]: e.target.value }));
@@ -125,7 +125,13 @@ export function PromoterIssue({ remaining }: { remaining: number }) {
           Emailing it to <strong className="break-all text-ink">{done.sentTo}</strong> now — it usually lands within a
           minute. It stays pending until the organiser activates it.
         </p>
-        <p className="mt-2 font-mono text-[12px] text-muted">{done.codes.join(' · ')}</p>
+        <ul className="mt-2 space-y-0.5 font-mono text-[12px] text-muted">
+          {done.codes.map((code, i) => (
+            <li key={code}>
+              {done.serials?.[i] ? <strong className="text-ink">#{done.serials[i]}</strong> : null} {code}
+            </li>
+          ))}
+        </ul>
         <button type="button" className="btn-primary mt-4 w-full py-3" onClick={() => setDone(null)}>
           Issue another
         </button>
@@ -144,7 +150,7 @@ export function PromoterIssue({ remaining }: { remaining: number }) {
         setBusy(true);
         setError(null);
         setFieldErrors({});
-        const result = await post<{ sentTo: string; codes: string[]; emailSent: boolean }>('/api/promoter/issue', { ...form, quantity });
+        const result = await post<{ sentTo: string; codes: string[]; serials?: Array<number | null>; emailSent: boolean }>('/api/promoter/issue', { ...form, quantity });
         if (result.timedOut) {
           // The pass may well have been issued; the reloaded dashboard shows it
           // under "Recently issued" rather than leaving a spinner up forever.

@@ -10,6 +10,7 @@ const ITEMS = [
   { href: '/admin/scan', label: 'Scan', icon: ScanIcon },
   { href: '/admin/bookings', label: 'Bookings', icon: ListIcon },
   { href: '/admin/events', label: 'Events', icon: CalendarIcon, minRole: 'manager' as const },
+  { href: '/admin/ledger', label: 'All tickets', icon: ListIcon, minRole: 'manager' as const },
   { href: '/admin/tickets', label: 'Tickets', icon: TicketIcon, minRole: 'manager' as const },
   { href: '/admin/promoters', label: 'Promoters', icon: MegaphoneIcon, minRole: 'manager' as const },
   // Manager and above only. The page itself re-checks, but a link that always

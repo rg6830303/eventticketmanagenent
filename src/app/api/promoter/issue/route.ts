@@ -93,6 +93,7 @@ export async function POST(request: NextRequest) {
     return created({
       reference: detail.booking.reference,
       codes: detail.tickets.map((t) => t.code),
+      serials: detail.tickets.map((t) => t.serial),
       sentTo: detail.booking.customer_email,
       emailSent: true,
     });

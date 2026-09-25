@@ -1,11 +1,11 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { requireSession } from '@/lib/auth';
-import { getPromoterStats, listActivity, listPromoterTickets } from '@/lib/promoters';
-import { cn, formatInr } from '@/lib/utils';
+import { getPromoterSerials, getPromoterStats, listActivity, listPromoterTickets } from '@/lib/promoters';
+import { cn, formatInr, serialRanges } from '@/lib/utils';
 import { ActivityList } from '@/components/admin/promoters/ActivityList';
 import { PromoterControls } from '@/components/admin/promoters/PromoterControls';
-import { PromoterTickets } from '@/components/admin/promoters/PromoterTickets';
+import { TicketTable } from '@/components/admin/TicketTable';
 
 export const dynamic = 'force-dynamic';
 export const metadata = { title: 'Promoter', robots: { index: false, follow: false } };
@@ -16,7 +16,9 @@ export default async function PromoterPage({ params }: { params: Promise<{ id: s
   if (!/^[0-9a-f-]{36}$/i.test(id)) notFound();
   const promoter = await getPromoterStats(id);
   if (!promoter) notFound();
-  const [tickets, activity] = await Promise.all([listPromoterTickets(id), listActivity(id)]);
+  const [tickets, activity, serials] = await Promise.all([listPromoterTickets(id), listActivity(id), getPromoterSerials(id)]);
+  const issuedSet = new Set(serials.issued);
+  const unissued = serials.all.filter((s) => !issuedSet.has(s));
 
   // Passes paid for but not yet switched on, or switched on but not paid for —
   // the two mismatches an admin needs pointed out rather than worked out.
@@ -80,17 +82,36 @@ export default async function PromoterPage({ params }: { params: Promise<{ id: s
         </div>
       )}
 
+      <section className="panel space-y-2 p-4">
+        <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">Serial numbers</h2>
+        <SerialLine label="Allocated" count={serials.all.length} ranges={serialRanges(serials.all)} />
+        <SerialLine label="Issued" count={serials.issued.length} ranges={serialRanges(serials.issued)} tone="text-leaf-600" />
+        <SerialLine label="Not yet issued" count={unissued.length} ranges={serialRanges(unissued)} tone="text-slate" />
+        {unissued.length > 0 && <p className="text-[11.5px] text-muted">Next pass they issue gets #{unissued[0]}. Taking passes back releases the highest unissued serials.</p>}
+      </section>
+
       <PromoterControls promoter={promoter} />
 
       <section className="space-y-2">
         <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">Issued passes ({tickets.length})</h2>
-        <PromoterTickets tickets={tickets} />
+        <TicketTable tickets={tickets} exportName={`promoter-${promoter.name.replace(/\W+/g, '-').toLowerCase()}`} />
       </section>
 
       <section className="space-y-2">
         <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">Activity</h2>
         <ActivityList rows={activity} />
       </section>
+    </div>
+  );
+}
+
+function SerialLine({ label, count, ranges, tone }: { label: string; count: number; ranges: string; tone?: string }) {
+  return (
+    <div className="flex flex-col gap-0.5 text-[13px] sm:flex-row sm:gap-3">
+      <span className="shrink-0 font-semibold text-ink sm:w-32">
+        {label} <span className="tnum text-muted">({count})</span>
+      </span>
+      <span className={cn('min-w-0 break-words font-mono text-[12.5px]', tone ?? 'text-ink')}>{ranges ? `#${ranges}` : '—'}</span>
     </div>
   );
 }

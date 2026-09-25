@@ -266,7 +266,12 @@ export async function sendTicketEmail(detail: BookingDetail): Promise<SendResult
    * door. It costs about two kilobytes a pass, which is nothing next to
    * somebody arriving with no scannable pass.
    */
-  const qrPngs = await Promise.all(
+  // Console and promoter passes carry no QR image: their validity is switched
+  // from the console, so the customer is sent to the live pass page instead.
+  // Website purchases keep the QR and link to the customer's account.
+  const linkOnly = booking.source === 'admin' || booking.source === 'promoter' || booking.payment_provider === 'promoter';
+
+  const qrPngs = linkOnly ? [] : await Promise.all(
     tickets.map(async (ticket) =>
       qrPngBuffer(
         await buildQrPayload(ticket.code, (ticket.redeemable_paise ?? 0) === 0),
@@ -288,7 +293,7 @@ export async function sendTicketEmail(detail: BookingDetail): Promise<SendResult
    * Eight bytes is the PNG signature alone, so anything at or under it cannot
    * be an image. A genuine 460px QR runs to roughly three kilobytes.
    */
-  const brokenQr = qrPngs.findIndex((png) => !png || png.length <= 8);
+  const brokenQr = linkOnly ? -1 : qrPngs.findIndex((png) => !png || png.length <= 8);
   if (brokenQr !== -1) {
     const error = `QR generation produced no image for ticket ${tickets[brokenQr]?.code ?? '?'}`;
     console.error('[mailer] refusing to send a pass with no QR', {
@@ -304,14 +309,14 @@ export async function sendTicketEmail(detail: BookingDetail): Promise<SendResult
     return { ok: false, error };
   }
 
-  const qrAttachments = tickets.map((ticket, index) => ({
+  const qrAttachments = linkOnly ? [] : tickets.map((ticket, index) => ({
     filename: `${ticket.code}.png`,
     content: qrPngs[index],
     cid: `ticket-qr-${index}`,
     contentType: 'image/png',
   }));
 
-  const qrDownloads = tickets.map((ticket, index) => ({
+  const qrDownloads = linkOnly ? [] : tickets.map((ticket, index) => ({
     // Named so it is obvious in an attachment list what it is and whose it is.
     filename: `Entry pass ${ticket.code}.png`,
     content: qrPngs[index],
@@ -351,10 +356,11 @@ export async function sendTicketEmail(detail: BookingDetail): Promise<SendResult
       tickets.map(async (ticket, index) => {
         const item = ticket.booking_item_id ? itemById.get(ticket.booking_item_id) : undefined;
         return {
+          serial: ticket.serial ?? null,
           code: ticket.code,
           holderName: ticket.holder_name,
           cid: `ticket-qr-${index}`,
-          url: await ticketUrl(ticket.code, (ticket.redeemable_paise ?? 0) === 0),
+          url: linkOnly ? await ticketUrl(ticket.code, (ticket.redeemable_paise ?? 0) === 0) : `${env.siteUrl}/account`,
           redeemablePaise: ticket.redeemable_paise ?? 0,
           admits: ticket.admits ?? item?.admits_each ?? 1,
           tierName:
@@ -365,7 +371,9 @@ export async function sendTicketEmail(detail: BookingDetail): Promise<SendResult
         };
       }),
     ),
-    manageUrl: `${env.siteUrl}/booking/${booking.reference}`,
+    // Website buyers have accounts: send them there, on the main domain.
+    manageUrl: linkOnly ? await ticketUrl(tickets[0].code, (tickets[0].redeemable_paise ?? 0) === 0) : `${env.siteUrl}/account`,
+    linkOnly,
     supportEmail: env.smtp.replyTo || env.smtp.fromAddress,
     siteUrl: env.siteUrl,
     notice,

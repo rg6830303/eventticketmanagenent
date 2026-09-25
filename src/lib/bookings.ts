@@ -1,5 +1,6 @@
 import 'server-only';
 import { query, queryOne, transaction } from './db';
+import { claimPromoterSerials, takeEventSerials } from './serials';
 import { generateBookingReference, generateTicketCode } from './tickets';
 import { applyReferralInTransaction, releaseReferral, type ReferralCheck } from './referrals';
 import { CUSTOMER_COLUMNS, upsertCustomerInTransaction } from './customers';
@@ -486,6 +487,14 @@ async function mintTickets(client: MintClient, bookingId: string): Promise<void>
           },
         ];
 
+  // Every pass gets a short serial: promoter passes from the promoter's
+  // reserved block (1000–5000), everything else from the event counter (5001+).
+  const passCount = lines.reduce((sum, line) => sum + line.quantity, 0);
+  const promoterId = (booking as BookingRow & { promoter_id?: string | null }).promoter_id ?? null;
+  const serials = promoterId
+    ? await claimPromoterSerials(client, booking.event_id, promoterId, passCount)
+    : await takeEventSerials(client, booking.event_id, passCount);
+
   let seat = 0;
 
   for (const line of lines) {
@@ -509,8 +518,9 @@ async function mintTickets(client: MintClient, bookingId: string): Promise<void>
             // already holding a pass can redeem — in either direction.
             `INSERT INTO tickets (
                booking_id, event_id, tier_id, booking_item_id, code,
-               holder_name, seat_label, admits, redeemable_paise
-             ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+               holder_name, seat_label, admits, redeemable_paise, serial, promoter_id, active
+             ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
+             RETURNING id`,
             [
               booking.id,
               booking.event_id,
@@ -521,8 +531,19 @@ async function mintTickets(client: MintClient, bookingId: string): Promise<void>
               seatLabel,
               line.admits_each,
               line.redeemable_paise ?? 0,
+              serials[seat - 1] ?? null,
+              promoterId,
+              // Promoter passes are born inactive: live only once the admin is paid.
+              promoterId === null,
             ],
-          );
+          ).then(async (result) => {
+            if (promoterId) {
+              await client.query(
+                'UPDATE promoter_serials SET ticket_id = $1 WHERE event_id = $2 AND serial = $3',
+                [(result.rows[0] as { id: string }).id, booking.event_id, serials[seat - 1]],
+              );
+            }
+          });
           inserted = true;
         } catch (error) {
           const isDuplicate =
@@ -714,6 +735,7 @@ export async function checkInTicket(args: CheckInArgs): Promise<ScanOutcome> {
       holderName: ticket.holder_name,
       tierName: ticket.tier_name,
       seatLabel: ticket.seat_label,
+      serial: ticket.serial ?? null,
       bookingReference: ticket.booking_reference,
       quantity: ticket.booking_quantity,
       checkedInAt: ticket.checked_in_at,
@@ -884,7 +906,7 @@ export interface ResolvedScanInput {
   /** The ticket code to check in. */
   code: string;
   /** How the input was understood, for the operator-facing message. */
-  via: 'ticket_code' | 'booking_reference';
+  via: 'ticket_code' | 'booking_reference' | 'serial';
   /** Set when a reference resolved to one of several passes. */
   position?: { index: number; total: number };
 }
@@ -915,6 +937,19 @@ export async function resolveScanInput(raw: string): Promise<ResolvedScanInput |
   if (/^HOV-[0-9A-Z]{1,4}-[0-9A-Z]{10}$/.test(input)) {
     const row = await queryOne<{ code: string }>('SELECT code FROM tickets WHERE code = $1', [input]);
     return row ? { code: row.code, via: 'ticket_code' } : null;
+  }
+
+  // A serial number, as printed on the pass. Serials are unique per event, so
+  // prefer the event that is on now or next over one that is long over.
+  if (/^#?\d{1,6}$/.test(input)) {
+    const row = await queryOne<{ code: string }>(
+      `SELECT t.code FROM tickets t JOIN events e ON e.id = t.event_id
+        WHERE t.serial = $1
+        ORDER BY (COALESCE(e.ends_at, e.starts_at) > now() - interval '1 day') DESC, e.starts_at ASC
+        LIMIT 1`,
+      [Number(input.replace('#', ''))],
+    );
+    return row ? { code: row.code, via: 'serial' } : null;
   }
 
   // A booking reference: HOV-<6>.
@@ -1128,14 +1163,8 @@ export async function issueBookingManually(args: IssueBookingArgs): Promise<Book
       ]);
     }
 
+    // Promoter passes are minted inactive, with serials from the promoter's block.
     await mintTickets(client, booking.id);
-    if (args.promoterId) {
-      // Inactive until the admin has been paid for them.
-      await client.query('UPDATE tickets SET active = false, promoter_id = $2 WHERE booking_id = $1', [
-        booking.id,
-        args.promoterId,
-      ]);
-    }
     return bookingReference;
   });
 

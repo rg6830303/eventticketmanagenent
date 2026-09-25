@@ -228,6 +228,7 @@ export async function TicketCard({ ticket, event, tier, index, total }: TicketCa
               )}
 
               <p className="mt-3 text-center font-mono text-[13px] font-medium tracking-[0.14em] text-ink print:text-black">
+                {ticket.serial ? <span className="font-bold">#{ticket.serial} · </span> : null}
                 {ticket.code}
               </p>
 

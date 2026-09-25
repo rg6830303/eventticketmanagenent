@@ -17,6 +17,7 @@ interface PassRow {
   code: string;
   holder_name: string;
   seat_label: string | null;
+  serial: number | null;
   status: string;
   active: boolean;
   activated_at: string | null;
@@ -55,7 +56,7 @@ export default async function TicketPage({ params }: { params: Promise<{ payload
   }
 
   const pass = await queryOne<PassRow>(
-    `SELECT t.code, t.holder_name, t.seat_label, t.status, t.checked_in_at, t.active, t.activated_at,
+    `SELECT t.code, t.serial, t.holder_name, t.seat_label, t.status, t.checked_in_at, t.active, t.activated_at,
             b.reference AS booking_reference, b.status AS booking_status,
             e.name AS event_name, e.slug AS event_slug, e.venue_name, e.venue_address,
             e.starts_at, e.doors_at, e.age_limit,
@@ -163,6 +164,7 @@ export default async function TicketPage({ params }: { params: Promise<{ payload
 
             <dl className="grid grid-cols-2 gap-x-4 gap-y-2.5 text-[12px]">
               <Item label="Ticket type" value={pass.tier_name ?? 'General Entry'} />
+              {pass.serial !== null && <Item label="Serial" value={`#${pass.serial}`} mono />}
               <Item label="Booking" value={pass.booking_reference} mono />
               {pass.seat_label && <Item label="Pass" value={pass.seat_label} mono />}
             </dl>

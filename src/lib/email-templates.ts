@@ -33,7 +33,14 @@ export interface TicketEmailData {
    * the mailer having to be changed to find it again.
    */
   amountPaise: number;
+  /**
+   * Console and promoter passes: no QR in the email at all, only a link to the
+   * live pass page. Their validity is controlled from the console, so the only
+   * trustworthy view is the live one.
+   */
+  linkOnly?: boolean;
   tickets: Array<{
+    serial: number | null;
     code: string;
     holderName: string;
     cid: string;
@@ -125,6 +132,11 @@ export function ticketEmailHtml(data: TicketEmailData): string {
                 <p style="margin:0 0 4px 0;font:700 18px/1.3 Arial,Helvetica,sans-serif;color:${TEXT};">
                   ${esc(ticket.holderName)}
                 </p>
+                ${
+                  ticket.serial
+                    ? `<p style="margin:0 0 4px 0;font:700 13px/1.4 'Courier New',Courier,monospace;letter-spacing:1px;color:${MUTED};">Serial #${ticket.serial}</p>`
+                    : ''
+                }
                 <p style="margin:0 0 10px 0;font:600 13px/1.4 Arial,Helvetica,sans-serif;color:${BLUE};">
                   ${esc(ticket.tierName)}${ticket.admits > 1 ? ` &middot; admits ${ticket.admits}` : ''}
                 </p>
@@ -141,8 +153,12 @@ export function ticketEmailHtml(data: TicketEmailData): string {
                       : `${formatInr(ticket.redeemablePaise)} redeemable at the bar`
                   }
                 </p>
-                <img src="cid:${ticket.cid}" width="220" height="220" alt="QR code for ticket ${esc(ticket.code)}"
-                     style="display:block;margin:0 auto;border-radius:12px;background:#ffffff;padding:12px;" />
+                ${
+                  data.linkOnly
+                    ? ''
+                    : `<img src="cid:${ticket.cid}" width="220" height="220" alt="QR code for ticket ${esc(ticket.code)}"
+                     style="display:block;margin:0 auto;border-radius:12px;background:#ffffff;padding:12px;" />`
+                }
 
                 <!-- The code is spelled out because a mail app with images off
                      shows nothing above this line, and the door can type it. -->
@@ -151,23 +167,30 @@ export function ticketEmailHtml(data: TicketEmailData): string {
                 </p>
                 <p style="margin:6px 0 0 0;font:400 12px/1.5 Arial,Helvetica,sans-serif;color:${MUTED};">
                   ${
-                    ticket.admits > 1
+                    data.linkOnly
+                      ? 'Your QR is on your pass page, with its live status. Open it at the door — one scan only.'
+                      : ticket.admits > 1
                       ? `One scan only, and it admits all ${ticket.admits} of you together.`
                       : 'One scan only.'
-                  } Screenshot it — the venue has patchy signal.
+                  }${data.linkOnly ? '' : ' Screenshot it — the venue has patchy signal.'}
                 </p>
 
                 <p style="margin:16px 0 0 0;">
                   <a href="${esc(ticket.url)}"
-                     style="display:inline-block;border:1px solid ${BLUE};border-radius:8px;padding:11px 22px;font:700 13px/1 Arial,Helvetica,sans-serif;color:${BLUE};text-decoration:none;">
-                    Open this pass
+                     style="display:inline-block;${
+                      data.linkOnly ? `background:${BLUE};color:#ffffff;` : `border:1px solid ${BLUE};color:${BLUE};`
+                    }border-radius:8px;padding:12px 24px;font:700 14px/1 Arial,Helvetica,sans-serif;text-decoration:none;">
+                    ${data.linkOnly ? 'Open your pass' : 'Open in your account'}
                   </a>
                 </p>
-                <p style="margin:10px 0 0 0;font:400 12px/1.6 Arial,Helvetica,sans-serif;color:${MUTED};">
-                  No QR above? Some mail apps hide images. The pass is also attached to this
-                  email as a picture you can open, or tap <strong style="color:${TEXT};">Open this pass</strong>
-                  for a full-screen version, or just read the code out at the door.
-                </p>
+                ${
+                  data.linkOnly
+                    ? ''
+                    : `<p style="margin:10px 0 0 0;font:400 12px/1.6 Arial,Helvetica,sans-serif;color:${MUTED};">
+                  No QR above? Some mail apps hide images. The pass is also attached to this email as a picture,
+                  and it is always in your Houz of Vybe account — or just read the code out at the door.
+                </p>`
+                }
               </td>
             </tr>
           </table>
@@ -272,7 +295,7 @@ export function ticketEmailHtml(data: TicketEmailData): string {
                shape every promotional email uses, and this is a receipt. -->
           <a href="${esc(data.manageUrl)}"
              style="display:inline-block;border:1px solid ${BLUE};color:${BLUE};text-decoration:none;padding:13px 28px;border-radius:8px;font:700 13px/1 Arial,Helvetica,sans-serif;">
-            View pass &amp; live status
+            ${data.linkOnly ? 'View pass &amp; live status' : 'Go to my account'}
           </a>
         </td></tr>
 
@@ -331,7 +354,7 @@ export function ticketEmailText(data: TicketEmailData): string {
     // showing only this one must not leave someone believing they have a bar
     // tab that does not exist.
     ...data.tickets.flatMap((t, i) => [
-      `  ${i + 1}. ${t.holderName} — ${t.code}` +
+      `  ${i + 1}. ${t.holderName} — ${t.serial ? `#${t.serial} · ` : ''}${t.code}` +
         `${t.admits > 1 ? ` (${t.tierName}, admits ${t.admits})` : ` (${t.tierName})`}`,
       `     ${
         t.redeemablePaise === 0
@@ -341,7 +364,9 @@ export function ticketEmailText(data: TicketEmailData): string {
       `     ${t.url}`,
     ]),
     '',
-    'The QR codes are attached as images to this email. Show one at the door.',
+    data.linkOnly
+      ? 'Open your pass from the link above to show the QR at the door.'
+      : 'The QR codes are attached as images to this email, and are in your account. Show one at the door.',
     data.tickets.some((t) => t.admits > 1)
       ? 'Each QR works exactly once and admits the number of people shown beside it.'
       : 'Each QR admits one person and works exactly once.',

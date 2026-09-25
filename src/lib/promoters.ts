@@ -3,8 +3,11 @@ import crypto from 'node:crypto';
 import { cookies } from 'next/headers';
 import { SignJWT, jwtVerify } from 'jose';
 import { env } from './env';
+import { serialRanges } from './utils';
 import { query, queryOne, transaction } from './db';
 import { signingKey } from './signing-key';
+import { SerialError, releasePromoterSerials, reservePromoterSerials } from './serials';
+import { listLedger, type LedgerTicket } from './ticket-ledger';
 
 /**
  * Promoter distribution.
@@ -144,42 +147,37 @@ export async function getPromoterStats(id: string): Promise<PromoterStats | null
   return row ? withDerived(row) : null;
 }
 
-export interface PromoterTicket {
-  id: string;
-  code: string;
-  holder_name: string;
-  status: string;
-  active: boolean;
-  activated_at: string | null;
-  checked_in_at: string | null;
-  created_at: string;
-  reference: string;
-  customer_name: string;
-  customer_email: string;
-  customer_phone: string | null;
-  email_sent_at: string | null;
-  promoter_id: string | null;
-  promoter_name: string | null;
-}
+export type PromoterTicket = LedgerTicket;
 
-const TICKET_SQL = `
-  SELECT t.id, t.code, t.holder_name, t.status, t.active, t.activated_at, t.checked_in_at, t.created_at,
-         b.reference, b.customer_name, b.customer_email, b.customer_phone, b.email_sent_at,
-         t.promoter_id, p.name AS promoter_name
-    FROM tickets t
-    JOIN bookings b ON b.id = t.booking_id
-    LEFT JOIN promoters p ON p.id = t.promoter_id`;
-
-export async function listPromoterTickets(promoterId: string, limit = 2000): Promise<PromoterTicket[]> {
-  return query<PromoterTicket>(`${TICKET_SQL} WHERE t.promoter_id = $1 ORDER BY t.created_at DESC LIMIT $2`, [promoterId, limit]);
+export async function listPromoterTickets(promoterId: string, limit = 5000): Promise<LedgerTicket[]> {
+  const rows = await listLedger({ promoterId }, limit);
+  // Newest first on the promoter's own screens.
+  return rows.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 }
 
 /** Passes issued by promoters whose accounts were since deleted. */
-export async function listOrphanedPromoterTickets(limit = 2000): Promise<PromoterTicket[]> {
-  return query<PromoterTicket>(
-    `${TICKET_SQL} WHERE t.promoter_id IS NULL AND b.payment_provider = 'promoter' ORDER BY t.created_at DESC LIMIT $1`,
-    [limit],
+export async function listOrphanedPromoterTickets(limit = 5000): Promise<LedgerTicket[]> {
+  return listLedger({ orphaned: true }, limit);
+}
+
+/** The serials reserved to a promoter, and which of them are issued. */
+export async function getPromoterSerials(promoterId: string): Promise<{ all: number[]; issued: number[] }> {
+  const rows = await query<{ serial: number; ticket_id: string | null }>(
+    'SELECT serial, ticket_id FROM promoter_serials WHERE promoter_id = $1 ORDER BY serial',
+    [promoterId],
   );
+  return {
+    all: rows.map((r) => Number(r.serial)),
+    issued: rows.filter((r) => r.ticket_id).map((r) => Number(r.serial)),
+  };
+}
+
+/** Serial ranges for every promoter at once, for the overview. */
+export async function listSerialRanges(): Promise<Map<string, number[]>> {
+  const rows = await query<{ promoter_id: string; serials: number[] }>(
+    'SELECT promoter_id, array_agg(serial ORDER BY serial) AS serials FROM promoter_serials GROUP BY promoter_id',
+  );
+  return new Map(rows.map((r) => [r.promoter_id, r.serials.map(Number)]));
 }
 
 export interface ActivityRow {
@@ -275,7 +273,7 @@ export async function createPromoter(input: {
       input.email?.trim().toLowerCase() || null,
       hash,
       hintFor(code),
-      Math.max(0, Math.round(input.allocated ?? 0)),
+      0,
       Math.max(0, Math.round(input.dealPricePaise ?? 0)),
       input.notes?.trim() || null,
       input.eventId ?? null,
@@ -283,8 +281,15 @@ export async function createPromoter(input: {
   );
   if (!promoter) throw new PromoterError('Could not create the promoter', 500);
   await logActivity(promoter.id, 'created', { actor: input.actor });
-  if (promoter.allocated > 0) {
-    await logActivity(promoter.id, 'allocated', { quantity: promoter.allocated, actor: input.actor, note: 'Opening allocation' });
+  const opening = Math.max(0, Math.round(input.allocated ?? 0));
+  if (opening > 0) {
+    try {
+      promoter.allocated = await adjustAllocation(promoter.id, opening, 'Opening allocation', input.actor);
+    } catch (error) {
+      // The account exists; say why the passes did not go on it.
+      if (error instanceof PromoterError) throw new PromoterError(`Promoter created, but no passes allocated: ${error.message}`, error.status);
+      throw error;
+    }
   }
   return { promoter, code };
 }
@@ -354,7 +359,10 @@ export async function adjustAllocation(id: string, delta: number, note: string |
   const quantity = Math.round(delta);
   if (!quantity) throw new PromoterError('Enter a number of passes', 422);
   return transaction(async (client) => {
-    const { rows } = await client.query<{ allocated: number }>('SELECT allocated FROM promoters WHERE id = $1 FOR UPDATE', [id]);
+    const { rows } = await client.query<{ allocated: number; event_id: string | null }>(
+      'SELECT allocated, event_id FROM promoters WHERE id = $1 FOR UPDATE',
+      [id],
+    );
     if (!rows[0]) throw new PromoterError('That promoter does not exist', 404);
     const { rows: used } = await client.query<{ n: number }>(
       `SELECT count(*)::int AS n FROM tickets WHERE promoter_id = $1 AND status <> 'void'`,
@@ -369,10 +377,38 @@ export async function adjustAllocation(id: string, delta: number, note: string |
       );
     }
     if (next > 100000) throw new PromoterError('That allocation is implausibly large', 422);
+    // Serials move with the allocation: given passes reserve the lowest free
+    // serials in 1000–5000, taken-back passes release the promoter's highest
+    // unissued ones.
+    let eventId = rows[0].event_id;
+    if (!eventId) {
+      const { rows: ev } = await client.query<{ id: string }>(
+        `SELECT id FROM events WHERE status = 'published' AND starts_at > now() ORDER BY starts_at LIMIT 1`,
+      );
+      eventId = ev[0]?.id ?? null;
+      if (!eventId) throw new PromoterError('There is no upcoming event to allocate passes for', 409);
+      await client.query('UPDATE promoters SET event_id = $2 WHERE id = $1', [id, eventId]);
+    }
+    let serials: number[];
+    try {
+      serials =
+        quantity > 0
+          ? await reservePromoterSerials(client, eventId, id, quantity)
+          : await releasePromoterSerials(client, id, -quantity);
+    } catch (error) {
+      if (error instanceof SerialError) throw new PromoterError(error.message, error.status);
+      throw error;
+    }
     await client.query('UPDATE promoters SET allocated = $2, updated_at = now() WHERE id = $1', [id, next]);
     await client.query(
       `INSERT INTO promoter_activity (promoter_id, kind, quantity, note, actor) VALUES ($1,$2,$3,$4,$5)`,
-      [id, quantity > 0 ? 'allocated' : 'revoked', Math.abs(quantity), note?.slice(0, 500) ?? null, actor],
+      [
+        id,
+        quantity > 0 ? 'allocated' : 'revoked',
+        Math.abs(quantity),
+        [serialRanges(serials) ? `Serials ${serialRanges(serials)}` : null, note?.trim() || null].filter(Boolean).join(' · ').slice(0, 500),
+        actor,
+      ],
     );
     return next;
   });
@@ -416,10 +452,16 @@ export async function setTicketsActive(
 ): Promise<{ changed: number }> {
   if (ticketIds.length === 0) return { changed: 0 };
   const rows = await query<{ id: string; promoter_id: string | null; reference: string; code: string }>(
+    // Website purchases are paid through the gateway and are not switchable
+    // here; console and promoter passes are. activated_at is stamped on the
+    // way down too, so a pass switched off reads as "deactivated" rather than
+    // "never activated".
     `UPDATE tickets t
-        SET active = $2, activated_at = CASE WHEN $2 THEN now() ELSE t.activated_at END
+        SET active = $2,
+            activated_at = CASE WHEN $2 THEN now() ELSE COALESCE(t.activated_at, t.created_at) END
        FROM bookings b
       WHERE t.id = ANY($1::uuid[]) AND b.id = t.booking_id AND t.active <> $2 AND t.status <> 'void'
+        AND (b.source IN ('admin', 'promoter') OR b.payment_provider = 'promoter')
       RETURNING t.id, t.promoter_id, b.reference, t.code`,
     [ticketIds, active],
   );

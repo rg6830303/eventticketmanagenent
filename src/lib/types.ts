@@ -76,7 +76,7 @@ export interface BookingRow {
   nudge_sent_at: string | null;
   currency: string;
   status: BookingStatus;
-  payment_provider: 'none' | 'razorpay' | 'upi' | 'comp' | 'cash';
+  payment_provider: 'none' | 'razorpay' | 'upi' | 'comp' | 'cash' | 'promoter';
   payment_order_id: string | null;
   payment_id: string | null;
   paid_at: string | null;
@@ -118,6 +118,8 @@ export interface TicketRow {
   active: boolean;
   promoter_id: string | null;
   activated_at: string | null;
+  /** Short per-event number: 1000–5000 promoter passes, 5001+ everything else. */
+  serial: number | null;
 }
 
 export interface AdminUserRow {
@@ -161,6 +163,7 @@ export interface ScanOutcome {
     bookingReference: string;
     quantity: number;
     checkedInAt: string | null;
+    serial?: number | null;
     /** Heads this one QR lets through. */
     admits: number;
     /**
