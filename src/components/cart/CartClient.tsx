@@ -53,13 +53,16 @@ export function CartClient({
   useEffect(() => {
     setHydrated(true);
     setItems(loadCart());
-    setReferralInput(window.localStorage.getItem(REFERRAL_KEY) ?? '');
+    // A referral code is typed by the customer who knows it, every time. It
+    // used to be saved to this browser and silently refilled on every later
+    // visit, so one code typed once looked like a default discount. Clear
+    // anything that older version left behind.
+    try {
+      window.localStorage.removeItem(REFERRAL_KEY);
+    } catch {
+      /* storage blocked: nothing to clear */
+    }
   }, []);
-
-  useEffect(() => {
-    if (!hydrated) return;
-    window.localStorage.setItem(REFERRAL_KEY, referralInput);
-  }, [referralInput, hydrated]);
 
   useEffect(() => {
     function sync() {

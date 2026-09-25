@@ -138,7 +138,7 @@ function maintenanceHtml(): string {
      still works and will scan at the door — the link in your confirmation email
      is unaffected.</p>
   <p class="foot">Paid but never received your passes? Email
-     <a href="mailto:hello@houzofvybe.com">hello@houzofvybe.com</a> with your booking
+     <a href="mailto:support@houzofvybe.com">support@houzofvybe.com</a> with your booking
      reference and we will sort it out.</p>
 </main></body></html>`;
 }

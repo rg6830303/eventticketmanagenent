@@ -563,6 +563,11 @@ export async function reconcilePending(
         -- every sweep, forever.
         AND payment_order_id LIKE 'order\_%'
         AND created_at > now() - ($1 || ' hours')::interval
+        -- Only events that have not ended. Abandoned checkouts for a finished
+        -- night cost one Razorpay call each on every sweep, and the sweep
+        -- runs off public page views: 170 of them for OFF Campus alone were
+        -- keeping the site's functions busy for no possible outcome.
+        AND event_id IN (SELECT id FROM events WHERE COALESCE(ends_at, starts_at + interval '12 hours') > now())
       ORDER BY created_at DESC
       LIMIT 200`,
     [String(withinHours)],

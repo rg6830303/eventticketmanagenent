@@ -17,8 +17,8 @@ export const BRAND = {
     'Houz of Vybe runs Hyderabad’s day parties and festival nights. Create an account, book online, get a QR pass by email and walk straight in.',
   city: 'Hyderabad',
   // TODO(operator): swap in the live inboxes and number before you announce.
-  email: 'hello@houzofvybe.com',
-  supportEmail: 'tickets@houzofvybe.com',
+  email: 'houzofvybe@gmail.com',
+  supportEmail: 'support@houzofvybe.com',
   phone: '+91 88867 44499',
   whatsapp: '918886744499',
   instagram: 'https://instagram.com/houzofvybe',
