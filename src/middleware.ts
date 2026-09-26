@@ -225,8 +225,13 @@ export async function middleware(request: NextRequest) {
       : `/admin${pathname}`
     : pathname;
 
+  // /promoview is a separate, view-only promoter dashboard with its own one-code
+  // lock (checked by the page itself), so it must not demand an admin login.
   const needsAuth =
-    !isApi && targetPath.startsWith('/admin') && !targetPath.startsWith('/admin/login');
+    !isApi &&
+    targetPath.startsWith('/admin') &&
+    !targetPath.startsWith('/admin/login') &&
+    targetPath !== '/admin/promoview';
 
   if (needsAuth) {
     // On the admin host the login page is reachable at /login, which the rewrite
