@@ -187,9 +187,6 @@ function PassCard({ row }: { row: TicketLookupRow }) {
       </p>
 
       <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px]">
-        <span className={cn('font-semibold', zeroCover ? 'text-flare-600' : 'text-leaf-600')}>
-          {zeroCover ? 'Zero redeemable' : `${formatInr(row.redeemable_paise)} redeemable`}
-        </span>
         <span className="text-muted">{row.customer_email}</span>
         {row.customer_phone && <span className="tnum text-muted">{row.customer_phone}</span>}
       </div>

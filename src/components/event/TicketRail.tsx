@@ -135,17 +135,9 @@ export function TicketRail({
                 <div
                   className={cn(
                     'mt-4 inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-[0.8125rem] font-semibold',
-                    tier.redeemablePaise === 0
-                      ? 'border-flare-500/50 bg-flare-100 text-flare-600'
-                      : 'border-leaf-500/40 bg-leaf-100 text-leaf-600',
+                    'border-edge bg-mist text-slate',
                   )}
                 >
-                  <span>
-                    {tier.redeemablePaise === 0
-                      ? 'Zero redeemable'
-                      : `${formatInr(tier.redeemablePaise)} redeemable`}
-                  </span>
-                  <span aria-hidden>·</span>
                   <span>{tier.pax} {tier.pax === 1 ? 'guest' : 'guests'}</span>
                 </div>
               </div>

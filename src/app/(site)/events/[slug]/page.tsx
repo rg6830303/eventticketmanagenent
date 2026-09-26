@@ -68,7 +68,7 @@ export default async function EventPage({ params }: Params) {
               <img
                 src={event.hero_image}
                 alt={`${title} poster`}
-                className="relative aspect-square w-full rounded-[1.75rem] border-[1.5px] border-ink object-cover shadow-press"
+                className="relative h-auto w-full rounded-[1.75rem] border-[1.5px] border-ink object-cover shadow-press"
               />
             ) : (
               <div className="relative flex aspect-square w-full items-center justify-center rounded-[1.75rem] border-[1.5px] border-ink bg-vybe-100 font-display text-4xl font-bold text-ink shadow-press">

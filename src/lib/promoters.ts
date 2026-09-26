@@ -200,6 +200,17 @@ export async function listActivity(promoterId: string, limit = 200): Promise<Act
   );
 }
 
+/** The payments an admin has logged for a promoter, newest first. Read-only on the promoter's side. */
+export async function listPromoterPayments(promoterId: string): Promise<ActivityRow[]> {
+  return query<ActivityRow>(
+    `SELECT id, kind, quantity, amount_paise, reference, note, actor, created_at
+       FROM promoter_activity
+      WHERE promoter_id = $1 AND kind IN ('payment', 'payment_removed')
+      ORDER BY created_at DESC`,
+    [promoterId],
+  );
+}
+
 export async function listRecentActivity(limit = 40): Promise<Array<ActivityRow & { promoter_id: string; promoter_name: string }>> {
   return query(
     `SELECT a.id, a.kind, a.quantity, a.amount_paise, a.reference, a.note, a.actor, a.created_at,

@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { getFeaturedEvent } from '@/lib/event-facts';
-import { getPromoterSerials, getPromoterStats, getSignedInPromoter, listPromoterTickets } from '@/lib/promoters';
-import { serialRanges } from '@/lib/utils';
+import { getPromoterSerials, getPromoterStats, getSignedInPromoter, listPromoterPayments, listPromoterTickets } from '@/lib/promoters';
+import { formatInr, serialRanges } from '@/lib/utils';
 import { Logo } from '@/components/brand/Logo';
 import { PromoterLogin, PromoterIssue, PromoterSignOut } from '@/components/promoter/PromoterDashboard';
 
@@ -26,11 +26,12 @@ export default async function PromoterPage() {
     );
   }
 
-  const [stats, tickets, event, serials] = await Promise.all([
+  const [stats, tickets, event, serials, payments] = await Promise.all([
     getPromoterStats(signedIn.id),
     listPromoterTickets(signedIn.id),
     getFeaturedEvent(),
     getPromoterSerials(signedIn.id),
+    listPromoterPayments(signedIn.id),
   ]);
   const issuedSerials = new Set(serials.issued);
   const unissued = serials.all.filter((s) => !issuedSerials.has(s));
@@ -78,6 +79,60 @@ export default async function PromoterPage() {
       <div className="mt-6">
         <PromoterIssue remaining={remaining} />
       </div>
+
+      {/* Read-only: payments are logged, corrected and removed only in the
+          admin console. This is the promoter's copy of that ledger. */}
+      <section className="mt-8">
+        <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">Payments to the organiser</h2>
+        <div className="mt-2 grid grid-cols-2 gap-2">
+          <div className="rounded-xl border border-edge bg-paper p-3">
+            <p className="text-[10.5px] font-semibold uppercase tracking-[0.1em] text-muted">Received</p>
+            <p className="mt-0.5 font-display text-xl font-bold text-leaf-600 tnum">{formatInr(stats?.received_paise ?? 0)}</p>
+            <p className="text-[11px] text-slate">covers {stats?.paid_tickets ?? 0} passes</p>
+          </div>
+          <div className="rounded-xl border border-edge bg-paper p-3">
+            <p className="text-[10.5px] font-semibold uppercase tracking-[0.1em] text-muted">Still due</p>
+            <p className={`mt-0.5 font-display text-xl font-bold tnum ${(stats?.due_paise ?? 0) > 0 ? 'text-flare-600' : 'text-ink'}`}>
+              {stats && stats.deal_price_paise > 0 ? formatInr(stats.due_paise) : '—'}
+            </p>
+            <p className="text-[11px] text-slate">
+              {stats && stats.deal_price_paise > 0
+                ? `${issued} issued × ${formatInr(stats.deal_price_paise)}`
+                : 'no deal price set'}
+            </p>
+          </div>
+        </div>
+        {payments.length === 0 ? (
+          <p className="mt-2 rounded-xl border border-dashed border-edge p-4 text-center text-[13px] text-muted">
+            No payments recorded yet. Once the organiser logs one, it shows here.
+          </p>
+        ) : (
+          <ul className="mt-2 divide-y divide-edge/70 overflow-hidden rounded-xl border border-edge bg-paper">
+            {payments.map((p) => {
+              const correction = p.kind === 'payment_removed';
+              return (
+                <li key={p.id} className="flex items-start justify-between gap-3 px-3 py-2.5">
+                  <div className="min-w-0">
+                    <p className="text-[14px] font-semibold text-ink">
+                      {correction ? 'Correction' : 'Payment received'}
+                      {p.quantity ? <span className="font-normal text-slate"> · {p.quantity} passes</span> : null}
+                    </p>
+                    {p.note && <p className="break-words text-[12px] text-slate">{p.note}</p>}
+                    <p className="text-[11px] text-muted">
+                      {new Date(p.created_at).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' })}
+                    </p>
+                  </div>
+                  <p className={`shrink-0 font-display text-[15px] font-bold tnum ${correction ? 'text-flare-600' : 'text-leaf-600'}`}>
+                    {correction ? '−' : '+'}
+                    {formatInr(p.amount_paise)}
+                  </p>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+        <p className="mt-2 text-[12px] text-muted">Recorded by the organiser. If something looks wrong, contact them to correct it.</p>
+      </section>
 
       {tickets.length > 0 && (
         <section className="mt-8">

@@ -94,7 +94,7 @@ export default async function HomePage() {
                 <img
                   src={live.hero_image}
                   alt={`${live.name} ${live.tagline ?? ''} poster`}
-                  className="relative aspect-square w-full rounded-[1.75rem] border-2 border-amber-300 object-cover shadow-2xl transition-transform duration-500 group-hover:-translate-y-1"
+                  className="relative h-auto w-full rounded-[1.75rem] border-2 border-amber-300 object-cover shadow-2xl transition-transform duration-500 group-hover:-translate-y-1"
                 />
               ) : (
                 <div className="relative aspect-square w-full rounded-[1.75rem] border-2 border-amber-300 bg-rose-900" />

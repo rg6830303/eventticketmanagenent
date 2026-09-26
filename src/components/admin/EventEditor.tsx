@@ -115,7 +115,7 @@ export function EventEditor({ event }: { event: EditableEvent }) {
               <option value="archived">Archived — hidden</option>
             </select>
           </F>
-          <F label="Poster image path" wide hint="A file in /public, e.g. /events/dandiya-project-2026.jpg">
+          <F label="Poster image path" wide hint="A file in /public, e.g. /events/dandiya-project-2026-poster.jpg">
             <input className="field py-2 text-[13px]" value={draft.heroImage} onChange={set('heroImage')} />
           </F>
           <div className="flex items-center gap-3 sm:col-span-2">

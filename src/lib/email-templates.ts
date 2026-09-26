@@ -141,18 +141,6 @@ export function ticketEmailHtml(data: TicketEmailData): string {
                   ${esc(ticket.tierName)}${ticket.admits > 1 ? ` &middot; admits ${ticket.admits}` : ''}
                 </p>
 
-                <!-- Said on the pass itself. A guest who thinks they have a bar
-                     tab and does not is an argument at the counter, and the
-                     staff member having it has no way to check. -->
-                <p style="margin:0 0 18px 0;font:700 12px/1.4 Arial,Helvetica,sans-serif;letter-spacing:1px;text-transform:uppercase;color:${
-                  ticket.redeemablePaise === 0 ? '#b42318' : '#067647'
-                };">
-                  ${
-                    ticket.redeemablePaise === 0
-                      ? 'Zero redeemable &middot; entry only'
-                      : `${formatInr(ticket.redeemablePaise)} redeemable at the bar`
-                  }
-                </p>
                 ${
                   data.linkOnly
                     ? ''
@@ -356,11 +344,6 @@ export function ticketEmailText(data: TicketEmailData): string {
     ...data.tickets.flatMap((t, i) => [
       `  ${i + 1}. ${t.holderName} — ${t.serial ? `#${t.serial} · ` : ''}${t.code}` +
         `${t.admits > 1 ? ` (${t.tierName}, admits ${t.admits})` : ` (${t.tierName})`}`,
-      `     ${
-        t.redeemablePaise === 0
-          ? 'ZERO REDEEMABLE — entry only'
-          : `${formatInr(t.redeemablePaise)} redeemable at the bar`
-      }`,
       `     ${t.url}`,
     ]),
     '',
