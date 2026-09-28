@@ -6,7 +6,7 @@ import { env } from './env';
 import { serialRanges } from './utils';
 import { query, queryOne, transaction } from './db';
 import { signingKey } from './signing-key';
-import { SerialError, releasePromoterSerials, reservePromoterSerials } from './serials';
+import { PROMOTER_SERIAL_MAX, PROMOTER_SERIAL_MIN, SerialError, allocateSerialRange, releaseSerialRange } from './serials';
 import { listLedger, type LedgerTicket } from './ticket-ledger';
 
 /**
@@ -189,6 +189,7 @@ export interface ActivityRow {
   note: string | null;
   actor: string | null;
   created_at: string;
+  serials?: number[] | null;
 }
 
 export async function listActivity(promoterId: string, limit = 200): Promise<ActivityRow[]> {
@@ -203,7 +204,7 @@ export async function listActivity(promoterId: string, limit = 200): Promise<Act
 /** The payments an admin has logged for a promoter, newest first. Read-only on the promoter's side. */
 export async function listPromoterPayments(promoterId: string): Promise<ActivityRow[]> {
   return query<ActivityRow>(
-    `SELECT id, kind, quantity, amount_paise, reference, note, actor, created_at
+    `SELECT id, kind, quantity, amount_paise, reference, note, actor, created_at, serials
        FROM promoter_activity
       WHERE promoter_id = $1 AND kind IN ('payment', 'payment_removed')
       ORDER BY created_at DESC`,
@@ -262,7 +263,8 @@ export async function createPromoter(input: {
   phone?: string | null;
   email?: string | null;
   code?: string | null;
-  allocated?: number;
+  rangeFrom?: number | null;
+  rangeTo?: number | null;
   dealPricePaise?: number;
   notes?: string | null;
   eventId?: string | null;
@@ -292,10 +294,14 @@ export async function createPromoter(input: {
   );
   if (!promoter) throw new PromoterError('Could not create the promoter', 500);
   await logActivity(promoter.id, 'created', { actor: input.actor });
-  const opening = Math.max(0, Math.round(input.allocated ?? 0));
-  if (opening > 0) {
+  if (input.rangeFrom && input.rangeTo) {
     try {
-      promoter.allocated = await adjustAllocation(promoter.id, opening, 'Opening allocation', input.actor);
+      const result = await changeSerialRange(
+        promoter.id,
+        { mode: 'add', from: input.rangeFrom, to: input.rangeTo, note: 'Opening allocation' },
+        input.actor,
+      );
+      promoter.allocated = result.allocated;
     } catch (error) {
       // The account exists; say why the passes did not go on it.
       if (error instanceof PromoterError) throw new PromoterError(`Promoter created, but no passes allocated: ${error.message}`, error.status);
@@ -361,36 +367,20 @@ export async function updatePromoter(
 }
 
 /**
- * Give passes to, or take unissued passes back from, a promoter.
+ * Allocate an exact serial range to a promoter, or take an unsold range back.
  *
- * Taking back can never go below what they have already issued — those passes
- * are in customers' inboxes. To pull an issued pass, deactivate or void it.
+ * The allocation *is* the set of serials: `promoters.allocated` is kept equal
+ * to how many serials they hold. Sold serials can never be taken back — those
+ * passes are in customers' hands; deactivate them instead.
  */
-export async function adjustAllocation(id: string, delta: number, note: string | null, actor: string): Promise<number> {
-  const quantity = Math.round(delta);
-  if (!quantity) throw new PromoterError('Enter a number of passes', 422);
+export async function changeSerialRange(
+  id: string,
+  input: { mode: 'add' | 'remove'; from: number; to: number; note: string | null },
+  actor: string,
+): Promise<{ allocated: number; serials: number[] }> {
   return transaction(async (client) => {
-    const { rows } = await client.query<{ allocated: number; event_id: string | null }>(
-      'SELECT allocated, event_id FROM promoters WHERE id = $1 FOR UPDATE',
-      [id],
-    );
+    const { rows } = await client.query<{ event_id: string | null }>('SELECT event_id FROM promoters WHERE id = $1 FOR UPDATE', [id]);
     if (!rows[0]) throw new PromoterError('That promoter does not exist', 404);
-    const { rows: used } = await client.query<{ n: number }>(
-      `SELECT count(*)::int AS n FROM tickets WHERE promoter_id = $1 AND status <> 'void'`,
-      [id],
-    );
-    const issued = used[0]?.n ?? 0;
-    const next = rows[0].allocated + quantity;
-    if (next < issued) {
-      throw new PromoterError(
-        `They have already issued ${issued}. You can take back at most ${rows[0].allocated - issued} unissued passes.`,
-        409,
-      );
-    }
-    if (next > 100000) throw new PromoterError('That allocation is implausibly large', 422);
-    // Serials move with the allocation: given passes reserve the lowest free
-    // serials in 1000–5000, taken-back passes release the promoter's highest
-    // unissued ones.
     let eventId = rows[0].event_id;
     if (!eventId) {
       const { rows: ev } = await client.query<{ id: string }>(
@@ -400,48 +390,169 @@ export async function adjustAllocation(id: string, delta: number, note: string |
       if (!eventId) throw new PromoterError('There is no upcoming event to allocate passes for', 409);
       await client.query('UPDATE promoters SET event_id = $2 WHERE id = $1', [id, eventId]);
     }
+
     let serials: number[];
     try {
       serials =
-        quantity > 0
-          ? await reservePromoterSerials(client, eventId, id, quantity)
-          : await releasePromoterSerials(client, id, -quantity);
+        input.mode === 'add'
+          ? await allocateSerialRange(client, eventId, id, input.from, input.to)
+          : await releaseSerialRange(client, id, input.from, input.to);
     } catch (error) {
       if (error instanceof SerialError) throw new PromoterError(error.message, error.status);
       throw error;
     }
-    await client.query('UPDATE promoters SET allocated = $2, updated_at = now() WHERE id = $1', [id, next]);
+
+    const { rows: count } = await client.query<{ n: number }>(
+      'SELECT count(*)::int AS n FROM promoter_serials WHERE promoter_id = $1',
+      [id],
+    );
+    const allocated = count[0]?.n ?? 0;
+    await client.query('UPDATE promoters SET allocated = $2, updated_at = now() WHERE id = $1', [id, allocated]);
     await client.query(
-      `INSERT INTO promoter_activity (promoter_id, kind, quantity, note, actor) VALUES ($1,$2,$3,$4,$5)`,
+      `INSERT INTO promoter_activity (promoter_id, kind, quantity, note, actor, serials) VALUES ($1,$2,$3,$4,$5,$6)`,
       [
         id,
-        quantity > 0 ? 'allocated' : 'revoked',
-        Math.abs(quantity),
-        [serialRanges(serials) ? `Serials ${serialRanges(serials)}` : null, note?.trim() || null].filter(Boolean).join(' · ').slice(0, 500),
+        input.mode === 'add' ? 'allocated' : 'revoked',
+        serials.length,
+        [`Serials #${serialRanges(serials)}`, input.note?.trim() || null].filter(Boolean).join(' · ').slice(0, 500),
         actor,
+        serials,
       ],
     );
-    return next;
+    return { allocated, serials };
   });
+}
+
+/** Where a new block could start: just after the highest serial in use, or 1000. */
+export async function suggestNextRangeStart(eventId: string | null): Promise<number> {
+  if (!eventId) return PROMOTER_SERIAL_MIN;
+  const row = await queryOne<{ top: number | null }>(
+    `SELECT GREATEST(
+       (SELECT max(serial) FROM promoter_serials WHERE event_id = $1),
+       (SELECT max(serial) FROM tickets WHERE event_id = $1 AND serial <= ${PROMOTER_SERIAL_MAX})
+     ) AS top`,
+    [eventId],
+  );
+  return Math.min(PROMOTER_SERIAL_MAX, row?.top ? Number(row.top) + 1 : PROMOTER_SERIAL_MIN);
 }
 
 export async function recordPayment(
   id: string,
-  input: { amountPaise: number; tickets: number; note: string | null; removal?: boolean },
+  input: { amountPaise: number; serials: number[]; note: string | null; removal?: boolean },
   actor: string,
 ): Promise<void> {
   const exists = await queryOne<{ id: string }>('SELECT id FROM promoters WHERE id = $1', [id]);
   if (!exists) throw new PromoterError('That promoter does not exist', 404);
   const amount = Math.round(input.amountPaise);
-  const tickets = Math.round(input.tickets);
-  if (amount < 0 || tickets < 0 || (amount === 0 && tickets === 0)) {
-    throw new PromoterError('Enter the amount received and/or the number of passes it covers', 422);
+  if (amount <= 0) throw new PromoterError('Enter the amount received', 422);
+  if (input.serials.length === 0) throw new PromoterError('Enter the serial numbers this payment covers', 422);
+
+  // Money is tracked per serial, so every serial named must be one of theirs.
+  const owned = await query<{ serial: number }>(
+    'SELECT serial FROM promoter_serials WHERE promoter_id = $1 AND serial = ANY($2::int[])',
+    [id, input.serials],
+  );
+  const ownedSet = new Set(owned.map((r) => Number(r.serial)));
+  const foreign = input.serials.filter((n) => !ownedSet.has(n));
+  if (foreign.length > 0) {
+    throw new PromoterError(`#${serialRanges(foreign)} ${foreign.length === 1 ? 'is' : 'are'} not allocated to this promoter`, 422);
   }
-  await logActivity(id, input.removal ? 'payment_removed' : 'payment', {
-    quantity: tickets,
-    amountPaise: amount,
-    note: input.note,
-    actor,
+
+  await query(
+    `INSERT INTO promoter_activity (promoter_id, kind, quantity, amount_paise, note, actor, serials)
+     VALUES ($1,$2,$3,$4,$5,$6,$7)`,
+    [
+      id,
+      input.removal ? 'payment_removed' : 'payment',
+      input.serials.length,
+      amount,
+      [`Serials #${serialRanges(input.serials)}`, input.note?.trim() || null].filter(Boolean).join(' · ').slice(0, 500),
+      actor,
+      input.serials,
+    ],
+  );
+}
+
+export interface SerialRecord {
+  serial: number;
+  /** unsold | pending | active | deactivated | admitted | void */
+  state: string;
+  ticket_id: string | null;
+  holder_name: string | null;
+  customer_email: string | null;
+  customer_phone: string | null;
+  reference: string | null;
+  sold_at: string | null;
+  /** Net money logged against this serial, in paise (a payment's amount split evenly across its serials). */
+  paid_paise: number;
+}
+
+/**
+ * Every serial allocated to a promoter, one row each: who it was sold to, the
+ * pass state, and how much money has been logged against it.
+ */
+export async function getSerialLedger(promoterId: string): Promise<SerialRecord[]> {
+  const [rows, payments] = await Promise.all([
+    query<{
+      serial: number;
+      ticket_id: string | null;
+      status: string | null;
+      active: boolean | null;
+      activated_at: string | null;
+      holder_name: string | null;
+      customer_email: string | null;
+      customer_phone: string | null;
+      reference: string | null;
+      sold_at: string | null;
+    }>(
+      `SELECT ps.serial, t.id AS ticket_id, t.status, t.active, t.activated_at, t.holder_name,
+              b.customer_email, b.customer_phone, b.reference, t.created_at AS sold_at
+         FROM promoter_serials ps
+         LEFT JOIN tickets t ON t.id = ps.ticket_id
+         LEFT JOIN bookings b ON b.id = t.booking_id
+        WHERE ps.promoter_id = $1
+        ORDER BY ps.serial`,
+      [promoterId],
+    ),
+    query<{ kind: string; amount_paise: number; serials: number[] | null }>(
+      `SELECT kind, amount_paise, serials FROM promoter_activity
+        WHERE promoter_id = $1 AND kind IN ('payment', 'payment_removed') AND serials IS NOT NULL`,
+      [promoterId],
+    ),
+  ]);
+
+  const paid = new Map<number, number>();
+  for (const p of payments) {
+    const list = (p.serials ?? []).map(Number);
+    if (list.length === 0) continue;
+    const share = Number(p.amount_paise) / list.length;
+    for (const n of list) paid.set(n, (paid.get(n) ?? 0) + (p.kind === 'payment' ? share : -share));
+  }
+
+  return rows.map((r) => {
+    const serial = Number(r.serial);
+    const state = !r.ticket_id
+      ? 'unsold'
+      : r.status === 'void'
+        ? 'void'
+        : r.status === 'used'
+          ? 'admitted'
+          : r.active
+            ? 'active'
+            : r.activated_at
+              ? 'deactivated'
+              : 'pending';
+    return {
+      serial,
+      state,
+      ticket_id: r.ticket_id,
+      holder_name: r.holder_name,
+      customer_email: r.customer_email,
+      customer_phone: r.customer_phone,
+      reference: r.reference,
+      sold_at: r.sold_at,
+      paid_paise: Math.round(paid.get(serial) ?? 0),
+    };
   });
 }
 

@@ -4,12 +4,13 @@ import { requireSession, verifyOrigin } from '@/lib/auth';
 import { recordAudit } from '@/lib/audit';
 import {
   PromoterError,
-  adjustAllocation,
+  changeSerialRange,
   deletePromoter,
   getPromoterStats,
   recordPayment,
   updatePromoter,
 } from '@/lib/promoters';
+import { parseSerialList } from '@/lib/utils';
 import { clientIp } from '@/lib/validation.server';
 
 export const runtime = 'nodejs';
@@ -80,9 +81,9 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
 
 /**
  * Ledger actions:
- *   { action: 'allocate', delta, note }                       give (+) or take back (−) passes
- *   { action: 'payment', amountRupees, tickets, note }        log money received from the promoter
- *   { action: 'payment_correction', amountRupees, tickets, note }  reverse a mistaken entry
+ *   { action: 'allocate', mode: 'add' | 'remove', from, to, note }   allocate or take back a serial range
+ *   { action: 'payment', amountRupees, serials, note }                 money received, against serials
+ *   { action: 'payment_correction', amountRupees, serials, note }      reverse a mistaken entry
  */
 export async function POST(request: NextRequest, { params }: Ctx) {
   try {
@@ -91,31 +92,39 @@ export async function POST(request: NextRequest, { params }: Ctx) {
     const { id } = await params;
     const body = (await readJson(request)) as {
       action?: string;
-      delta?: number;
+      mode?: string;
+      from?: number | string;
+      to?: number | string;
       amountRupees?: number;
-      tickets?: number;
+      serials?: string;
       note?: string;
     };
 
     if (body.action === 'allocate') {
-      const allocated = await adjustAllocation(id, Number(body.delta), body.note ?? null, session.email);
+      const mode = body.mode === 'remove' ? 'remove' : 'add';
+      const result = await changeSerialRange(
+        id,
+        { mode, from: Number(body.from), to: Number(body.to), note: body.note ?? null },
+        session.email,
+      );
       await recordAudit({
         actor: session,
-        action: 'promoter.allocate',
+        action: mode === 'add' ? 'promoter.allocate' : 'promoter.revoke',
         entity: 'promoter',
         entityId: id,
-        metadata: { delta: body.delta, allocated },
+        metadata: { from: body.from, to: body.to, allocated: result.allocated },
         ipAddress: clientIp(request.headers),
       });
-      return ok({ allocated });
+      return ok(result);
     }
 
     if (body.action === 'payment' || body.action === 'payment_correction') {
       const amountPaise = Math.round((Number(body.amountRupees) || 0) * 100);
-      const tickets = Math.round(Number(body.tickets) || 0);
+      const parsed = parseSerialList(String(body.serials ?? ''));
+      if ('error' in parsed) return fail(parsed.error, 'invalid_serials', 422);
       await recordPayment(
         id,
-        { amountPaise, tickets, note: body.note ?? null, removal: body.action === 'payment_correction' },
+        { amountPaise, serials: parsed.serials, note: body.note ?? null, removal: body.action === 'payment_correction' },
         session.email,
       );
       await recordAudit({
@@ -123,7 +132,7 @@ export async function POST(request: NextRequest, { params }: Ctx) {
         action: body.action === 'payment' ? 'promoter.payment' : 'promoter.payment_correction',
         entity: 'promoter',
         entityId: id,
-        metadata: { amountPaise, tickets },
+        metadata: { amountPaise, serials: parsed.serials.length },
         ipAddress: clientIp(request.headers),
       });
       return ok({ recorded: true });

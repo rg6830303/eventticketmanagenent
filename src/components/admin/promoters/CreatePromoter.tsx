@@ -4,9 +4,9 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { CodeReveal, Field, Note, call } from './ui';
 
-const EMPTY = { name: '', phone: '', email: '', code: '', allocated: '', dealPriceRupees: '', notes: '' };
+const EMPTY = { name: '', phone: '', email: '', code: '', rangeFrom: '', rangeTo: '', dealPriceRupees: '', notes: '' };
 
-export function CreatePromoter() {
+export function CreatePromoter({ nextStart }: { nextStart: number }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -23,7 +23,6 @@ export function CreatePromoter() {
     setError(null);
     const result = await call<{ code: string; promoter: { id: string; name: string } }>('/api/admin/promoters', 'POST', {
       ...draft,
-      allocated: Number(draft.allocated) || 0,
       dealPriceRupees: Number(draft.dealPriceRupees) || 0,
     });
     setBusy(false);
@@ -73,8 +72,19 @@ export function CreatePromoter() {
         <Field label="Email">
           <input className="field py-2 text-[14px]" value={draft.email} onChange={set('email')} type="email" />
         </Field>
-        <Field label="Passes to allocate" hint="Free to the promoter. You can add or take back later.">
-          <input className="field py-2 text-[14px]" value={draft.allocated} onChange={set('allocated')} inputMode="numeric" placeholder="0" />
+        <Field
+          label="Serial range to allocate"
+          hint={`Promoter serials are 1000–4999. Next free from #${nextStart}. ${
+            draft.rangeFrom && draft.rangeTo && Number(draft.rangeTo) >= Number(draft.rangeFrom)
+              ? `${Number(draft.rangeTo) - Number(draft.rangeFrom) + 1} passes.`
+              : 'Leave blank to allocate later.'
+          }`}
+        >
+          <div className="flex items-center gap-2">
+            <input className="field min-w-0 py-2 font-mono text-[14px]" value={draft.rangeFrom} onChange={set('rangeFrom')} inputMode="numeric" placeholder={String(nextStart)} aria-label="First serial" />
+            <span className="text-muted">to</span>
+            <input className="field min-w-0 py-2 font-mono text-[14px]" value={draft.rangeTo} onChange={set('rangeTo')} inputMode="numeric" placeholder={String(Math.min(4999, nextStart + 99))} aria-label="Last serial" />
+          </div>
         </Field>
         <Field label="Deal price per pass (₹)" hint="What they owe you per pass issued. Used for “amount due”.">
           <input className="field py-2 text-[14px]" value={draft.dealPriceRupees} onChange={set('dealPriceRupees')} inputMode="decimal" placeholder="0" />

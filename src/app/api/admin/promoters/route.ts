@@ -29,13 +29,17 @@ export async function POST(request: NextRequest) {
       phone?: string;
       email?: string;
       code?: string;
-      allocated?: number;
+      rangeFrom?: number | string;
+      rangeTo?: number | string;
       dealPriceRupees?: number;
       notes?: string;
     };
     if (!body.name?.trim()) return fail('The promoter needs a name', 'invalid_name', 422);
-    const allocated = Math.round(Number(body.allocated) || 0);
-    if (allocated < 0 || allocated > 100000) return fail('Allocation must be between 0 and 100,000', 'invalid_allocation', 422);
+    const rangeFrom = body.rangeFrom === undefined || body.rangeFrom === '' ? null : Number(body.rangeFrom);
+    const rangeTo = body.rangeTo === undefined || body.rangeTo === '' ? null : Number(body.rangeTo);
+    if ((rangeFrom === null) !== (rangeTo === null)) {
+      return fail('Enter both the first and the last serial of the range', 'invalid_range', 422);
+    }
 
     const event = await getFeaturedEvent();
     const { promoter, code } = await createPromoter({
@@ -43,7 +47,8 @@ export async function POST(request: NextRequest) {
       phone: body.phone ?? null,
       email: body.email ?? null,
       code: body.code ?? null,
-      allocated,
+      rangeFrom,
+      rangeTo,
       dealPricePaise: Math.round((Number(body.dealPriceRupees) || 0) * 100),
       notes: body.notes ?? null,
       eventId: event?.id ?? null,
@@ -55,7 +60,7 @@ export async function POST(request: NextRequest) {
       action: 'promoter.create',
       entity: 'promoter',
       entityId: promoter.id,
-      metadata: { name: promoter.name, allocated },
+      metadata: { name: promoter.name, rangeFrom, rangeTo },
       ipAddress: clientIp(request.headers),
     });
     return created({ promoter, code });

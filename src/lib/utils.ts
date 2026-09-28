@@ -110,3 +110,29 @@ export function serialRanges(serials: number[]): string {
   }
   return parts.join(', ');
 }
+
+/**
+ * Parse serials as people type them: "1005", "1005, 1007", "1005-1010",
+ * "#1005 1006". Returns sorted unique numbers, or an error message.
+ */
+export function parseSerialList(input: string, max = 4000): { serials: number[] } | { error: string } {
+  const text = input.replace(/#/g, '').trim();
+  if (!text) return { error: 'Enter a serial number' };
+  const out = new Set<number>();
+  for (const part of text.split(/[,\s]+/).filter(Boolean)) {
+    const range = part.match(/^(\d{1,5})\s*[-–]\s*(\d{1,5})$/);
+    if (range) {
+      const from = Number(range[1]);
+      const to = Number(range[2]);
+      if (from > to) return { error: `${part}: the first number must come first` };
+      if (to - from + 1 > max) return { error: `${part} is more than ${max} serials` };
+      for (let n = from; n <= to; n += 1) out.add(n);
+    } else if (/^\d{1,5}$/.test(part)) {
+      out.add(Number(part));
+    } else {
+      return { error: `"${part}" is not a serial number` };
+    }
+    if (out.size > max) return { error: `At most ${max} serials at once` };
+  }
+  return { serials: [...out].sort((a, b) => a - b) };
+}

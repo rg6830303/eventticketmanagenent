@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { getFeaturedEvent } from '@/lib/event-facts';
-import { getPromoterSerials, getPromoterStats, getSignedInPromoter, listPromoterPayments, listPromoterTickets } from '@/lib/promoters';
+import { getPromoterStats, getSerialLedger, getSignedInPromoter, listPromoterPayments, listPromoterTickets } from '@/lib/promoters';
+import { SerialLedger } from '@/components/admin/SerialLedger';
 import { formatInr, serialRanges } from '@/lib/utils';
 import { Logo } from '@/components/brand/Logo';
 import { PromoterLogin, PromoterIssue, PromoterSignOut } from '@/components/promoter/PromoterDashboard';
@@ -30,11 +31,11 @@ export default async function PromoterPage() {
     getPromoterStats(signedIn.id),
     listPromoterTickets(signedIn.id),
     getFeaturedEvent(),
-    getPromoterSerials(signedIn.id),
+    getSerialLedger(signedIn.id),
     listPromoterPayments(signedIn.id),
   ]);
-  const issuedSerials = new Set(serials.issued);
-  const unissued = serials.all.filter((s) => !issuedSerials.has(s));
+  const unsold = serials.filter((r) => r.state === 'unsold').map((r) => r.serial);
+  const soldCount = serials.length - unsold.length;
   const remaining = stats?.remaining ?? 0;
   const issued = stats?.issued ?? 0;
 
@@ -60,25 +61,30 @@ export default async function PromoterPage() {
         </div>
       </div>
 
-      {serials.all.length > 0 && (
+      {serials.length > 0 && (
         <div className="mt-3 space-y-1 rounded-2xl border border-edge bg-paper p-4 text-[13px]">
           <p className="flex flex-wrap gap-x-2">
-            <span className="font-semibold text-ink">Your serials</span>
-            <span className="break-all font-mono text-slate">#{serialRanges(serials.all)}</span>
+            <span className="font-semibold text-ink">Your serial range</span>
+            <span className="break-all font-mono text-slate">#{serialRanges(serials.map((r) => r.serial))}</span>
           </p>
-          {serials.issued.length > 0 && (
-            <p className="flex flex-wrap gap-x-2">
-              <span className="font-semibold text-ink">Issued</span>
-              <span className="break-all font-mono text-leaf-600">#{serialRanges(serials.issued)}</span>
-            </p>
-          )}
-          {unissued.length > 0 && <p className="text-[12px] text-muted">Next pass you issue: #{unissued[0]}</p>}
+          <p className="text-[12px] text-muted">
+            {soldCount} sold · {unsold.length} unsold{unsold.length > 0 ? ` · next unsold #${unsold[0]}` : ''}
+          </p>
         </div>
       )}
 
       <div className="mt-6">
-        <PromoterIssue remaining={remaining} />
+        <PromoterIssue remaining={remaining} unsold={unsold} />
       </div>
+
+      {serials.length > 0 && (
+        <section className="mt-8">
+          <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">Your serials</h2>
+          <div className="mt-2">
+            <SerialLedger rows={serials} dealPricePaise={stats?.deal_price_paise ?? 0} />
+          </div>
+        </section>
+      )}
 
       {/* Read-only: payments are logged, corrected and removed only in the
           admin console. This is the promoter's copy of that ledger. */}

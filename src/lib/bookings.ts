@@ -1,6 +1,6 @@
 import 'server-only';
 import { query, queryOne, transaction } from './db';
-import { claimPromoterSerials, takeEventSerials } from './serials';
+import { claimRequestedSerials, takeEventSerials } from './serials';
 import { generateBookingReference, generateTicketCode } from './tickets';
 import { applyReferralInTransaction, releaseReferral, type ReferralCheck } from './referrals';
 import { CUSTOMER_COLUMNS, upsertCustomerInTransaction } from './customers';
@@ -436,7 +436,7 @@ interface MintClient {
  * but the UNIQUE constraint is the real guarantee: on a duplicate we retry
  * rather than hand two people the same pass.
  */
-async function mintTickets(client: MintClient, bookingId: string): Promise<void> {
+async function mintTickets(client: MintClient, bookingId: string, requestedSerials?: number[]): Promise<void> {
   const { rows: bookings } = await client.query<BookingRow & { event_slug: string }>(
     `SELECT b.*, e.slug AS event_slug
        FROM bookings b JOIN events e ON e.id = b.event_id
@@ -491,9 +491,21 @@ async function mintTickets(client: MintClient, bookingId: string): Promise<void>
   // reserved block (1000–5000), everything else from the event counter (5001+).
   const passCount = lines.reduce((sum, line) => sum + line.quantity, 0);
   const promoterId = (booking as BookingRow & { promoter_id?: string | null }).promoter_id ?? null;
-  const serials = promoterId
-    ? await claimPromoterSerials(client, booking.event_id, promoterId, passCount)
-    : await takeEventSerials(client, booking.event_id, passCount);
+  let serials: number[];
+  if (promoterId && requestedSerials?.length) {
+    // The promoter typed these; each must be theirs and unsold.
+    serials = await claimRequestedSerials(client, booking.event_id, promoterId, requestedSerials);
+  } else if (promoterId) {
+    // A repair mint with no typed serials: use their lowest unsold ones.
+    const { rows } = await client.query<{ serial: number }>(
+      `SELECT serial FROM promoter_serials WHERE promoter_id = $1 AND event_id = $2 AND ticket_id IS NULL
+        ORDER BY serial LIMIT $3 FOR UPDATE`,
+      [promoterId, booking.event_id, passCount],
+    );
+    serials = rows.map((r) => Number(r.serial));
+  } else {
+    serials = await takeEventSerials(client, booking.event_id, passCount);
+  }
 
   let seat = 0;
 
@@ -1010,6 +1022,8 @@ export interface IssueBookingArgs {
    * issuing at once cannot overdraw it, and the passes are minted inactive.
    */
   promoterId?: string | null;
+  /** The exact serials the promoter typed, one per pass. */
+  promoterSerials?: number[];
 }
 
 /** Thrown when a promoter tries to issue more passes than they hold. */
@@ -1163,8 +1177,8 @@ export async function issueBookingManually(args: IssueBookingArgs): Promise<Book
       ]);
     }
 
-    // Promoter passes are minted inactive, with serials from the promoter's block.
-    await mintTickets(client, booking.id);
+    // Promoter passes are minted inactive, on the serials the promoter typed.
+    await mintTickets(client, booking.id, args.promoterSerials);
     return bookingReference;
   });
 

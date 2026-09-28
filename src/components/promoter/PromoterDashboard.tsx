@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+import { parseSerialList, serialRanges } from '@/lib/utils';
 
 /** Give up waiting after this long; the caller then reloads to show the true state. */
 const REQUEST_TIMEOUT_MS = 20_000;
@@ -92,10 +93,10 @@ export function PromoterSignOut() {
 
 const EMPTY = { name: '', phone: '', email: '' };
 
-export function PromoterIssue({ remaining }: { remaining: number }) {
+export function PromoterIssue({ remaining, unsold }: { remaining: number; unsold: number[] }) {
   const router = useRouter();
   const [form, setForm] = useState(EMPTY);
-  const [quantity, setQuantity] = useState(1);
+  const [serials, setSerials] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
@@ -139,7 +140,17 @@ export function PromoterIssue({ remaining }: { remaining: number }) {
     );
   }
 
-  const max = Math.min(10, remaining);
+  const parsed = serials.trim() ? parseSerialList(serials, 10) : null;
+  const picked = parsed && 'serials' in parsed ? parsed.serials : [];
+  const unsoldSet = new Set(unsold);
+  const outside = picked.filter((n) => !unsoldSet.has(n));
+  const serialHint =
+    parsed && 'error' in parsed
+      ? parsed.error
+      : outside.length
+        ? `#${serialRanges(outside)} ${outside.length === 1 ? 'is' : 'are'} not one of your unsold serials`
+        : null;
+  const quantity = picked.length;
 
   return (
     <form
@@ -150,7 +161,7 @@ export function PromoterIssue({ remaining }: { remaining: number }) {
         setBusy(true);
         setError(null);
         setFieldErrors({});
-        const result = await post<{ sentTo: string; codes: string[]; serials?: Array<number | null>; emailSent: boolean }>('/api/promoter/issue', { ...form, quantity });
+        const result = await post<{ sentTo: string; codes: string[]; serials?: Array<number | null>; emailSent: boolean }>('/api/promoter/issue', { ...form, serials });
         if (result.timedOut) {
           // The pass may well have been issued; the reloaded dashboard shows it
           // under "Recently issued" rather than leaving a spinner up forever.
@@ -170,7 +181,7 @@ export function PromoterIssue({ remaining }: { remaining: number }) {
         }
         setDone(result.data);
         setForm(EMPTY);
-        setQuantity(1);
+        setSerials('');
         router.refresh();
       }}
     >
@@ -182,25 +193,36 @@ export function PromoterIssue({ remaining }: { remaining: number }) {
         <Input label="Phone number" value={form.phone} onChange={set('phone')} inputMode="tel" autoComplete="off" error={fieldErrors.phone?.[0]} />
         <Input label="Email" value={form.email} onChange={set('email')} type="email" inputMode="email" autoComplete="off" error={fieldErrors.email?.[0]} />
 
-        <div>
-          <span className="mb-1 block text-[12px] font-medium text-muted">Passes for this customer</span>
-          <div className="flex items-center gap-3">
-            <button type="button" className="h-11 w-11 rounded-xl border border-edge text-xl font-bold text-ink disabled:opacity-30" disabled={quantity <= 1} onClick={() => setQuantity((q) => q - 1)} aria-label="Fewer">
-              −
-            </button>
-            <span className="w-10 text-center font-display text-2xl font-bold tnum text-ink">{quantity}</span>
-            <button type="button" className="h-11 w-11 rounded-xl border border-edge text-xl font-bold text-ink disabled:opacity-30" disabled={quantity >= max} onClick={() => setQuantity((q) => q + 1)} aria-label="More">
-              +
-            </button>
-            <span className="text-[12px] text-muted">max {max}</span>
-          </div>
-        </div>
+        <label className="block">
+          <span className="mb-1 block text-[12px] font-medium text-muted">Ticket serial number(s)</span>
+          <input
+            className={serialHint || fieldErrors.serials?.[0] ? 'field field-error py-3 font-mono text-[15px]' : 'field py-3 font-mono text-[15px]'}
+            value={serials}
+            onChange={(e) => {
+              setSerials(e.target.value);
+              setFieldErrors((f) => ({ ...f, serials: [] }));
+            }}
+            inputMode="numeric"
+            autoComplete="off"
+            placeholder={unsold.length ? String(unsold[0]) : ''}
+            required
+          />
+          <span className={serialHint || fieldErrors.serials?.[0] ? 'mt-1 block text-[12px] font-medium text-flare-600' : 'mt-1 block text-[12px] text-muted'}>
+            {serialHint ??
+              fieldErrors.serials?.[0] ??
+              (quantity > 1
+                ? `${quantity} passes: #${serialRanges(picked)}`
+                : unsold.length
+                  ? `The serial on the pass you are selling. Several? e.g. ${unsold[0]}, ${unsold[1] ?? unsold[0]} or a range. Next unsold: #${unsold[0]}.`
+                  : 'You have no unsold serials left.')}
+          </span>
+        </label>
       </div>
 
       {error && <p role="alert" className="mt-3 rounded-lg bg-flare-200/40 px-3 py-2 text-[13px] font-medium text-flare-600">{error}</p>}
 
-      <button type="submit" disabled={busy} className="btn-primary mt-5 w-full py-3.5 text-[15px] disabled:opacity-50">
-        {busy ? 'Issuing…' : `Issue ${quantity} pass${quantity === 1 ? '' : 'es'}`}
+      <button type="submit" disabled={busy || quantity === 0 || Boolean(serialHint)} className="btn-primary mt-5 w-full py-3.5 text-[15px] disabled:opacity-50">
+        {busy ? 'Issuing…' : quantity ? `Issue #${serialRanges(picked)}` : 'Issue pass'}
       </button>
     </form>
   );

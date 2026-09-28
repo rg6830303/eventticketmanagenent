@@ -1,18 +1,20 @@
 import 'server-only';
+import { serialRanges } from './utils';
 
 /**
  * Serial numbers.
  *
- *   1000–5000  promoter passes, reserved to a promoter at allocation time
- *   5001+      website and console passes, from events.next_serial
+ *   1000–4999  promoter passes. The admin allocates an explicit range to a
+ *              promoter; the promoter types the serial of each pass they sell.
+ *   5001+      website and console passes, from events.next_serial.
  *
  * Everything here runs inside the caller's transaction. Promoter-range changes
  * take a per-event advisory lock, so two admins allocating at once (or a
- * promoter issuing while an admin allocates) cannot reserve the same serial.
+ * promoter issuing while an admin allocates) cannot collide on a serial.
  */
 
 export const PROMOTER_SERIAL_MIN = 1000;
-export const PROMOTER_SERIAL_MAX = 5000;
+export const PROMOTER_SERIAL_MAX = 4999;
 
 interface Client {
   query<R = Record<string, unknown>>(sql: string, params?: unknown[]): Promise<{ rows: R[] }>;
@@ -39,65 +41,98 @@ export async function takeEventSerials(client: Client, eventId: string, count: n
   return Array.from({ length: count }, (_, i) => first + i);
 }
 
-/** Lowest free serials in the promoter range for this event. */
-async function freePromoterSerials(client: Client, eventId: string, count: number): Promise<number[]> {
-  const { rows } = await client.query<{ s: number }>(
-    `SELECT s FROM generate_series(${PROMOTER_SERIAL_MIN}, ${PROMOTER_SERIAL_MAX}) s
-      WHERE NOT EXISTS (SELECT 1 FROM promoter_serials p WHERE p.event_id = $1 AND p.serial = s)
-        AND NOT EXISTS (SELECT 1 FROM tickets t WHERE t.event_id = $1 AND t.serial = s)
-      ORDER BY s LIMIT $2`,
-    [eventId, count],
-  );
-  return rows.map((r) => Number(r.s));
+function rangeOf(from: number, to: number): number[] {
+  if (!Number.isInteger(from) || !Number.isInteger(to)) throw new SerialError('Enter whole serial numbers', 422);
+  if (from > to) throw new SerialError('The first serial must not be after the last', 422);
+  if (from < PROMOTER_SERIAL_MIN || to > PROMOTER_SERIAL_MAX) {
+    throw new SerialError(`Promoter serials run from ${PROMOTER_SERIAL_MIN} to ${PROMOTER_SERIAL_MAX}`, 422);
+  }
+  return Array.from({ length: to - from + 1 }, (_, i) => from + i);
 }
 
-/** Reserve `count` serials to a promoter. Fails if the 1000–5000 range cannot hold them. */
-export async function reservePromoterSerials(client: Client, eventId: string, promoterId: string, count: number): Promise<number[]> {
-  if (count <= 0) return [];
+/**
+ * Allocate an exact serial range to a promoter. Refuses the whole range if any
+ * serial in it already belongs to someone or is on a pass, and says which.
+ */
+export async function allocateSerialRange(
+  client: Client,
+  eventId: string,
+  promoterId: string,
+  from: number,
+  to: number,
+): Promise<number[]> {
+  const serials = rangeOf(from, to);
   await lockPromoterRange(client, eventId);
-  const serials = await freePromoterSerials(client, eventId, count);
-  if (serials.length < count) {
+  const { rows: taken } = await client.query<{ serial: number; name: string | null }>(
+    `SELECT s AS serial, p.name
+       FROM unnest($2::int[]) s
+       LEFT JOIN promoter_serials ps ON ps.event_id = $1 AND ps.serial = s
+       LEFT JOIN promoters p ON p.id = ps.promoter_id
+      WHERE ps.serial IS NOT NULL
+         OR EXISTS (SELECT 1 FROM tickets t WHERE t.event_id = $1 AND t.serial = s)`,
+    [eventId, serials],
+  );
+  if (taken.length > 0) {
+    const owners = [...new Set(taken.map((r) => r.name).filter(Boolean))];
     throw new SerialError(
-      `Only ${serials.length} promoter serials (${PROMOTER_SERIAL_MIN}–${PROMOTER_SERIAL_MAX}) are free for this event.`,
+      `#${serialRanges(taken.map((r) => Number(r.serial)))} ${taken.length === 1 ? 'is' : 'are'} already allocated` +
+        (owners.length ? ` (to ${owners.join(', ')})` : '') +
+        '. Choose a free range.',
     );
   }
   await client.query(
-    `INSERT INTO promoter_serials (event_id, serial, promoter_id)
-     SELECT $1, s, $2 FROM unnest($3::int[]) s`,
+    `INSERT INTO promoter_serials (event_id, serial, promoter_id) SELECT $1, s, $2 FROM unnest($3::int[]) s`,
     [eventId, promoterId, serials],
   );
   return serials;
 }
 
-/** Release a promoter's `count` highest unissued serials back to the pool. */
-export async function releasePromoterSerials(client: Client, promoterId: string, count: number): Promise<number[]> {
-  if (count <= 0) return [];
-  const { rows } = await client.query<{ serial: number }>(
-    `DELETE FROM promoter_serials WHERE (event_id, serial) IN (
-       SELECT event_id, serial FROM promoter_serials
-        WHERE promoter_id = $1 AND ticket_id IS NULL
-        ORDER BY serial DESC LIMIT $2)
-     RETURNING serial`,
-    [promoterId, count],
+/**
+ * Take an exact range back from a promoter. Only unsold serials are released;
+ * sold ones are in customers' hands, so a range containing any is refused.
+ */
+export async function releaseSerialRange(client: Client, promoterId: string, from: number, to: number): Promise<number[]> {
+  const serials = rangeOf(from, to);
+  const { rows } = await client.query<{ serial: number; ticket_id: string | null }>(
+    'SELECT serial, ticket_id FROM promoter_serials WHERE promoter_id = $1 AND serial = ANY($2::int[])',
+    [promoterId, serials],
   );
-  return rows.map((r) => Number(r.serial));
+  if (rows.length === 0) throw new SerialError(`None of #${serialRanges(serials)} is allocated to this promoter`, 422);
+  const sold = rows.filter((r) => r.ticket_id).map((r) => Number(r.serial));
+  if (sold.length > 0) {
+    throw new SerialError(`#${serialRanges(sold)} ${sold.length === 1 ? 'is' : 'are'} already sold and cannot be taken back. Deactivate the pass instead.`);
+  }
+  await client.query('DELETE FROM promoter_serials WHERE promoter_id = $1 AND serial = ANY($2::int[])', [
+    promoterId,
+    rows.map((r) => Number(r.serial)),
+  ]);
+  return rows.map((r) => Number(r.serial)).sort((a, b) => a - b);
 }
 
 /**
- * The serials a promoter's new passes get: their lowest unissued reserved
- * ones, topping up from the pool if their block ran short (which happens when
- * an admin voids one of their passes and so frees allocation).
+ * Claim the exact serials a promoter typed for a sale. Each must be in their
+ * allocated range and not yet sold; the rows are locked so two phones cannot
+ * sell the same serial.
  */
-export async function claimPromoterSerials(client: Client, eventId: string, promoterId: string, count: number): Promise<number[]> {
-  if (count <= 0) return [];
+export async function claimRequestedSerials(
+  client: Client,
+  eventId: string,
+  promoterId: string,
+  requested: number[],
+): Promise<number[]> {
   await lockPromoterRange(client, eventId);
-  const { rows } = await client.query<{ serial: number }>(
-    `SELECT serial FROM promoter_serials
-      WHERE promoter_id = $1 AND event_id = $2 AND ticket_id IS NULL
-      ORDER BY serial LIMIT $3`,
-    [promoterId, eventId, count],
+  const { rows } = await client.query<{ serial: number; ticket_id: string | null }>(
+    `SELECT serial, ticket_id FROM promoter_serials
+      WHERE promoter_id = $1 AND event_id = $2 AND serial = ANY($3::int[])
+      FOR UPDATE`,
+    [promoterId, eventId, requested],
   );
-  const serials = rows.map((r) => Number(r.serial));
-  if (serials.length < count) serials.push(...(await reservePromoterSerials(client, eventId, promoterId, count - serials.length)));
-  return serials;
+  const mine = new Map(rows.map((r) => [Number(r.serial), r.ticket_id]));
+  const notMine = requested.filter((s) => !mine.has(s));
+  if (notMine.length > 0) {
+    throw new SerialError(`#${serialRanges(notMine)} ${notMine.length === 1 ? 'is' : 'are'} not in your allocated range`, 422);
+  }
+  const sold = requested.filter((s) => mine.get(s));
+  if (sold.length > 0) throw new SerialError(`#${serialRanges(sold)} ${sold.length === 1 ? 'is' : 'are'} already sold`);
+  return requested;
 }

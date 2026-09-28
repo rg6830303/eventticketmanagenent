@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { requireSession } from '@/lib/auth';
-import { listOrphanedPromoterTickets, listPromoterStats, listRecentActivity, listSerialRanges } from '@/lib/promoters';
+import { listOrphanedPromoterTickets, listPromoterStats, listRecentActivity, listSerialRanges, suggestNextRangeStart } from '@/lib/promoters';
+import { getFeaturedEvent } from '@/lib/event-facts';
 import { cn, formatInr, serialRanges } from '@/lib/utils';
 import { CreatePromoter } from '@/components/admin/promoters/CreatePromoter';
 import { ActivityList } from '@/components/admin/promoters/ActivityList';
@@ -23,7 +24,8 @@ export default async function PromotersPage() {
     listRecentActivity(30),
     listOrphanedPromoterTickets(),
   ]);
-  const ranges = await listSerialRanges();
+  const [ranges, featured] = await Promise.all([listSerialRanges(), getFeaturedEvent()]);
+  const nextStart = await suggestNextRangeStart(featured?.id ?? null);
 
   const sum = (key: 'allocated' | 'issued' | 'remaining' | 'pending' | 'activated' | 'admitted' | 'received_paise' | 'due_paise' | 'paid_tickets') =>
     promoters.reduce((acc, p) => acc + Number(p[key] ?? 0), 0);
@@ -41,7 +43,7 @@ export default async function PromotersPage() {
         </div>
       </div>
 
-      <CreatePromoter />
+      <CreatePromoter nextStart={nextStart} />
 
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-8">
         <Stat label="Promoters" value={String(promoters.filter((p) => p.active).length)} hint={`${promoters.length} total`} />

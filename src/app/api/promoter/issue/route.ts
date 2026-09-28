@@ -8,6 +8,8 @@ import { sendTicketEmail } from '@/lib/mailer';
 import { maybeReconcile } from '@/lib/payments';
 import { getSignedInPromoter, logActivity } from '@/lib/promoters';
 import { rateLimit } from '@/lib/rate-limit';
+import { SerialError } from '@/lib/serials';
+import { parseSerialList } from '@/lib/utils';
 import { emailSchema, nameSchema, phoneSchema } from '@/lib/validation';
 
 export const runtime = 'nodejs';
@@ -33,7 +35,7 @@ export async function POST(request: NextRequest) {
     const limit = await rateLimit(`promoter-issue:${promoter.id}`, 120, 600);
     if (!limit.allowed) return tooManyRequests(limit.retryAfterSeconds);
 
-    const body = (await readJson(request)) as { name?: string; email?: string; phone?: string; quantity?: number };
+    const body = (await readJson(request)) as { name?: string; email?: string; phone?: string; serials?: string };
     const name = nameSchema.safeParse(body.name);
     if (!name.success) return fail(name.error.issues[0].message, 'invalid_name', 422, { name: [name.error.issues[0].message] });
     const email = emailSchema.safeParse(body.email);
@@ -41,9 +43,12 @@ export async function POST(request: NextRequest) {
     const phone = phoneSchema.safeParse(body.phone);
     if (!phone.success) return fail(phone.error.issues[0].message, 'invalid_phone', 422, { phone: [phone.error.issues[0].message] });
 
-    const quantity = Math.round(Number(body.quantity) || 1);
-    if (quantity < 1 || quantity > MAX_PER_ISSUE) {
-      return fail(`Issue between 1 and ${MAX_PER_ISSUE} passes per customer`, 'invalid_quantity', 422);
+    // One pass per serial typed, each from the promoter's allocated range.
+    const parsed = parseSerialList(String(body.serials ?? ''), MAX_PER_ISSUE);
+    if ('error' in parsed) return fail(parsed.error, 'invalid_serials', 422, { serials: [parsed.error] });
+    const quantity = parsed.serials.length;
+    if (quantity > MAX_PER_ISSUE) {
+      return fail(`Issue at most ${MAX_PER_ISSUE} passes per customer`, 'invalid_quantity', 422);
     }
 
     const event = await getFeaturedEvent();
@@ -63,6 +68,7 @@ export async function POST(request: NextRequest) {
       issuedBy: promoter.id,
       issuedByEmail: promoter.name,
       promoterId: promoter.id,
+      promoterSerials: parsed.serials,
     });
 
     await logActivity(promoter.id, 'issued', {
@@ -99,6 +105,7 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     if (error instanceof BookingError) return fail(error.message, error.code, error.status);
+    if (error instanceof SerialError) return fail(error.message, 'invalid_serials', error.status, { serials: [error.message] });
     return handleError(error, 'promoter.issue');
   }
 }
