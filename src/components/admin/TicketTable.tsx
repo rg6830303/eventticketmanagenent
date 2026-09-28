@@ -101,11 +101,14 @@ export function TicketTable({
   showSource = false,
   defaultFilter = 'all',
   exportName,
+  readOnly = false,
 }: {
   tickets: TicketLine[];
   showSource?: boolean;
   defaultFilter?: Filter;
   exportName?: string;
+  /** View-only screens: no selection, no activate/deactivate. */
+  readOnly?: boolean;
 }) {
   const router = useRouter();
   const [filter, setFilter] = useState<Filter>(defaultFilter);
@@ -143,7 +146,7 @@ export function TicketTable({
   const canDeactivate = selectedLines.filter((t) => switchable(t) && t.active).length;
   const shownSwitchable = shown.filter(switchable);
   const allShownSelected = shownSwitchable.length > 0 && shownSwitchable.every((t) => selected.has(t.id));
-  const anySwitchable = tickets.some((t) => t.source !== 'website');
+  const anySwitchable = !readOnly && tickets.some((t) => t.source !== 'website');
 
   function toggle(id: string) {
     setSelected((s) => {
@@ -190,7 +193,7 @@ export function TicketTable({
   }
 
   const ActionButton = ({ t, compact }: { t: TicketLine; compact?: boolean }) =>
-    switchable(t) ? (
+    !readOnly && switchable(t) ? (
       <button
         type="button"
         disabled={busy}

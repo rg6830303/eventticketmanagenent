@@ -1,9 +1,14 @@
+import Link from 'next/link';
 import { query } from '@/lib/db';
+import { getEventFinancials, listEventCustomers } from '@/lib/event-report';
+import { listLedger } from '@/lib/ticket-ledger';
 import { getFeaturedEvent } from '@/lib/event-facts';
 import { listPromoterStats, listSerialRanges } from '@/lib/promoters';
 import { hasViewSession } from '@/lib/promoview';
 import { cn, formatInr, serialRanges } from '@/lib/utils';
 import { PromoViewLock, PromoViewSignOut } from '@/components/admin/PromoViewLock';
+import { CustomerListView } from '@/components/admin/CustomerListView';
+import { TicketTable } from '@/components/admin/TicketTable';
 
 export const dynamic = 'force-dynamic';
 export const metadata = { title: 'Promoter overview', robots: { index: false, follow: false, nocache: true } };
@@ -28,7 +33,15 @@ const when = (iso: string) =>
  * any kind: every figure here is read straight from the same tables the
  * console writes. Nothing links into the console.
  */
-export default async function PromoViewPage() {
+const TABS = [
+  { id: 'promoters', label: 'Promoters' },
+  { id: 'customers', label: 'Customers' },
+  { id: 'financials', label: 'Financials' },
+  { id: 'tickets', label: 'Tickets' },
+] as const;
+type Tab = (typeof TABS)[number]['id'];
+
+export default async function PromoViewPage({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
   if (!(await hasViewSession())) {
     return (
       <div className="min-h-dvh bg-canvas px-4">
@@ -37,10 +50,204 @@ export default async function PromoViewPage() {
     );
   }
 
-  const [promoters, ranges, event, payments, feed] = await Promise.all([
+  const { tab } = await searchParams;
+  const active: Tab = TABS.some((t) => t.id === tab) ? (tab as Tab) : 'promoters';
+  // Everything on this dashboard is for the event on sale now — never the
+  // past one.
+  const event = await getFeaturedEvent();
+
+  return (
+    <div className="min-h-dvh bg-canvas">
+      <header className="sticky top-0 z-20 border-b border-edge bg-paper/95 backdrop-blur">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 pt-3">
+          <div className="min-w-0">
+            <p className="font-mono text-[10.5px] uppercase tracking-[0.2em] text-muted">Live overview · view only</p>
+            <p className="truncate font-display text-lg font-bold text-ink">
+              {event ? `${event.name} ${event.tagline ?? ''}` : 'Houz of Vybe'}
+            </p>
+          </div>
+          <PromoViewSignOut />
+        </div>
+        <nav className="mx-auto flex max-w-6xl gap-1 overflow-x-auto px-4 pb-0 pt-2" aria-label="Sections">
+          {TABS.map((t) => (
+            <Link
+              key={t.id}
+              href={`/promoview?tab=${t.id}`}
+              className={cn(
+                'shrink-0 border-b-2 px-3 py-2 text-[13px] font-semibold',
+                active === t.id ? 'border-ink text-ink' : 'border-transparent text-muted hover:text-ink',
+              )}
+            >
+              {t.label}
+            </Link>
+          ))}
+        </nav>
+      </header>
+
+      <main className="mx-auto max-w-6xl space-y-6 px-4 pb-16 pt-5">
+        {!event ? (
+          <p className="rounded-xl border border-dashed border-edge p-6 text-center text-[13px] text-muted">No event on sale.</p>
+        ) : active === 'promoters' ? (
+          <PromotersSection />
+        ) : active === 'customers' ? (
+          <CustomersSection eventId={event.id} slug={event.slug} />
+        ) : active === 'financials' ? (
+          <FinancialsSection eventId={event.id} />
+        ) : (
+          <TicketsSection eventId={event.id} slug={event.slug} />
+        )}
+      </main>
+    </div>
+  );
+}
+
+async function CustomersSection({ eventId, slug }: { eventId: string; slug: string }) {
+  const customers = await listEventCustomers(eventId);
+  const passes = customers.reduce((sum, c) => sum + c.passes, 0);
+  const by = (s: string) => customers.filter((c) => c.sources.includes(s)).length;
+  return (
+    <>
+      <section className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+        <Stat label="Customers" value={String(customers.length)} hint={`${passes} passes held`} />
+        <Stat label="Bought online" value={String(by('website'))} />
+        <Stat label="Via promoters" value={String(by('promoter'))} />
+        <Stat label="With an account" value={String(customers.filter((c) => c.registered).length)} />
+      </section>
+      <CustomerListView customers={customers} exportName={`customers-${slug}`} />
+    </>
+  );
+}
+
+async function FinancialsSection({ eventId }: { eventId: string }) {
+  const f = await getEventFinancials(eventId);
+  const ticketRevenue = f.website.gross_paise - f.website.fee_paise;
+  const collected = f.website.gross_paise + f.console.collected_paise + f.promoter.received_paise;
+  const promoterDue = Math.max(0, f.promoter.expected_paise - f.promoter.received_paise);
+  const passes = f.website.passes + f.console.passes + f.promoter.passes;
+  const maxDay = Math.max(1, ...f.daily.map((d) => d.gross_paise));
+  return (
+    <>
+      <section className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+        <Stat label="Total collected" value={formatInr(collected)} tone="good" hint="online + console + promoters" />
+        <Stat label="Passes out" value={String(passes)} hint={`${f.website.passes} online · ${f.promoter.passes} promoter · ${f.console.passes} console`} />
+        <Stat label="Promoter money due" value={formatInr(promoterDue)} tone={promoterDue > 0 ? 'bad' : undefined} hint={`${formatInr(f.promoter.received_paise)} of ${formatInr(f.promoter.expected_paise)}`} />
+        <Stat label="Unfinished checkouts" value={String(f.pending.bookings)} hint={`${f.pending.passes} passes · ${formatInr(f.pending.value_paise)} not paid`} />
+      </section>
+
+      <section className="grid gap-3 lg:grid-cols-3">
+        <Card title="Online (Razorpay)">
+          <Line label="Paid bookings" value={String(f.website.bookings)} />
+          <Line label="Passes" value={String(f.website.passes)} />
+          <Line label="Charged to customers" value={formatInr(f.website.gross_paise)} strong />
+          <Line label="Platform fee (2.5%)" value={formatInr(f.website.fee_paise)} />
+          <Line label="Referral discounts given" value={formatInr(f.website.discount_paise)} />
+          <Line label="Ticket revenue (excl. fee)" value={formatInr(ticketRevenue)} strong />
+        </Card>
+        <Card title="Promoters (paid to you directly)">
+          <Line label="Passes issued" value={String(f.promoter.passes)} />
+          <Line label="Expected at deal prices" value={formatInr(f.promoter.expected_paise)} />
+          <Line label="Received" value={formatInr(f.promoter.received_paise)} strong />
+          <Line label="Still due" value={formatInr(promoterDue)} strong />
+        </Card>
+        <Card title="Console-issued">
+          <Line label="Bookings" value={String(f.console.bookings)} />
+          <Line label="Passes" value={String(f.console.passes)} />
+          <Line label="Cash / transfer recorded" value={formatInr(f.console.collected_paise)} strong />
+        </Card>
+      </section>
+
+      <section className="space-y-2">
+        <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">Online sales by pass type</h2>
+        {f.tiers.length === 0 ? (
+          <p className="rounded-xl border border-dashed border-edge p-5 text-center text-[13px] text-muted">No online sales yet.</p>
+        ) : (
+          <div className="overflow-x-auto rounded-xl border border-edge bg-paper">
+            <table className="w-full text-[13px]">
+              <thead className="bg-frost text-left text-[10.5px] uppercase tracking-[0.1em] text-muted">
+                <tr>
+                  <th className="px-3 py-2">Pass</th>
+                  <th className="px-2 py-2 text-right">Price</th>
+                  <th className="px-2 py-2 text-right">Sold</th>
+                  <th className="px-3 py-2 text-right">Revenue</th>
+                </tr>
+              </thead>
+              <tbody>
+                {f.tiers.map((t) => (
+                  <tr key={t.tier_name} className="border-t border-edge/70">
+                    <td className="px-3 py-2 text-ink">{t.tier_name}</td>
+                    <td className="tnum px-2 py-2 text-right text-slate">{formatInr(t.unit_paise)}</td>
+                    <td className="tnum px-2 py-2 text-right">{t.passes}</td>
+                    <td className="tnum px-3 py-2 text-right font-semibold">{formatInr(t.revenue_paise)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+
+      <section className="space-y-2">
+        <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">Online sales by day</h2>
+        {f.daily.length === 0 ? (
+          <p className="rounded-xl border border-dashed border-edge p-5 text-center text-[13px] text-muted">No online sales yet.</p>
+        ) : (
+          <ol className="space-y-1.5 rounded-xl border border-edge bg-paper p-3">
+            {f.daily.map((d) => (
+              <li key={d.day} className="grid grid-cols-[4rem_1fr_auto] items-center gap-3 text-[12.5px]">
+                <span className="text-muted">{d.day}</span>
+                <span className="h-2.5 overflow-hidden rounded-full bg-mist">
+                  <span className="block h-full rounded-full bg-vybe-500" style={{ width: `${Math.round((d.gross_paise / maxDay) * 100)}%` }} />
+                </span>
+                <span className="tnum text-ink">
+                  {d.passes} · {formatInr(d.gross_paise)}
+                </span>
+              </li>
+            ))}
+          </ol>
+        )}
+      </section>
+    </>
+  );
+}
+
+async function TicketsSection({ eventId, slug }: { eventId: string; slug: string }) {
+  const tickets = await listLedger({ eventId });
+  const live = tickets.filter((t) => t.status !== 'void' && t.booking_status !== 'cancelled');
+  return (
+    <>
+      <section className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+        <Stat label="Passes issued" value={String(live.length)} />
+        <Stat label="Active" value={String(live.filter((t) => t.active && t.status === 'valid').length)} tone="good" />
+        <Stat label="Not active" value={String(live.filter((t) => !t.active && t.status === 'valid').length)} tone="warn" />
+        <Stat label="Admitted" value={String(live.filter((t) => t.status === 'used').length)} />
+      </section>
+      <TicketTable tickets={tickets} showSource readOnly exportName={`tickets-${slug}`} />
+    </>
+  );
+}
+
+function Card({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div className="min-w-0 rounded-2xl border border-edge bg-paper p-4">
+      <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">{title}</p>
+      <dl className="space-y-1.5">{children}</dl>
+    </div>
+  );
+}
+
+function Line({ label, value, strong }: { label: string; value: string; strong?: boolean }) {
+  return (
+    <div className="flex items-baseline justify-between gap-3 text-[13px]">
+      <dt className="text-slate">{label}</dt>
+      <dd className={cn('tnum', strong ? 'font-display text-[15px] font-bold text-ink' : 'text-ink')}>{value}</dd>
+    </div>
+  );
+}
+
+async function PromotersSection() {
+  const [promoters, ranges, payments, feed] = await Promise.all([
     listPromoterStats(),
     listSerialRanges(),
-    getFeaturedEvent(),
     query<FeedRow>(
       `SELECT a.id, a.kind, a.quantity, a.amount_paise, a.note, a.created_at, p.name AS promoter_name
          FROM promoter_activity a JOIN promoters p ON p.id = a.promoter_id
@@ -61,20 +268,7 @@ export default async function PromoViewPage() {
   const ranked = [...promoters].sort((a, b) => b.issued - a.issued);
 
   return (
-    <div className="min-h-dvh bg-canvas">
-      <header className="sticky top-0 z-20 border-b border-edge bg-paper/95 backdrop-blur">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3">
-          <div className="min-w-0">
-            <p className="font-mono text-[10.5px] uppercase tracking-[0.2em] text-muted">Promoter overview · view only</p>
-            <p className="truncate font-display text-lg font-bold text-ink">
-              {event ? `${event.name} ${event.tagline ?? ''}` : 'Houz of Vybe'}
-            </p>
-          </div>
-          <PromoViewSignOut />
-        </div>
-      </header>
-
-      <main className="mx-auto max-w-6xl space-y-6 px-4 pb-16 pt-5">
+    <>
         {/* Totals */}
         <section className="grid grid-cols-2 gap-2 sm:grid-cols-4">
           <Stat label="Promoters" value={String(promoters.filter((p) => p.active).length)} hint={`${promoters.length} total`} />
@@ -251,8 +445,7 @@ export default async function PromoViewPage() {
             hideNotesFor={['issued']}
           />
         </div>
-      </main>
-    </div>
+    </>
   );
 }
 
