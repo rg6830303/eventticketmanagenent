@@ -269,7 +269,7 @@ export function IssueTicket({
               <ul className="mt-2 space-y-0.5">
                 {result.tickets.map((ticket) => (
                   <li key={ticket.code} className="font-mono text-[12px] text-slate">
-                    {ticket.serial ? `#${ticket.serial} · ` : ''}{ticket.code}
+                    {ticket.serial != null ? `#${ticket.serial} · ` : ''}{ticket.code}
                     {ticket.admits > 1 && (
                       <span className="ml-2 font-sans text-[11px] text-vybe-700">
                         admits {ticket.admits}

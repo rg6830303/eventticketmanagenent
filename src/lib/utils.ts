@@ -115,7 +115,7 @@ export function serialRanges(serials: number[]): string {
  * Parse serials as people type them: "1005", "1005, 1007", "1005-1010",
  * "#1005 1006". Returns sorted unique numbers, or an error message.
  */
-export function parseSerialList(input: string, max = 4000): { serials: number[] } | { error: string } {
+export function parseSerialList(input: string, max = 5000): { serials: number[] } | { error: string } {
   const text = input.replace(/#/g, '').trim();
   if (!text) return { error: 'Enter a serial number' };
   const out = new Set<number>();

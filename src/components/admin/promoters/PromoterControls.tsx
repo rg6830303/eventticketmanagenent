@@ -121,7 +121,7 @@ function AllocateForm({ nextStart, unsold, busy, run }: { nextStart: number; uns
   const [text, setText] = useState('');
   const f = Number(from);
   const t = Number(to);
-  const count = from && to && t >= f ? t - f + 1 : 0;
+  const count = from.trim() !== '' && to.trim() !== '' && t >= f ? t - f + 1 : 0;
   return (
     <form
       className="panel space-y-3 p-4"
@@ -148,7 +148,7 @@ function AllocateForm({ nextStart, unsold, busy, run }: { nextStart: number; uns
       </div>
       <p className="text-[12px] text-slate">
         {mode === 'add'
-          ? `Promoter serials are 1000–4999, and a range must not overlap anyone else's. Next free block starts at #${nextStart}.`
+          ? `Promoter serials are 0–4999, and a range must not overlap anyone else's. Next free block starts at #${nextStart}.`
           : unsold.length
             ? `Only unsold serials can be taken back. Their unsold serials: #${serialRanges(unsold)}.`
             : 'They have no unsold serials to take back.'}

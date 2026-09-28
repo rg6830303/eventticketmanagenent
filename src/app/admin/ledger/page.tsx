@@ -74,7 +74,7 @@ export default async function LedgerPage({ searchParams }: { searchParams: Promi
       {promoter.length > 0 && (
         <p className="break-words rounded-xl border border-edge bg-paper px-3 py-2 text-[12px] text-slate">
           <span className="font-semibold text-ink">Promoter serials issued:</span>{' '}
-          <span className="font-mono">{serialRanges(promoter.map((t) => t.serial ?? 0).filter(Boolean))}</span>
+          <span className="font-mono">{serialRanges(promoter.map((t) => t.serial).filter((n): n is number => n !== null))}</span>
         </p>
       )}
 

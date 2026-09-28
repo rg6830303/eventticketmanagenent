@@ -4,7 +4,7 @@ import { serialRanges } from './utils';
 /**
  * Serial numbers.
  *
- *   1000–4999  promoter passes. The admin allocates an explicit range to a
+ *   0–4999     promoter passes. The admin allocates an explicit range to a
  *              promoter; the promoter types the serial of each pass they sell.
  *   5001+      website and console passes, from events.next_serial.
  *
@@ -13,7 +13,7 @@ import { serialRanges } from './utils';
  * promoter issuing while an admin allocates) cannot collide on a serial.
  */
 
-export const PROMOTER_SERIAL_MIN = 1000;
+export const PROMOTER_SERIAL_MIN = 0;
 export const PROMOTER_SERIAL_MAX = 4999;
 
 interface Client {

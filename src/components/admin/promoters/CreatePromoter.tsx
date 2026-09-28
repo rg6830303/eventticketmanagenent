@@ -74,8 +74,8 @@ export function CreatePromoter({ nextStart }: { nextStart: number }) {
         </Field>
         <Field
           label="Serial range to allocate"
-          hint={`Promoter serials are 1000–4999. Next free from #${nextStart}. ${
-            draft.rangeFrom && draft.rangeTo && Number(draft.rangeTo) >= Number(draft.rangeFrom)
+          hint={`Promoter serials are 0–4999. Next free from #${nextStart}. ${
+            draft.rangeFrom !== '' && draft.rangeTo !== '' && Number(draft.rangeTo) >= Number(draft.rangeFrom)
               ? `${Number(draft.rangeTo) - Number(draft.rangeFrom) + 1} passes.`
               : 'Leave blank to allocate later.'
           }`}

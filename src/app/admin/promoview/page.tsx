@@ -257,7 +257,7 @@ async function PromotersSection() {
     query<FeedRow>(
       `SELECT a.id, a.kind, a.quantity, a.amount_paise, a.note, a.created_at, p.name AS promoter_name
          FROM promoter_activity a JOIN promoters p ON p.id = a.promoter_id
-        WHERE a.kind IN ('issued', 'allocated', 'revoked', 'activated', 'deactivated')
+        WHERE a.kind IN ('issued', 'reversed', 'allocated', 'revoked', 'activated', 'deactivated')
         ORDER BY a.created_at DESC LIMIT 60`,
     ),
   ]);
@@ -432,6 +432,8 @@ async function PromotersSection() {
                 <span className="text-slate">
                   {r.kind === 'issued'
                     ? `issued ${r.quantity} pass${r.quantity === 1 ? '' : 'es'}`
+                    : r.kind === 'reversed'
+                      ? `had ${r.quantity} sale${r.quantity === 1 ? '' : 's'} reversed`
                     : r.kind === 'allocated'
                       ? `was allocated ${r.quantity}`
                       : r.kind === 'revoked'

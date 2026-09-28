@@ -294,7 +294,7 @@ export async function createPromoter(input: {
   );
   if (!promoter) throw new PromoterError('Could not create the promoter', 500);
   await logActivity(promoter.id, 'created', { actor: input.actor });
-  if (input.rangeFrom && input.rangeTo) {
+  if (input.rangeFrom != null && input.rangeTo != null) {
     try {
       const result = await changeSerialRange(
         promoter.id,
@@ -433,7 +433,7 @@ export async function suggestNextRangeStart(eventId: string | null): Promise<num
      ) AS top`,
     [eventId],
   );
-  return Math.min(PROMOTER_SERIAL_MAX, row?.top ? Number(row.top) + 1 : PROMOTER_SERIAL_MIN);
+  return Math.min(PROMOTER_SERIAL_MAX, row?.top != null ? Number(row.top) + 1 : PROMOTER_SERIAL_MIN);
 }
 
 export async function recordPayment(
@@ -553,6 +553,83 @@ export async function getSerialLedger(promoterId: string): Promise<SerialRecord[
       sold_at: r.sold_at,
       paid_paise: Math.round(paid.get(serial) ?? 0),
     };
+  });
+}
+
+/**
+ * Reverse promoter sales: the pass is removed as if it had never been issued.
+ *
+ * The QR and pass link stop working at once, the serial goes back to the
+ * promoter as unsold (so it can be sold again), and a one-pass booking is
+ * deleted outright; a multi-pass booking just loses the reversed pass. Passes
+ * already admitted at the door cannot be reversed. No email is sent.
+ */
+export async function reversePromoterSales(
+  ticketIds: string[],
+  actor: string,
+): Promise<{ reversed: Array<{ serial: number | null; reference: string }> }> {
+  return transaction(async (client) => {
+    const { rows } = await client.query<{
+      id: string;
+      serial: number | null;
+      status: string;
+      promoter_id: string | null;
+      booking_id: string;
+      booking_item_id: string | null;
+      reference: string;
+      is_promoter: boolean;
+    }>(
+      `SELECT t.id, t.serial, t.status, t.promoter_id, t.booking_id, t.booking_item_id, b.reference,
+              (b.payment_provider = 'promoter' OR b.source = 'promoter') AS is_promoter
+         FROM tickets t JOIN bookings b ON b.id = t.booking_id
+        WHERE t.id = ANY($1::uuid[])
+        FOR UPDATE OF t, b`,
+      [ticketIds],
+    );
+    if (rows.length === 0) throw new PromoterError('Those passes no longer exist', 404);
+    const notPromoter = rows.filter((r) => !r.is_promoter);
+    if (notPromoter.length) throw new PromoterError('Only promoter passes can be reversed here', 422);
+    const admitted = rows.filter((r) => r.status === 'used');
+    if (admitted.length) {
+      throw new PromoterError(
+        `#${serialRanges(admitted.map((r) => r.serial ?? -1).filter((n) => n >= 0))} already came through the door and cannot be reversed`,
+        409,
+      );
+    }
+
+    await client.query('DELETE FROM tickets WHERE id = ANY($1::uuid[])', [rows.map((r) => r.id)]);
+
+    // Keep each booking consistent with the passes it still has.
+    for (const bookingId of [...new Set(rows.map((r) => r.booking_id))]) {
+      const { rows: left } = await client.query<{ n: number }>('SELECT count(*)::int AS n FROM tickets WHERE booking_id = $1', [bookingId]);
+      const remaining = left[0]?.n ?? 0;
+      if (remaining === 0) {
+        await client.query('DELETE FROM bookings WHERE id = $1', [bookingId]);
+      } else {
+        await client.query('UPDATE bookings SET quantity = $2, updated_at = now() WHERE id = $1', [bookingId, remaining]);
+        for (const r of rows.filter((x) => x.booking_id === bookingId && x.booking_item_id)) {
+          await client.query('UPDATE booking_items SET quantity = GREATEST(quantity - 1, 0) WHERE id = $1', [r.booking_item_id]);
+        }
+      }
+    }
+
+    for (const promoterId of [...new Set(rows.map((r) => r.promoter_id).filter((x): x is string => !!x))]) {
+      const mine = rows.filter((r) => r.promoter_id === promoterId);
+      const serials = mine.map((r) => r.serial).filter((n): n is number => n !== null);
+      await client.query(
+        `INSERT INTO promoter_activity (promoter_id, kind, quantity, reference, note, actor, serials)
+         VALUES ($1, 'reversed', $2, $3, $4, $5, $6)`,
+        [
+          promoterId,
+          mine.length,
+          [...new Set(mine.map((r) => r.reference))].join(', ').slice(0, 200),
+          serials.length ? `Sale reversed · #${serialRanges(serials)} back to unsold` : 'Sale reversed',
+          actor,
+          serials,
+        ],
+      );
+    }
+    return { reversed: rows.map((r) => ({ serial: r.serial, reference: r.reference })) };
   });
 }
 

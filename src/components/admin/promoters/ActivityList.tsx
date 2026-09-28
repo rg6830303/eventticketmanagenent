@@ -21,6 +21,7 @@ const LABEL: Record<string, { text: (r: Row) => string; tone: string }> = {
   allocated: { text: (r) => `+${r.quantity} passes allocated`, tone: 'text-vybe-700' },
   revoked: { text: (r) => `−${r.quantity} passes taken back`, tone: 'text-flare-600' },
   issued: { text: (r) => `Issued ${r.quantity} pass${r.quantity === 1 ? '' : 'es'}`, tone: 'text-ink' },
+  reversed: { text: (r) => `Reversed ${r.quantity} sale${r.quantity === 1 ? '' : 's'}`, tone: 'text-flare-600' },
   payment: { text: (r) => `Payment ${formatInr(r.amount_paise)}${r.quantity ? ` · ${r.quantity} passes` : ''}`, tone: 'text-leaf-600' },
   payment_removed: { text: (r) => `Payment correction −${formatInr(r.amount_paise)}${r.quantity ? ` · −${r.quantity} passes` : ''}`, tone: 'text-flare-600' },
   activated: { text: (r) => `Activated ${r.quantity} pass${r.quantity === 1 ? '' : 'es'}`, tone: 'text-leaf-600' },

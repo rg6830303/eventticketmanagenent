@@ -133,7 +133,7 @@ export function ticketEmailHtml(data: TicketEmailData): string {
                   ${esc(ticket.holderName)}
                 </p>
                 ${
-                  ticket.serial
+                  ticket.serial != null
                     ? `<p style="margin:0 0 4px 0;font:700 13px/1.4 'Courier New',Courier,monospace;letter-spacing:1px;color:${MUTED};">Serial #${ticket.serial}</p>`
                     : ''
                 }
@@ -342,7 +342,7 @@ export function ticketEmailText(data: TicketEmailData): string {
     // showing only this one must not leave someone believing they have a bar
     // tab that does not exist.
     ...data.tickets.flatMap((t, i) => [
-      `  ${i + 1}. ${t.holderName} — ${t.serial ? `#${t.serial} · ` : ''}${t.code}` +
+      `  ${i + 1}. ${t.holderName} — ${t.serial != null ? `#${t.serial} · ` : ''}${t.code}` +
         `${t.admits > 1 ? ` (${t.tierName}, admits ${t.admits})` : ` (${t.tierName})`}`,
       `     ${t.url}`,
     ]),

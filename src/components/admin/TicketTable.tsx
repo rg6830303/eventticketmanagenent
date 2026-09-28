@@ -144,6 +144,7 @@ export function TicketTable({
   const selectedLines = tickets.filter((t) => selected.has(t.id));
   const canActivate = selectedLines.filter((t) => switchable(t) && !t.active).length;
   const canDeactivate = selectedLines.filter((t) => switchable(t) && t.active).length;
+  const canReverse = selectedLines.filter((t) => t.source === 'promoter' && t.status !== 'used').length;
   const shownSwitchable = shown.filter(switchable);
   const allShownSelected = shownSwitchable.length > 0 && shownSwitchable.every((t) => selected.has(t.id));
   const anySwitchable = !readOnly && tickets.some((t) => t.source !== 'website');
@@ -182,6 +183,38 @@ export function TicketTable({
     router.refresh();
   }
 
+  /** Promoter passes not yet through the door can be reversed entirely. */
+  const reversible = (t: TicketLine) => !readOnly && t.source === 'promoter' && t.status !== 'used';
+
+  async function reverse(ids: string[]) {
+    const lines = tickets.filter((t) => ids.includes(t.id));
+    if (lines.length === 0) return;
+    const list = lines.map((t) => `#${t.serial ?? '—'} ${t.holder_name}`).join(', ');
+    if (
+      !window.confirm(
+        `Reverse ${lines.length === 1 ? 'this sale' : `${lines.length} sales`}?
+
+${list}
+
+` +
+          'The pass is removed and its QR stops working. The serial goes back to the promoter as unsold. ' +
+          'The customer is not emailed. This cannot be undone.',
+      )
+    )
+      return;
+    setBusy(true);
+    setNote(null);
+    const result = await call<{ reversed: number }>('/api/admin/promoters/tickets', 'POST', { ticketIds: ids, action: 'reverse' });
+    setBusy(false);
+    if (!result.ok || !result.data) {
+      setNote({ tone: 'bad', text: result.error ?? 'Failed' });
+      return;
+    }
+    setNote({ tone: 'ok', text: `Reversed ${result.data.reversed}. Serial${result.data.reversed === 1 ? ' is' : 's are'} unsold again.` });
+    setSelected(new Set());
+    router.refresh();
+  }
+
   function download() {
     const blob = new Blob([toCsv(shown)], { type: 'text/csv;charset=utf-8' });
     const url = URL.createObjectURL(blob);
@@ -193,6 +226,27 @@ export function TicketTable({
   }
 
   const ActionButton = ({ t, compact }: { t: TicketLine; compact?: boolean }) =>
+    readOnly || (!switchable(t) && !reversible(t)) ? null : (
+    <div className={cn('flex gap-1.5', compact ? 'justify-end' : 'mt-2')}>
+      <SwitchButton t={t} compact={compact} />
+      {reversible(t) && (
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() => void reverse([t.id])}
+          className={cn(
+            'rounded-lg border border-ink font-semibold text-ink disabled:opacity-40',
+            compact ? 'px-3 py-1.5 text-[12px]' : 'flex-1 py-2 text-[12.5px]',
+          )}
+          title="Undo this sale: remove the pass and return the serial to the promoter"
+        >
+          Reverse
+        </button>
+      )}
+    </div>
+  );
+
+  const SwitchButton = ({ t, compact }: { t: TicketLine; compact?: boolean }) =>
     !readOnly && switchable(t) ? (
       <button
         type="button"
@@ -200,7 +254,7 @@ export function TicketTable({
         onClick={() => void apply([t.id], !t.active)}
         className={cn(
           'rounded-lg font-semibold disabled:opacity-40',
-          compact ? 'px-3 py-1.5 text-[12px]' : 'mt-2 w-full py-2 text-[12.5px]',
+          compact ? 'px-3 py-1.5 text-[12px]' : 'flex-1 py-2 text-[12.5px]',
           t.active ? 'border border-flare-300 text-flare-600' : 'bg-leaf-600 text-white',
         )}
       >
@@ -278,6 +332,16 @@ export function TicketTable({
             >
               Deactivate {canDeactivate || ''}
             </button>
+            {canReverse > 0 && (
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => void reverse(selectedLines.filter((t) => t.source === 'promoter' && t.status !== 'used').map((t) => t.id))}
+                className="rounded-lg border border-ink px-3 py-2 text-[12.5px] font-semibold text-ink disabled:opacity-40"
+              >
+                Reverse {canReverse}
+              </button>
+            )}
           </div>
         </div>
       )}

@@ -129,7 +129,7 @@ export function PromoterIssue({ remaining, unsold }: { remaining: number; unsold
         <ul className="mt-2 space-y-0.5 font-mono text-[12px] text-muted">
           {done.codes.map((code, i) => (
             <li key={code}>
-              {done.serials?.[i] ? <strong className="text-ink">#{done.serials[i]}</strong> : null} {code}
+              {done.serials?.[i] != null ? <strong className="text-ink">#{done.serials[i]}</strong> : null} {code}
             </li>
           ))}
         </ul>
