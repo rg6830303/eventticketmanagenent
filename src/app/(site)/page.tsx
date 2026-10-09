@@ -103,7 +103,7 @@ export default async function HomePage() {
 
           <Reveal delay={0.1}>
             <div className="relative mx-auto w-full max-w-[520px]">
-              <Dandiya3D className="pointer-events-none absolute -bottom-[10%] -left-[6%] z-20 w-[38%] drop-shadow-[0_20px_30px_rgba(0,0,0,0.6)] sm:-left-[12%] lg:-left-[16%] lg:w-[42%]" />
+              <Dandiya3D className="pointer-events-none absolute -bottom-[8%] -left-[4%] z-20 w-[30%] drop-shadow-[0_20px_30px_rgba(0,0,0,0.6)] sm:-left-[12%] lg:-left-[16%] lg:w-[42%]" />
               <Link href={buyHref} className="group relative z-10 block [perspective:1000px]">
                 <div className="relative rounded-[1.75rem] bg-gradient-to-br from-vybe-500 via-orchid-500 to-pulse-500 p-[3px] shadow-[0_40px_80px_-30px_rgb(var(--c-orchid-500)/0.6)] transition-transform duration-500 ease-out group-hover:[transform:rotateY(-6deg)_rotateX(4deg)]">
                   {live.hero_image ? (
