@@ -7,6 +7,7 @@ import { BRAND } from '@/content/site';
 import { Countdown } from '@/components/ui/Countdown';
 import { Reveal } from '@/components/ui/Reveal';
 import { Dandiya3D } from '@/components/site/Dandiya3D';
+import { Marquee } from '@/components/ui/Marquee';
 
 export const dynamic = 'force-dynamic';
 
@@ -43,7 +44,7 @@ export default async function HomePage() {
   const buyHref = `/events/${live.slug}#tickets`;
 
   return (
-    <div className="relative">
+    <div className="relative overflow-x-clip">
       <section id="upcoming" className="relative overflow-hidden">
         <div className="shell relative grid items-center gap-10 pb-14 pt-28 sm:pt-32 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)] lg:gap-14 lg:pb-20">
           <Reveal>
@@ -122,7 +123,15 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <section className="shell pb-20 pt-4">
+      <div className="relative z-10 my-6 -rotate-[1.5deg] scale-[1.03] border-y-2 border-vybe-300 bg-gradient-to-r from-vybe-500 via-vybe-400 to-orchid-400 shadow-[0_20px_40px_-20px_rgb(0_0_0/0.6)]">
+        <Marquee
+          items={['Dhol', 'Dandiya', 'Garba', 'Raas', 'Navratri 2026', 'Kompally', '17 October']}
+          separator="✦"
+          speedSeconds={26}
+        />
+      </div>
+
+      <section className="shell pb-20 pt-10">
         <h2 className="h-section">
           Three steps to the <span className="accent">circle</span>
         </h2>

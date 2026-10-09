@@ -58,6 +58,10 @@ export function Header({ customerName, buyHref, featuredLine }: HeaderProps) {
     };
   }, [menuOpen]);
 
+  // Close the instant a link is tapped, not when the next page finishes
+  // rendering — a slow server render otherwise leaves the drawer hanging.
+  const close = () => setMenuOpen(false);
+
   const isActive = (href: string) => {
     if (href.startsWith('/#')) return false;
     return href === '/' ? pathname === '/' : pathname.startsWith(href);
@@ -180,66 +184,85 @@ export function Header({ customerName, buyHref, featuredLine }: HeaderProps) {
 
       <AnimatePresence>
         {menuOpen && (
-          <motion.div
-            id="mobile-nav"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.22 }}
-            className="fixed inset-0 z-40 overflow-y-auto bg-canvas/95 backdrop-blur-2xl lg:hidden"
-          >
-            <div aria-hidden className="pointer-events-none absolute inset-0 halftone opacity-30" />
+          <>
+            <motion.button
+              key="scrim"
+              type="button"
+              aria-label="Close menu"
+              onClick={close}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0, transition: { duration: 0.15 } }}
+              transition={{ duration: 0.2 }}
+              className="fixed inset-0 z-[60] bg-canvas-deep/70 backdrop-blur-sm lg:hidden"
+            />
+            <motion.nav
+              key="drawer"
+              id="mobile-nav"
+              aria-label="Menu"
+              initial={{ x: '100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '100%', transition: { duration: 0.18, ease: 'easeIn' } }}
+              transition={{ type: 'spring', stiffness: 420, damping: 40 }}
+              className="fixed inset-y-0 right-0 z-[61] flex w-[min(82vw,320px)] flex-col overflow-y-auto border-l border-edge bg-canvas/95 px-5 pb-6 pt-4 shadow-[-20px_0_60px_rgb(0_0_0/0.5)] backdrop-blur-xl lg:hidden"
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-[0.8125rem] font-semibold text-muted">Menu</span>
+                <button
+                  type="button"
+                  onClick={close}
+                  aria-label="Close menu"
+                  className="flex h-10 w-10 items-center justify-center rounded-full border border-edgeStrong text-ink transition-colors hover:bg-ink/10"
+                >
+                  <svg viewBox="0 0 16 16" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+                    <path d="M3 3l10 10M13 3L3 13" />
+                  </svg>
+                </button>
+              </div>
 
-            <div className="shell relative flex min-h-full flex-col pb-10 pt-24">
-              <ul className="flex flex-col">
+              <ul className="mt-4 flex flex-col">
                 {NAV_LINKS.map((link, index) => {
                   const active = isActive(link.href);
                   return (
                     <motion.li
                       key={link.href}
-                      initial={{ opacity: 0, y: 14 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.04 + index * 0.045, duration: 0.35 }}
+                      initial={{ opacity: 0, x: 18 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.03 + index * 0.035, duration: 0.25 }}
                     >
                       <Link
                         href={link.href}
+                        onClick={close}
                         aria-current={active ? 'page' : undefined}
                         className={cn(
-                          'flex items-baseline justify-between border-b border-edge py-4 font-display text-[1.75rem] transition-colors',
-                          active ? 'text-vybe-600' : 'text-ink',
+                          'flex items-center justify-between rounded-xl px-3 py-3 text-[1.0625rem] font-semibold transition-colors',
+                          active ? 'bg-vybe-100 text-vybe-700' : 'text-ink hover:bg-ink/5',
                         )}
                       >
                         {link.label}
-                        <span aria-hidden className="text-lg text-vybe-500">→</span>
+                        <span aria-hidden className={cn('text-sm', active ? 'text-vybe-600' : 'text-muted')}>›</span>
                       </Link>
                     </motion.li>
                   );
                 })}
               </ul>
 
-              <motion.div
-                initial={{ opacity: 0, y: 16 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.32 }}
-                className="mt-8"
-              >
-                <Link href={buyHref} className="btn-primary w-full">
+              <div className="mt-auto space-y-2.5 pt-6">
+                <Link href={buyHref} onClick={close} className="btn-primary w-full py-3.5">
                   Buy tickets
                 </Link>
-                <div className="mt-3 grid grid-cols-2 gap-3">
-                  <Link href={customerName ? '/account' : '/login'} className="btn-outline w-full">
+                <div className="grid grid-cols-2 gap-2.5">
+                  <Link href={customerName ? '/account' : '/login'} onClick={close} className="btn-outline btn-sm w-full">
                     {customerName ? 'My tickets' : 'Sign in'}
                   </Link>
-                  <Link href={customerName ? '/cart' : '/signup'} className="btn-outline w-full">
+                  <Link href={customerName ? '/cart' : '/signup'} onClick={close} className="btn-outline btn-sm w-full">
                     {customerName ? 'Cart' : 'Sign up'}
                   </Link>
                 </div>
-                {featuredLine && (
-                  <p className="mt-4 text-center text-[0.8125rem] text-slate">{featuredLine}</p>
-                )}
-              </motion.div>
-            </div>
-          </motion.div>
+                {featuredLine && <p className="pt-1 text-center text-[0.75rem] text-muted">{featuredLine}</p>}
+              </div>
+            </motion.nav>
+          </>
         )}
       </AnimatePresence>
     </>

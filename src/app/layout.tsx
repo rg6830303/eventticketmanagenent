@@ -123,7 +123,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           the intro overlay that would otherwise never lift.
         */}
         <noscript>
-          <style>{`[data-reveal]{opacity:1!important;transform:none!important}#poster-intro{display:none!important}`}</style>
+          <style>{`[data-reveal]{opacity:1!important;transform:none!important}#poster-intro,#intro-film{display:none!important}`}</style>
         </noscript>
       </head>
       <body className="min-h-dvh">

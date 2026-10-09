@@ -2,6 +2,7 @@ import { Header } from '@/components/site/Header';
 import { Footer } from '@/components/site/Footer';
 import { PageTransition } from '@/components/site/PageTransition';
 import { Heartbeat } from '@/components/site/Heartbeat';
+import { IntroFilm } from '@/components/site/IntroFilm';
 import { getCustomerSession } from '@/lib/customer-auth';
 import { getFeaturedEvent } from '@/lib/event-facts';
 import { formatEventDate } from '@/lib/utils';
@@ -40,6 +41,9 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
 
   return (
     <div className="flex min-h-dvh flex-col">
+      {/* This layout persists across client navigation, so the film plays on a
+          fresh load or refresh only — never between pages. */}
+      <IntroFilm />
       <Heartbeat />
       <Header
         customerName={session ? session.name.split(' ')[0] || 'there' : null}

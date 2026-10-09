@@ -85,6 +85,12 @@ function StickDefs({ tone }: { tone: Tone }) {
 }
 
 /** One stick. Needs <Environment /> on the page for its symbol defs. */
+// Rising embers: [left, duration s, delay s].
+const EMBERS: [string, number, number][] = [
+  ['8%', 12, 0], ['22%', 9, -4], ['35%', 13, -7], ['48%', 10, -2], ['61%', 14, -9], ['74%', 11, -5],
+  ['88%', 12, -1], ['15%', 15, -11], ['55%', 9, -6], ['94%', 13, -3],
+];
+
 export function DandiyaStick({ tone = 'a', className }: { tone?: Tone; className?: string }) {
   return (
     <svg viewBox="0 0 24 240" className={className ?? 'dstick'} aria-hidden>
@@ -160,6 +166,14 @@ export function Environment() {
           </span>
           <span className="env__spark" />
         </span>
+      ))}
+
+      {EMBERS.map(([x, d, delay], i) => (
+        <span
+          key={`e${i}`}
+          className={`env__ember${i > 6 ? ' env__desk' : ''}`}
+          style={{ left: x, animationDuration: `${d}s`, animationDelay: `${delay}s` }}
+        />
       ))}
 
       <span className="env__toran" />
