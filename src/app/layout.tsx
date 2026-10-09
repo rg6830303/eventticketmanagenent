@@ -1,44 +1,39 @@
 import type { Metadata, Viewport } from 'next';
-import { Bricolage_Grotesque, Instrument_Sans, Instrument_Serif, DM_Mono } from 'next/font/google';
+import { Rozha_One, Mukta, Yatra_One, DM_Mono } from 'next/font/google';
 import './globals.css';
 import { BRAND, EVENT } from '@/content/site';
 import { getSiteUrl } from '@/lib/site-url';
 import { Environment } from '@/components/site/Environment';
 
 /**
- * Type system.
+ * Type system, picked for a Navratri night rather than a SaaS dashboard:
+ *   Rozha One  — headlines. A high-contrast display face drawn for Devanagari
+ *     and Latin together; it reads like a hand-painted festival banner.
+ *   Mukta      — body and fields. Built for Indian screens, sturdy at small
+ *     sizes on cheap phones in bright light.
+ *   Yatra One  — accent words only, the brush-lettered flourish.
+ *   DM Mono    — ticket codes, references and timers that must line up.
  *
- * Four families, each with one job, chosen so the page does not read like a
- * framework default:
- *   Bricolage Grotesque — headlines. Slightly condensed, high x-height, the
- *     kind of face a poster is set in.
- *   Instrument Sans     — everything a person reads in a paragraph or a field.
- *   Instrument Serif    — italic accent words only. It is the serif companion
- *     to the body face, so the pairing is by design rather than by taste.
- *   DM Mono             — codes, timers, prices, labels. Anything where the
- *     characters need to line up in a column.
- *
- * next/font self-hosts all four at build time, so the strict CSP in
- * next.config.mjs stays honest and there is no render-blocking third party.
+ * next/font self-hosts all four, so the CSP stays strict.
  */
-const display = Bricolage_Grotesque({
-  subsets: ['latin'],
-  display: 'swap',
-  axes: ['opsz'],
-  variable: '--font-display',
-});
-
-const sans = Instrument_Sans({
-  subsets: ['latin'],
-  display: 'swap',
-  variable: '--font-sans',
-});
-
-const script = Instrument_Serif({
+const display = Rozha_One({
   subsets: ['latin'],
   display: 'swap',
   weight: '400',
-  style: 'italic',
+  variable: '--font-display',
+});
+
+const sans = Mukta({
+  subsets: ['latin'],
+  display: 'swap',
+  weight: ['400', '500', '600', '700', '800'],
+  variable: '--font-sans',
+});
+
+const script = Yatra_One({
+  subsets: ['latin'],
+  display: 'swap',
+  weight: '400',
   variable: '--font-script',
 });
 
@@ -93,11 +88,11 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: '#f2f7fd',
+  themeColor: '#180611',
   width: 'device-width',
   initialScale: 1,
   maximumScale: 5,
-  colorScheme: 'light',
+  colorScheme: 'dark',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -138,7 +133,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           href="#main"
           className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100]
                      focus:rounded-xl focus:bg-ink focus:px-5 focus:py-3 focus:text-sm
-                     focus:font-semibold focus:text-white"
+                     focus:font-semibold focus:text-night"
         >
           Skip to content
         </a>

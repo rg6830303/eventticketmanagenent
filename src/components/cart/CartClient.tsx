@@ -218,7 +218,7 @@ export function CartClient({
                       </p>
                     </div>
                     <p className="mt-1 text-[0.8125rem] text-slate">{tier.description}</p>
-                    <p className="mt-2 font-mono text-[0.6875rem] uppercase tracking-[0.12em] text-slate">
+                    <p className="mt-2 text-[0.6875rem] font-semibold tracking-[0.02em] text-slate">
                       {tier.pax ?? 1} {(tier.pax ?? 1) === 1 ? 'guest' : 'guests'}
                     </p>
                   </div>
@@ -229,7 +229,7 @@ export function CartClient({
                         <button
                           type="button"
                           onClick={() => removeOne(code, quantity)}
-                          className="flex h-9 w-9 items-center justify-center rounded-[9px] border border-ink text-ink transition-colors hover:bg-vybe-100"
+                          className="flex h-9 w-9 items-center justify-center rounded-[9px] border border-edgeStrong text-ink transition-colors hover:bg-vybe-100"
                           aria-label={`Remove one ${tier.name} ticket`}
                         >
                           −
@@ -240,7 +240,7 @@ export function CartClient({
                         <button
                           type="button"
                           onClick={() => addOne(code)}
-                          className="flex h-9 w-9 items-center justify-center rounded-[9px] border border-ink text-ink transition-colors hover:bg-vybe-100"
+                          className="flex h-9 w-9 items-center justify-center rounded-[9px] border border-edgeStrong text-ink transition-colors hover:bg-vybe-100"
                           aria-label={`Add one more ${tier.name} ticket`}
                         >
                           +
@@ -261,7 +261,7 @@ export function CartClient({
                     )}
 
                     <div className="flex flex-wrap items-center justify-between gap-3 border-t border-ink/15 pt-4">
-                      <p className="font-mono text-[0.6875rem] uppercase tracking-[0.16em] text-muted">
+                      <p className="text-[0.6875rem] font-semibold tracking-[0.02em] text-muted">
                         {code}
                       </p>
                       <button
@@ -282,8 +282,8 @@ export function CartClient({
 
       <aside className="lg:sticky lg:top-28 lg:self-start">
         <div className="card-print overflow-hidden">
-          <div className="border-b-[1.5px] border-ink bg-vybe-100 px-6 py-4">
-            <p className="font-mono text-[0.6875rem] font-medium uppercase tracking-[0.22em] text-ink">
+          <div className="border-b-[1.5px] border-edgeStrong bg-vybe-100 px-6 py-4">
+            <p className="text-[0.6875rem] font-semibold tracking-[0.02em] text-ink">
               Bill summary
             </p>
             <p className="mt-2 font-display text-[1.2rem] font-semibold text-ink">

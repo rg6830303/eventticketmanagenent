@@ -154,9 +154,9 @@ export default async function PayPage({
           {/* ---------------- Order ---------------- */}
           <Reveal delay={0.06}>
             <div className="panel-raised overflow-hidden">
-              <div className="flex items-start justify-between gap-4 border-b-[1.5px] border-ink bg-vybe-100 px-6 py-5">
+              <div className="flex items-start justify-between gap-4 border-b-[1.5px] border-edgeStrong bg-vybe-100 px-6 py-5">
                 <div>
-                  <p className="font-mono text-[0.6875rem] font-medium uppercase tracking-[0.22em] text-ink">
+                  <p className="text-[0.6875rem] font-semibold tracking-[0.02em] text-ink">
                     Your order
                   </p>
                   <p className="h-card mt-1.5 whitespace-nowrap">
@@ -200,9 +200,9 @@ export default async function PayPage({
                 <p className="text-[0.75rem] text-muted">
                   All taxes and platform fees included. Charged once, in INR.
                 </p>
-                <div aria-hidden className="mt-4 flex items-center justify-between gap-4 border-t-[1.5px] border-ink pt-4">
+                <div aria-hidden className="mt-4 flex items-center justify-between gap-4 border-t-[1.5px] border-edgeStrong pt-4">
                   <span className="barcode h-6 w-28 opacity-70" />
-                  <span className="font-mono text-[0.625rem] uppercase tracking-[0.2em] text-muted">
+                  <span className="text-[0.625rem] font-semibold tracking-[0.02em] text-muted">
                     {booking.reference}
                   </span>
                 </div>
@@ -236,15 +236,15 @@ export default async function PayPage({
                     />
                   )}
 
-                  <div className="mt-6 border-t-2 border-ink pt-5">
-                    <p className="font-mono text-[0.6875rem] uppercase tracking-[0.18em] text-vybe-700">
+                  <div className="mt-6 border-t-2 border-edgeStrong pt-5">
+                    <p className="text-[0.6875rem] font-semibold tracking-[0.02em] text-vybe-700">
                       Pay with
                     </p>
                     <ul className="mt-3 flex flex-wrap gap-2">
                       {['UPI', 'Cards', 'Net banking', 'Wallets'].map((method) => (
                         <li
                           key={method}
-                          className="rounded-[8px] border border-ink/25 bg-frost px-2.5 py-1.5 font-mono text-[0.6875rem] uppercase tracking-[0.08em] text-slate"
+                          className="rounded-[8px] border border-ink/25 bg-frost px-2.5 py-1.5 text-[0.6875rem] font-semibold tracking-[0.02em] text-slate"
                         >
                           {method}
                         </li>
@@ -259,7 +259,7 @@ export default async function PayPage({
               {env.paymentsEnabled && upiEnabled && upiUri && upiQr && (
                 <div className="flex items-center gap-4">
                   <span className="h-px flex-1 bg-ink/20" />
-                  <span className="font-mono text-[0.6875rem] uppercase tracking-[0.2em] text-muted">
+                  <span className="text-[0.6875rem] font-semibold tracking-[0.02em] text-muted">
                     or pay direct
                   </span>
                   <span className="h-px flex-1 bg-ink/20" />
@@ -324,7 +324,7 @@ export default async function PayPage({
                 <Assurance>Full refund if we cancel or move the date.</Assurance>
               </ul>
 
-              <p className="mt-6 border-t-2 border-ink pt-5 text-[0.75rem] leading-relaxed text-muted">
+              <p className="mt-6 border-t-2 border-edgeStrong pt-5 text-[0.75rem] leading-relaxed text-muted">
                 Stuck on this step? Email{' '}
                 <a href={`mailto:${BRAND.supportEmail}`} className="link-swipe font-medium">
                   {BRAND.supportEmail}

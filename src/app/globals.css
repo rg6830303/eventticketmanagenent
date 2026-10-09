@@ -14,21 +14,127 @@
 
 @layer base {
   :root {
-    color-scheme: light;
+    color-scheme: dark;
 
     /* Rhythm tokens the component layer reads, so spacing scales in one place. */
     --rail: clamp(1.25rem, 4vw, 2.75rem);
     --section-y: clamp(4rem, 7.5vw, 7rem);
     --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
     --ease-spring: cubic-bezier(0.34, 1.4, 0.64, 1);
-    --ink: #0a2138;
+    --ink: rgb(var(--c-ink));
+
+    /* Festival night (public site). RGB channels so Tailwind opacity works. */
+    --c-canvas: 24 6 17;
+    --c-canvas-deep: 15 3 10;
+    --c-frost: 40 11 26;
+    --c-mist: 56 15 34;
+    --c-paper: 44 13 28;
+    --c-edge: 92 36 56;
+    --c-edge-strong: 134 58 78;
+    --c-ink: 255 241 220;
+    --c-slate: 240 212 184;
+    --c-muted: 196 158 142;
+    --c-night: 28 6 16;
+    --c-press: 226 44 126;
+    --c-stamp: 0 0 0;
+    --stamp-a: 0.55;
+
+    --c-vybe-50: 52 20 12;
+    --c-vybe-100: 74 30 14;
+    --c-vybe-200: 122 60 16;
+    --c-vybe-300: 204 112 22;
+    --c-vybe-400: 240 150 30;
+    --c-vybe-500: 247 168 38;
+    --c-vybe-600: 250 186 70;
+    --c-vybe-700: 252 204 110;
+    --c-vybe-800: 253 220 150;
+    --c-vybe-900: 254 232 185;
+    --c-vybe-950: 255 243 220;
+
+    --c-orchid-200: 92 20 52;
+    --c-orchid-300: 150 30 80;
+    --c-orchid-400: 236 72 153;
+    --c-orchid-500: 222 40 120;
+    --c-orchid-600: 245 112 176;
+
+    --c-pulse-200: 12 62 62;
+    --c-pulse-300: 22 112 110;
+    --c-pulse-400: 46 200 190;
+    --c-pulse-500: 22 172 165;
+    --c-pulse-600: 84 222 212;
+
+    --c-flare-200: 84 16 22;
+    --c-flare-300: 164 42 48;
+    --c-flare-400: 246 92 82;
+    --c-flare-500: 238 64 54;
+    --c-flare-600: 255 124 108;
+
+    --c-leaf-100: 16 54 36;
+    --c-leaf-400: 74 222 128;
+    --c-leaf-500: 52 211 153;
+    --c-leaf-600: 112 232 172;
+  }
+
+  /* Daylight palette for the staff console and promoter tools: dense tables
+     read better on paper than on a dance floor. */
+  .theme-console {
+    color-scheme: light;
+    --c-canvas: 228 238 250;
+    --c-canvas-deep: 211 227 245;
+    --c-frost: 243 248 254;
+    --c-mist: 207 224 244;
+    --c-paper: 255 255 255;
+    --c-edge: 194 216 238;
+    --c-edge-strong: 157 191 225;
+    --c-ink: 10 33 56;
+    --c-slate: 60 92 125;
+    --c-muted: 120 145 173;
+    --c-night: 255 255 255;
+    --c-press: 10 33 56;
+    --c-stamp: 15 83 164;
+    --stamp-a: 0.16;
+
+    --c-vybe-50: 240 247 255;
+    --c-vybe-100: 223 238 255;
+    --c-vybe-200: 188 220 255;
+    --c-vybe-300: 138 195 255;
+    --c-vybe-400: 81 164 251;
+    --c-vybe-500: 37 134 239;
+    --c-vybe-600: 18 104 205;
+    --c-vybe-700: 15 83 164;
+    --c-vybe-800: 18 63 120;
+    --c-vybe-900: 20 53 95;
+    --c-vybe-950: 11 42 77;
+
+    --c-orchid-200: 226 213 255;
+    --c-orchid-300: 201 176 255;
+    --c-orchid-400: 169 133 251;
+    --c-orchid-500: 139 92 240;
+    --c-orchid-600: 109 63 209;
+
+    --c-pulse-200: 182 240 246;
+    --c-pulse-300: 127 226 239;
+    --c-pulse-400: 63 203 224;
+    --c-pulse-500: 24 174 199;
+    --c-pulse-600: 13 138 161;
+
+    --c-flare-200: 255 212 215;
+    --c-flare-300: 248 139 147;
+    --c-flare-400: 239 90 101;
+    --c-flare-500: 225 48 60;
+    --c-flare-600: 189 27 38;
+
+    --c-leaf-100: 217 245 232;
+    --c-leaf-400: 52 196 140;
+    --c-leaf-500: 18 160 108;
+    --c-leaf-600: 11 125 84;
   }
 
   html {
     -webkit-tap-highlight-color: transparent;
     scroll-behavior: smooth;
     scroll-padding-top: 6rem;
-    background-color: theme('colors.canvas');
+    background-color: rgb(var(--c-canvas));
   }
 
   body {
@@ -44,7 +150,7 @@
   h2,
   h3,
   h4 {
-    @apply font-display font-medium text-ink;
+    @apply font-display font-normal text-ink;
     text-wrap: balance;
   }
 
@@ -53,7 +159,7 @@
   }
 
   ::selection {
-    @apply bg-vybe-500 text-white;
+    @apply bg-vybe-500 text-night;
   }
 
   :focus-visible {
@@ -84,61 +190,191 @@
 }
 
 /* ===========================================================================
-   The ground
+   The ground — festival night
    ---------------------------------------------------------------------------
-   Flat layers, hard edges. A diagonal band of deeper blue, the halftone off
-   the artwork, a fine grid, film grain, and the event wordmark set enormous
-   in outline behind everything — a poster ground, assembled the way a poster
-   is: shapes laid over shapes, nothing blurred into atmosphere.
+   Maroon dark, two slow lamp glows (marigold, rani pink), a mirror-work
+   mandala turning behind everything, and dandiya sticks drifting and
+   striking. Transforms and opacity only.
    =========================================================================== */
 
 @layer components {
   .env {
-    @apply pointer-events-none fixed inset-0 -z-10 overflow-hidden bg-canvas;
+    @apply pointer-events-none fixed inset-0 -z-10 overflow-hidden;
+    background:
+      radial-gradient(120% 70% at 50% -10%, rgb(var(--c-orchid-200) / 0.9), transparent 60%),
+      linear-gradient(180deg, rgb(var(--c-canvas)) 0%, rgb(var(--c-canvas-deep)) 100%);
   }
 
-  /* Deep-blue diagonal running behind the lower half of the viewport. */
-  .env__band {
-    @apply absolute inset-x-0 bottom-0 h-[62vh] bg-canvasDeep;
-    clip-path: polygon(0 34%, 100% 0, 100% 100%, 0 100%);
+  .env__glow {
+    @apply absolute rounded-full;
+    width: 70vmax;
+    height: 70vmax;
+    left: -20vmax;
+    top: -25vmax;
+    background: radial-gradient(circle, rgb(var(--c-vybe-400) / 0.22), transparent 62%);
+    animation: env-glow 16s ease-in-out infinite alternate;
+  }
+  .env__glow--b {
+    left: auto;
+    top: auto;
+    right: -25vmax;
+    bottom: -30vmax;
+    background: radial-gradient(circle, rgb(var(--c-orchid-500) / 0.2), transparent 62%);
+    animation-duration: 21s;
+    animation-direction: alternate-reverse;
   }
 
-  .env__band2 {
-    @apply absolute inset-x-0 bottom-0 h-[30vh] bg-mist;
-    clip-path: polygon(0 58%, 100% 12%, 100% 100%, 0 100%);
+  .env__mandala {
+    @apply absolute text-vybe-400;
+    width: 130vmin;
+    height: 130vmin;
+    right: -38vmin;
+    top: 18vh;
+    opacity: 0.16;
+    animation: env-spin 120s linear infinite;
   }
 
-  .env__grid {
-    @apply absolute inset-0;
-    background-image:
-      linear-gradient(to right, rgba(28, 92, 165, 0.07) 1px, transparent 1px),
-      linear-gradient(to bottom, rgba(28, 92, 165, 0.07) 1px, transparent 1px);
-    background-size: 72px 72px;
-  }
-
-  .env__halftone {
-    @apply absolute -right-[10%] -top-[12%] h-[70vh] w-[55vw];
-    background-image: radial-gradient(circle, rgba(37, 134, 239, 0.2) 1.5px, transparent 1.6px);
-    background-size: 17px 17px;
-    mask-image: radial-gradient(ellipse at 70% 30%, #000 30%, transparent 72%);
-    -webkit-mask-image: radial-gradient(ellipse at 70% 30%, #000 30%, transparent 72%);
-  }
-
-  /* The wordmark as ground texture. Outline only, one letterform tall enough
-     to crop off both edges — read as environment, not as a headline. */
-  .env__mark {
-    @apply absolute left-[-2vw] top-[30vh] select-none whitespace-nowrap font-display font-bold uppercase;
-    font-size: clamp(9rem, 24vw, 22rem);
-    line-height: 0.8;
-    letter-spacing: -0.03em;
-    color: transparent;
-    -webkit-text-stroke: 1.5px rgba(37, 134, 239, 0.13);
-    transform: rotate(-4deg);
+  /* Marigold-and-mango-leaf toran strung across the top edge. */
+  .env__toran {
+    @apply absolute inset-x-0 top-0 h-[10px];
+    background:
+      radial-gradient(circle at 7px 3px, #f7a826 4px, transparent 4.6px) 0 0 / 28px 10px repeat-x,
+      radial-gradient(circle at 21px 3px, #e8456b 4px, transparent 4.6px) 0 0 / 28px 10px repeat-x;
+    opacity: 0.85;
   }
 
   .env__grain {
-    @apply absolute inset-0 opacity-[0.5] mix-blend-multiply;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.14'/%3E%3C/svg%3E");
+    @apply absolute inset-0 opacity-[0.35] mix-blend-overlay;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
+  }
+
+  .dstick {
+    display: block;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+    filter: drop-shadow(0 10px 14px rgb(0 0 0 / 0.45));
+  }
+
+  /* A loose stick: drifts on a slow loop, rocking around its own angle. */
+  .env__stick {
+    @apply absolute;
+    width: calc(16px * var(--s));
+    height: calc(160px * var(--s));
+    opacity: 0.55;
+    transform: rotate(var(--r));
+    animation: env-float 20s ease-in-out infinite;
+    will-change: transform;
+  }
+
+  /* A pair: two sticks pivot from their lower ends and meet overhead on the
+     beat, with a flash where they strike. */
+  .env__pair {
+    @apply absolute;
+    width: calc(120px * var(--s));
+    height: calc(160px * var(--s));
+    opacity: 0.6;
+  }
+  .env__pair-l,
+  .env__pair-r {
+    @apply absolute bottom-0;
+    width: calc(16px * var(--s));
+    height: calc(150px * var(--s));
+    left: calc(50% - 8px * var(--s));
+    transform-origin: 50% 100%;
+    animation: env-strike-l 2.4s cubic-bezier(0.5, 0, 0.3, 1) infinite;
+    animation-delay: var(--pd);
+  }
+  .env__pair-r {
+    animation-name: env-strike-r;
+  }
+  .env__spark {
+    @apply absolute rounded-full;
+    width: calc(46px * var(--s));
+    height: calc(46px * var(--s));
+    left: calc(50% - 23px * var(--s));
+    top: calc(-4px * var(--s));
+    background: radial-gradient(circle, #fff6d6 0 12%, rgb(247 168 38 / 0.7) 30%, transparent 68%);
+    opacity: 0;
+    animation: env-spark 2.4s ease-out infinite;
+    animation-delay: var(--pd);
+  }
+
+  @media (max-width: 767px) {
+    .env__desk {
+      display: none;
+    }
+    .env__stick {
+      opacity: 0.4;
+    }
+    .env__pair {
+      opacity: 0.45;
+    }
+    .env__mandala {
+      width: 150vmin;
+      height: 150vmin;
+      right: -70vmin;
+      top: 30vh;
+    }
+  }
+}
+
+@keyframes env-glow {
+  to {
+    transform: translate3d(8vmax, 6vmax, 0) scale(1.1);
+  }
+}
+@keyframes env-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes env-float {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) rotate(var(--r));
+  }
+  33% {
+    transform: translate3d(14px, -38px, 0) rotate(calc(var(--r) + 14deg));
+  }
+  66% {
+    transform: translate3d(-12px, -16px, 0) rotate(calc(var(--r) - 10deg));
+  }
+}
+@keyframes env-strike-l {
+  0%,
+  100% {
+    transform: rotate(-38deg);
+  }
+  42%,
+  50% {
+    transform: rotate(-9deg);
+  }
+}
+@keyframes env-strike-r {
+  0%,
+  100% {
+    transform: rotate(38deg);
+  }
+  42%,
+  50% {
+    transform: rotate(9deg);
+  }
+}
+@keyframes env-spark {
+  0%,
+  38% {
+    opacity: 0;
+    transform: scale(0.3);
+  }
+  44% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  62%,
+  100% {
+    opacity: 0;
+    transform: scale(1.5);
   }
 }
 
@@ -180,27 +416,27 @@
   }
 
   .edit-index {
-    @apply font-mono text-[0.75rem] font-medium uppercase tracking-[0.22em] text-vybe-700;
+    @apply font-sans text-[0.875rem] font-semibold tracking-[0.02em] text-vybe-600;
   }
 
   /* ---------- Type scale ---------- */
   .h-hero {
     @apply font-display font-semibold text-ink;
-    font-size: clamp(2.75rem, 8.5vw, 6.5rem);
-    line-height: 0.94;
-    letter-spacing: -0.04em;
+    font-size: clamp(2.6rem, 9vw, 6.25rem);
+    line-height: 1;
+    letter-spacing: -0.01em;
   }
 
   .h-section {
     @apply font-display font-medium text-ink;
-    font-size: clamp(2rem, 4.4vw, 3.35rem);
-    line-height: 1.04;
-    letter-spacing: -0.032em;
+    font-size: clamp(1.9rem, 5vw, 3.25rem);
+    line-height: 1.08;
+    letter-spacing: -0.005em;
   }
 
   .h-card {
-    @apply font-display text-[1.35rem] font-medium leading-tight text-ink;
-    letter-spacing: -0.02em;
+    @apply font-display text-[1.35rem] font-normal leading-tight text-ink;
+    letter-spacing: 0;
   }
 
   .lede {
@@ -208,18 +444,18 @@
   }
 
   .kicker {
-    @apply inline-flex items-center gap-2 font-mono text-[0.6875rem] font-medium uppercase
-           tracking-[0.24em] text-vybe-700;
+    @apply inline-flex items-center gap-2 font-sans text-[0.8125rem] font-semibold
+           tracking-[0.02em] text-vybe-600;
   }
 
   .kicker-rule::before {
     content: '';
-    @apply inline-block h-px w-6 bg-vybe-500;
+    @apply inline-block h-[3px] w-6 rounded-full bg-gradient-to-r from-vybe-500 to-orchid-500;
   }
 
   .accent {
-    @apply font-script font-normal italic;
-    letter-spacing: -0.01em;
+    @apply font-script font-normal text-vybe-500;
+    letter-spacing: 0;
   }
 
   /* Big outline display type, for numerals and backdrop words. */
@@ -233,7 +469,8 @@
      `panel` keeps the quiet bordered surface for dense areas (admin, forms)
      where a page of ink boxes would shout. */
   .card-print {
-    @apply rounded-[16px] border-[1.5px] border-ink bg-paper shadow-stamp;
+    @apply rounded-[18px] border-[1.5px] border-edgeStrong bg-paper shadow-stamp;
+    background-image: linear-gradient(160deg, rgb(var(--c-ink) / 0.06), transparent 45%);
   }
 
   .card-print-ink {
@@ -253,7 +490,7 @@
   }
 
   .panel-glass {
-    @apply rounded-[16px] border-[1.5px] border-ink bg-white/85 shadow-stamp backdrop-blur-md;
+    @apply rounded-[16px] border-[1.5px] border-edgeStrong bg-paper/85 shadow-stamp backdrop-blur-md;
   }
 
   /* ---------- Buttons ----------
@@ -269,13 +506,13 @@
   }
 
   .btn-primary {
-    @apply btn bg-vybe-500 px-7 py-4 text-white shadow-press
+    @apply btn bg-vybe-500 px-7 py-4 text-night shadow-press
            hover:-translate-x-[2px] hover:-translate-y-[2px] hover:shadow-press-lg
            active:translate-x-[2px] active:translate-y-[2px] active:shadow-none;
   }
 
   .btn-dark {
-    @apply btn bg-ink px-7 py-4 text-white shadow-[3px_3px_0_0_theme(colors.vybe.500)]
+    @apply btn bg-ink px-7 py-4 text-night shadow-[3px_3px_0_0_theme(colors.vybe.500)]
            hover:-translate-x-[2px] hover:-translate-y-[2px] hover:shadow-[5px_5px_0_0_theme(colors.vybe.500)]
            active:translate-x-[2px] active:translate-y-[2px] active:shadow-none;
   }
@@ -289,7 +526,7 @@
   .btn-quiet {
     @apply inline-flex select-none items-center justify-center gap-2 rounded-[10px] px-4 py-2.5
            text-[0.9375rem] font-semibold text-slate transition-colors duration-150
-           hover:bg-white/80 hover:text-ink;
+           hover:bg-ink/10 hover:text-ink;
   }
 
   .btn-sm {
@@ -323,8 +560,8 @@
 
   /* ---------- Bits ---------- */
   .chip {
-    @apply inline-flex items-center gap-1.5 rounded-[7px] border border-ink bg-paper
-           px-2.5 py-1 font-mono text-[0.6875rem] font-medium uppercase tracking-[0.1em] text-ink;
+    @apply inline-flex items-center gap-1.5 rounded-full border border-edgeStrong bg-paper
+           px-3 py-1 text-[0.75rem] font-semibold tracking-[0.01em] text-ink;
   }
 
   .chip-hot {
@@ -333,7 +570,7 @@
 
   /* A chip laid on by hand: slight rotation, hard mini-shadow. */
   .sticker {
-    @apply chip -rotate-2 bg-vybe-100 shadow-press-sm;
+    @apply chip -rotate-2 border-vybe-400 bg-vybe-100 text-vybe-700 shadow-press-sm;
   }
 
   .rule {
@@ -377,21 +614,21 @@
 
   /* ---------- Local backdrops ---------- */
   .dotfield {
-    background-image: radial-gradient(circle, rgba(37, 134, 239, 0.18) 1px, transparent 1px);
+    background-image: radial-gradient(circle, rgb(var(--c-vybe-500) / 0.18) 1px, transparent 1px);
     background-size: 22px 22px;
   }
 
   .gridfield {
     background-image:
-      linear-gradient(to right, rgba(37, 134, 239, 0.08) 1px, transparent 1px),
-      linear-gradient(to bottom, rgba(37, 134, 239, 0.08) 1px, transparent 1px);
+      linear-gradient(to right, rgb(var(--c-vybe-500) / 0.08) 1px, transparent 1px),
+      linear-gradient(to bottom, rgb(var(--c-vybe-500) / 0.08) 1px, transparent 1px);
     background-size: 64px 64px;
   }
 
   .halftone {
     background-image:
-      radial-gradient(circle, rgba(37, 134, 239, 0.22) 1.6px, transparent 1.7px),
-      radial-gradient(circle, rgba(139, 92, 240, 0.14) 1px, transparent 1.1px);
+      radial-gradient(circle, rgb(var(--c-vybe-500) / 0.22) 1.6px, transparent 1.7px),
+      radial-gradient(circle, rgb(var(--c-orchid-500) / 0.14) 1px, transparent 1.1px);
     background-size: 18px 18px, 18px 18px;
     background-position: 0 0, 9px 9px;
   }
@@ -447,6 +684,104 @@
   }
 }
 
+
+/* ===========================================================================
+   Dandiya3D — crossed sticks over a mirror-work disc
+   =========================================================================== */
+.d3 {
+  perspective: 900px;
+  width: 100%;
+  aspect-ratio: 1;
+}
+.d3__stage {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+  animation: d3-turn 14s ease-in-out infinite;
+}
+.d3__disc {
+  position: absolute;
+  inset: 22%;
+  border-radius: 9999px;
+  background:
+    repeating-conic-gradient(from 0deg, rgb(var(--c-vybe-500) / 0.9) 0 10deg, rgb(var(--c-orchid-500) / 0.85) 10deg 20deg),
+    rgb(var(--c-paper));
+  box-shadow:
+    0 0 0 6px rgb(var(--c-vybe-300)),
+    0 0 0 14px rgb(var(--c-canvas) / 0.9),
+    0 0 0 16px rgb(var(--c-vybe-500) / 0.6),
+    0 30px 80px -10px rgb(var(--c-vybe-500) / 0.45);
+  transform: translateZ(-40px);
+  animation: env-spin 30s linear infinite;
+}
+.d3__disc::after {
+  content: '';
+  position: absolute;
+  inset: 30%;
+  border-radius: inherit;
+  background: radial-gradient(circle at 35% 30%, #fff8e1, rgb(var(--c-vybe-400)) 45%, rgb(var(--c-vybe-200)) 100%);
+}
+.d3__mirror {
+  position: absolute;
+  left: calc(50% - 5%);
+  top: calc(50% - 5%);
+  width: 10%;
+  height: 10%;
+  border-radius: 9999px;
+  background: radial-gradient(circle at 35% 35%, #ffffff, #b9e3ff 40%, #6aa7d8 100%);
+  box-shadow: 0 0 0 2px #f7c948;
+  transform-origin: 50% 50%;
+}
+.d3__stick {
+  position: absolute;
+  left: calc(50% - 4%);
+  top: 4%;
+  width: 8%;
+  height: 92%;
+  transform-style: preserve-3d;
+}
+.d3__stick--l {
+  animation: d3-tap-l 2.4s cubic-bezier(0.5, 0, 0.3, 1) infinite;
+}
+.d3__stick--r {
+  animation: d3-tap-r 2.4s cubic-bezier(0.5, 0, 0.3, 1) infinite;
+}
+.d3__face {
+  position: absolute;
+  inset: 0;
+  backface-visibility: visible;
+}
+@keyframes d3-turn {
+  0%,
+  100% {
+    transform: rotateX(14deg) rotateY(-22deg);
+  }
+  50% {
+    transform: rotateX(4deg) rotateY(22deg);
+  }
+}
+@keyframes d3-tap-l {
+  0%,
+  100% {
+    transform: translateZ(30px) rotate(-34deg);
+  }
+  45%,
+  52% {
+    transform: translateZ(30px) rotate(-22deg);
+  }
+}
+@keyframes d3-tap-r {
+  0%,
+  100% {
+    transform: translateZ(50px) rotate(34deg);
+  }
+  45%,
+  52% {
+    transform: translateZ(50px) rotate(22deg);
+  }
+}
+
 /* Motion is decoration. Content never depends on it. */
 @media (prefers-reduced-motion: reduce) {
   html {
@@ -465,6 +800,7 @@
 @media print {
   body {
     background: #fff !important;
+    color: #000 !important;
   }
   .env,
   .no-print {

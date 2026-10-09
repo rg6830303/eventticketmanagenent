@@ -68,10 +68,10 @@ export default async function EventPage({ params }: Params) {
               <img
                 src={event.hero_image}
                 alt={`${title} poster`}
-                className="relative h-auto w-full rounded-[1.75rem] border-[1.5px] border-ink object-cover shadow-press"
+                className="relative h-auto w-full rounded-[1.75rem] border-[1.5px] border-edgeStrong object-cover shadow-press"
               />
             ) : (
-              <div className="relative flex aspect-square w-full items-center justify-center rounded-[1.75rem] border-[1.5px] border-ink bg-vybe-100 font-display text-4xl font-bold text-ink shadow-press">
+              <div className="relative flex aspect-square w-full items-center justify-center rounded-[1.75rem] border-[1.5px] border-edgeStrong bg-vybe-100 font-display text-4xl font-bold text-ink shadow-press">
                 {event.name}
               </div>
             )}
@@ -83,8 +83,8 @@ export default async function EventPage({ params }: Params) {
             <span
               className={
                 past
-                  ? 'inline-flex rounded-full bg-mist px-3 py-1 font-mono text-[0.6875rem] font-semibold uppercase tracking-[0.18em] text-slate'
-                  : 'inline-flex rounded-full bg-vybe-500 px-3 py-1 font-mono text-[0.6875rem] font-semibold uppercase tracking-[0.18em] text-white'
+                  ? 'inline-flex rounded-full bg-mist px-3 py-1 text-[0.6875rem] font-semibold tracking-[0.02em] text-slate'
+                  : 'inline-flex rounded-full bg-vybe-500 px-3 py-1 text-[0.6875rem] font-semibold tracking-[0.02em] text-night'
               }
             >
               {onSale ? 'Tickets on sale' : 'Coming soon'}
@@ -115,7 +115,7 @@ export default async function EventPage({ params }: Params) {
 
             {!past && (
               <div className="mt-7">
-                <p className="font-mono text-[0.6875rem] uppercase tracking-[0.2em] text-muted">Doors open in</p>
+                <p className="text-[0.6875rem] font-semibold tracking-[0.02em] text-muted">Doors open in</p>
                 <Countdown target={event.doors_at ?? event.starts_at} className="mt-2" />
               </div>
             )}
@@ -129,7 +129,7 @@ export default async function EventPage({ params }: Params) {
           <div className="shell">
             <div className="flex flex-wrap items-end justify-between gap-4">
               <div>
-                <p className="font-mono text-[0.6875rem] uppercase tracking-[0.2em] text-muted">Passes</p>
+                <p className="text-[0.6875rem] font-semibold tracking-[0.02em] text-muted">Passes</p>
                 <h2 className="mt-2 font-display text-3xl font-bold text-ink sm:text-4xl">
                   {onSale ? 'Pick your pass' : 'Tickets opening soon'}
                 </h2>
@@ -143,7 +143,7 @@ export default async function EventPage({ params }: Params) {
             </div>
 
             {!session && onSale && (
-              <div className="mt-6 flex flex-wrap items-center justify-between gap-4 rounded-2xl border-[1.5px] border-ink bg-paper px-5 py-4 shadow-press-sm">
+              <div className="mt-6 flex flex-wrap items-center justify-between gap-4 rounded-2xl border-[1.5px] border-edgeStrong bg-paper px-5 py-4 shadow-press-sm">
                 <p className="text-[0.9375rem] text-ink">
                   <strong>Sign in to buy.</strong>{' '}
                   <span className="text-slate">Browse freely — you will need an account at checkout.</span>
@@ -221,7 +221,7 @@ export default async function EventPage({ params }: Params) {
 function Fact({ label, value, wide }: { label: string; value: string; wide?: boolean }) {
   return (
     <div className={wide ? 'col-span-2 rounded-xl border border-edge bg-paper px-4 py-3' : 'rounded-xl border border-edge bg-paper px-4 py-3'}>
-      <dt className="font-mono text-[0.625rem] uppercase tracking-[0.18em] text-muted">{label}</dt>
+      <dt className="text-[0.625rem] font-semibold tracking-[0.02em] text-muted">{label}</dt>
       <dd className="mt-1 font-semibold text-ink">{value}</dd>
     </div>
   );

@@ -17,7 +17,7 @@ export function Accordion({ items }: { items: AccordionItem[] }) {
   const [open, setOpen] = useState<number | null>(0);
 
   return (
-    <div className="border-t-2 border-ink">
+    <div className="border-t-2 border-edgeStrong">
       {items.map((item, index) => {
         const expanded = open === index;
         return (

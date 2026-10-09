@@ -10,7 +10,7 @@ interface CelebrationProps {
 }
 
 /** Brand blues carry the burst; the logo red is a single accent, not a colour. */
-const COLOURS = ['#1f6bff', '#4189ff', '#74abff', '#38dcf5', '#7df2ff', '#e9eefc'];
+const COLOURS = ['#f7a826', '#ffd27a', '#de2878', '#f570b0', '#2ec8be', '#fff1dc'];
 const ACCENT = '#F5242B';
 
 const COUNT = 120;

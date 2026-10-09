@@ -3,84 +3,70 @@ import type { Config } from 'tailwindcss';
 /**
  * Design tokens for Houz of Vybe.
  *
- * The palette is a daylight one — the flagship event runs from noon, and a
- * midnight-black club site would be lying about what the afternoon feels like.
- *
- * The ground is blue, not white. White cards float on it and get their contrast
- * from that relationship; a white page with pale blue accents would flatten the
- * whole thing into a default template. One saturated azure carries every
- * action, a violet lifted off the event artwork appears only inside gradients,
- * and one warm red is reserved for scarcity and errors.
+ * Navratri at night: a deep sindoor-maroon ground, marigold for every action,
+ * rani pink and peacock teal from chaniya-choli embroidery for gradients and
+ * data, cream for text. Values live in globals.css as RGB channels so opacity
+ * modifiers (`bg-ink/20`) keep working.
  */
 const config: Config = {
   content: ['./src/**/*.{ts,tsx,mdx}'],
   theme: {
     extend: {
+      // Every colour is a CSS variable (globals.css). The public site runs the
+      // festival-night palette; the console swaps back to daylight with
+      // `.theme-console`, so one set of class names serves both.
       colors: {
-        // --- Surfaces. `paper` sits on `canvas`, never the other way round. ---
-        paper: '#ffffff',
-        frost: '#f3f8fe',
-        canvas: '#e4eefa',
-        canvasDeep: '#d3e3f5',
-        mist: '#cfe0f4',
-        edge: '#c2d8ee',
-        edgeStrong: '#9dbfe1',
-
-        // --- Text ramp ---
-        ink: '#0a2138',
-        slate: '#3c5c7d',
-        muted: '#7891ad',
-
-        // --- Primary: azure ---
+        paper: 'rgb(var(--c-paper) / <alpha-value>)',
+        frost: 'rgb(var(--c-frost) / <alpha-value>)',
+        canvas: 'rgb(var(--c-canvas) / <alpha-value>)',
+        canvasDeep: 'rgb(var(--c-canvas-deep) / <alpha-value>)',
+        mist: 'rgb(var(--c-mist) / <alpha-value>)',
+        edge: 'rgb(var(--c-edge) / <alpha-value>)',
+        edgeStrong: 'rgb(var(--c-edge-strong) / <alpha-value>)',
+        ink: 'rgb(var(--c-ink) / <alpha-value>)',
+        slate: 'rgb(var(--c-slate) / <alpha-value>)',
+        muted: 'rgb(var(--c-muted) / <alpha-value>)',
+        night: 'rgb(var(--c-night) / <alpha-value>)',
         vybe: {
-          50: '#f0f7ff',
-          100: '#dfeeff',
-          200: '#bcdcff',
-          300: '#8ac3ff',
-          400: '#51a4fb',
-          500: '#2586ef',
-          600: '#1268cd',
-          700: '#0f53a4',
-          800: '#123f78',
-          900: '#14355f',
-          950: '#0b2a4d',
+          50: 'rgb(var(--c-vybe-50) / <alpha-value>)',
+          100: 'rgb(var(--c-vybe-100) / <alpha-value>)',
+          200: 'rgb(var(--c-vybe-200) / <alpha-value>)',
+          300: 'rgb(var(--c-vybe-300) / <alpha-value>)',
+          400: 'rgb(var(--c-vybe-400) / <alpha-value>)',
+          500: 'rgb(var(--c-vybe-500) / <alpha-value>)',
+          600: 'rgb(var(--c-vybe-600) / <alpha-value>)',
+          700: 'rgb(var(--c-vybe-700) / <alpha-value>)',
+          800: 'rgb(var(--c-vybe-800) / <alpha-value>)',
+          900: 'rgb(var(--c-vybe-900) / <alpha-value>)',
+          950: 'rgb(var(--c-vybe-950) / <alpha-value>)',
         },
-
-        // --- Lifted off the event artwork. Gradients and glows only: at any
-        //     size it stops supporting the blue and starts competing with it. ---
         orchid: {
-          200: '#e2d5ff',
-          300: '#c9b0ff',
-          400: '#a985fb',
-          500: '#8b5cf0',
-          600: '#6d3fd1',
+          200: 'rgb(var(--c-orchid-200) / <alpha-value>)',
+          300: 'rgb(var(--c-orchid-300) / <alpha-value>)',
+          400: 'rgb(var(--c-orchid-400) / <alpha-value>)',
+          500: 'rgb(var(--c-orchid-500) / <alpha-value>)',
+          600: 'rgb(var(--c-orchid-600) / <alpha-value>)',
         },
-
-        // --- Secondary: a cooler cyan for gradients and data ---
         pulse: {
-          200: '#b6f0f6',
-          300: '#7fe2ef',
-          400: '#3fcbe0',
-          500: '#18aec7',
-          600: '#0d8aa1',
+          200: 'rgb(var(--c-pulse-200) / <alpha-value>)',
+          300: 'rgb(var(--c-pulse-300) / <alpha-value>)',
+          400: 'rgb(var(--c-pulse-400) / <alpha-value>)',
+          500: 'rgb(var(--c-pulse-500) / <alpha-value>)',
+          600: 'rgb(var(--c-pulse-600) / <alpha-value>)',
         },
-
-        // --- Signal: the cherry red off the poster. Never a large fill. ---
         flare: {
-          DEFAULT: '#e1303c',
-          200: '#ffd4d7',
-          300: '#f88b93',
-          400: '#ef5a65',
-          500: '#e1303c',
-          600: '#bd1b26',
+          DEFAULT: 'rgb(var(--c-flare-500) / <alpha-value>)',
+          200: 'rgb(var(--c-flare-200) / <alpha-value>)',
+          300: 'rgb(var(--c-flare-300) / <alpha-value>)',
+          400: 'rgb(var(--c-flare-400) / <alpha-value>)',
+          500: 'rgb(var(--c-flare-500) / <alpha-value>)',
+          600: 'rgb(var(--c-flare-600) / <alpha-value>)',
         },
-
-        // --- Success / confirmed ---
         leaf: {
-          100: '#d9f5e8',
-          400: '#34c48c',
-          500: '#12a06c',
-          600: '#0b7d54',
+          100: 'rgb(var(--c-leaf-100) / <alpha-value>)',
+          400: 'rgb(var(--c-leaf-400) / <alpha-value>)',
+          500: 'rgb(var(--c-leaf-500) / <alpha-value>)',
+          600: 'rgb(var(--c-leaf-600) / <alpha-value>)',
         },
       },
       fontFamily: {
@@ -94,35 +80,30 @@ const config: Config = {
       },
       backgroundImage: {
         'grid-blue':
-          'linear-gradient(to right, rgba(37,134,239,0.09) 1px, transparent 1px), linear-gradient(to bottom, rgba(37,134,239,0.09) 1px, transparent 1px)',
-        sheen: 'linear-gradient(110deg, transparent 25%, rgba(255,255,255,0.55) 48%, transparent 70%)',
+          'linear-gradient(to right, rgb(var(--c-vybe-500) / 0.08) 1px, transparent 1px), linear-gradient(to bottom, rgb(var(--c-vybe-500) / 0.08) 1px, transparent 1px)',
+        sheen: 'linear-gradient(110deg, transparent 25%, rgba(255,255,255,0.18) 48%, transparent 70%)',
       },
       transitionTimingFunction: {
         out: 'cubic-bezier(0.16, 1, 0.3, 1)',
         spring: 'cubic-bezier(0.34, 1.4, 0.64, 1)',
       },
       boxShadow: {
-        // Print shadows: solid offsets, no blur. A blurred drop shadow says
-        // "floating UI chrome"; a hard offset says "a card laid on a table",
-        // which is the whole visual argument of this system. Interactive
-        // things cast ink; large passive surfaces cast a paler blue so the
-        // page doesn't turn into a woodcut.
-        press: '3px 3px 0 0 #0a2138',
-        'press-lg': '5px 5px 0 0 #0a2138',
-        'press-sm': '2px 2px 0 0 #0a2138',
-        stamp: '6px 6px 0 0 rgba(15,83,164,0.16)',
-        'stamp-lg': '10px 10px 0 0 rgba(15,83,164,0.16)',
-        'stamp-blue': '6px 6px 0 0 #bcdcff',
-        ring: 'inset 0 0 0 1px rgba(194,216,238,0.9)',
-        bevel: 'inset 0 1px 0 0 rgba(255,255,255,0.9)',
-        // Legacy names still referenced by the admin console; mapped onto the
-        // print ramp so nothing there silently loses its elevation.
-        low: '3px 3px 0 0 rgba(15,83,164,0.12)',
-        mid: '6px 6px 0 0 rgba(15,83,164,0.16)',
-        high: '10px 10px 0 0 rgba(15,83,164,0.16)',
-        lift: '12px 12px 0 0 rgba(15,83,164,0.18)',
-        azure: '3px 3px 0 0 #0a2138',
-        'azure-lg': '5px 5px 0 0 #0a2138',
+        // Solid offsets, no blur. Interactive things cast the accent; passive
+        // surfaces cast a deep shadow tone so the page stays calm.
+        press: '3px 3px 0 0 rgb(var(--c-press))',
+        'press-lg': '5px 5px 0 0 rgb(var(--c-press))',
+        'press-sm': '2px 2px 0 0 rgb(var(--c-press))',
+        stamp: '6px 6px 0 0 rgb(var(--c-stamp) / var(--stamp-a))',
+        'stamp-lg': '10px 10px 0 0 rgb(var(--c-stamp) / var(--stamp-a))',
+        'stamp-blue': '6px 6px 0 0 rgb(var(--c-vybe-200))',
+        ring: 'inset 0 0 0 1px rgb(var(--c-edge) / 0.9)',
+        bevel: 'inset 0 1px 0 0 rgb(255 255 255 / 0.08)',
+        low: '3px 3px 0 0 rgb(var(--c-stamp) / var(--stamp-a))',
+        mid: '6px 6px 0 0 rgb(var(--c-stamp) / var(--stamp-a))',
+        high: '10px 10px 0 0 rgb(var(--c-stamp) / var(--stamp-a))',
+        lift: '12px 12px 0 0 rgb(var(--c-stamp) / var(--stamp-a))',
+        azure: '3px 3px 0 0 rgb(var(--c-press))',
+        'azure-lg': '5px 5px 0 0 rgb(var(--c-press))',
       },
       keyframes: {
         marquee: {

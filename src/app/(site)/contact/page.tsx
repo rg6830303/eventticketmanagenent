@@ -37,7 +37,7 @@ export default function ContactPage() {
           <Stagger className="space-y-4" amount={0.1}>
             <StaggerItem>
               <div className="card-print p-6">
-                <h2 className="font-mono text-[10px] uppercase tracking-[0.26em] text-vybe-600">
+                <h2 className="text-[10px] font-semibold tracking-[0.02em] text-vybe-600">
                   Reach us
                 </h2>
                 <dl className="mt-5 space-y-5 text-[14px]">
@@ -90,7 +90,7 @@ export default function ContactPage() {
                   className="pointer-events-none absolute -bottom-12 -right-10 h-40 w-40 text-vybe-500/10 [animation-duration:70s]"
                 />
                 <div className="relative">
-                  <h2 className="font-mono text-[10px] uppercase tracking-[0.26em] text-vybe-600">
+                  <h2 className="text-[10px] font-semibold tracking-[0.02em] text-vybe-600">
                     Where we are
                   </h2>
                   <address className="mt-5 not-italic text-[14px] leading-relaxed text-slate">
@@ -128,7 +128,7 @@ export default function ContactPage() {
 
             <StaggerItem>
               <div className="card-print p-6">
-                <h2 className="font-mono text-[10px] uppercase tracking-[0.26em] text-vybe-600">
+                <h2 className="text-[10px] font-semibold tracking-[0.02em] text-vybe-600">
                   Follow
                 </h2>
                 <div className="mt-5 flex flex-wrap gap-2">

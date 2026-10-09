@@ -34,7 +34,7 @@ export function TiltCard({ children, className, intensity = 9, glare = true }: T
   const rotateX = useSpring(useMotionValue(0), spring);
   const rotateY = useSpring(useMotionValue(0), spring);
 
-  const glareBackground = useMotionTemplate`radial-gradient(circle 220px at ${useMotionTemplate`calc(${x} * 100%)`} ${useMotionTemplate`calc(${y} * 100%)`}, rgba(122,178,255,0.22), transparent 70%)`;
+  const glareBackground = useMotionTemplate`radial-gradient(circle 220px at ${useMotionTemplate`calc(${x} * 100%)`} ${useMotionTemplate`calc(${y} * 100%)`}, rgba(247,168,38,0.2), transparent 70%)`;
 
   function handlePointerMove(event: React.PointerEvent<HTMLDivElement>) {
     if (reduce || event.pointerType === 'touch' || !ref.current) return;

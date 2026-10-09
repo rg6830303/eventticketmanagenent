@@ -300,7 +300,7 @@ export function BookingForm({
                   className={cn(
                     'relative flex cursor-pointer items-start gap-4 rounded-[14px] border-[1.5px] bg-paper p-5 transition-all duration-200',
                     selected
-                      ? 'border-ink shadow-press'
+                      ? 'border-edgeStrong shadow-press'
                       : 'border-ink/25 hover:border-ink/60',
                     soldOut && 'cursor-not-allowed opacity-50 hover:border-ink/25',
                   )}
@@ -343,7 +343,7 @@ export function BookingForm({
                         {tier.perks.map((perk) => (
                           <span
                             key={perk}
-                            className="rounded-[6px] border border-ink/25 bg-frost px-2 py-0.5 font-mono text-[0.625rem] uppercase tracking-[0.06em] text-slate"
+                            className="rounded-[6px] border border-ink/25 bg-frost px-2 py-0.5 text-[0.625rem] font-semibold tracking-[0.02em] text-slate"
                           >
                             {perk}
                           </span>
@@ -373,7 +373,7 @@ export function BookingForm({
         <section aria-labelledby="step-qty">
           <StepHeading id="step-qty" number="02" title="How many of you?" />
           <div className="mt-4 flex flex-wrap items-center gap-5">
-            <div className="flex items-center gap-1 rounded-[12px] border-[1.5px] border-ink bg-paper p-1 shadow-press-sm">
+            <div className="flex items-center gap-1 rounded-[12px] border-[1.5px] border-edgeStrong bg-paper p-1 shadow-press-sm">
               <StepButton
                 label="Remove one ticket"
                 onClick={() => setQuantity((q) => Math.max(1, q - 1))}
@@ -579,7 +579,7 @@ export function BookingForm({
             <label
               className={cn(
                 'flex cursor-pointer items-start gap-3 rounded-[12px] border-[1.5px] p-4 transition-colors',
-                consent ? 'border-ink bg-vybe-50 shadow-press-sm' : 'border-ink/25 bg-paper',
+                consent ? 'border-edgeStrong bg-vybe-50 shadow-press-sm' : 'border-ink/25 bg-paper',
               )}
             >
               <input
@@ -661,15 +661,15 @@ function StepHeading({
   optional?: boolean;
 }) {
   return (
-    <h2 id={id} className="flex items-center gap-3 border-t-2 border-ink pt-5">
-      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[8px] border-[1.5px] border-ink bg-vybe-100 font-mono text-[0.75rem] font-medium text-ink shadow-press-sm">
+    <h2 id={id} className="flex items-center gap-3 border-t-2 border-edgeStrong pt-5">
+      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[8px] border-[1.5px] border-edgeStrong bg-vybe-100 font-mono text-[0.75rem] font-medium text-ink shadow-press-sm">
         {number}
       </span>
       <span className="font-display text-[1.15rem] font-semibold tracking-[-0.02em] text-ink">
         {title}
       </span>
       {optional && (
-        <span className="font-mono text-[0.6875rem] uppercase tracking-[0.14em] text-muted">
+        <span className="text-[0.6875rem] font-semibold tracking-[0.02em] text-muted">
           optional
         </span>
       )}

@@ -77,12 +77,12 @@ export function BookingExperience(props: BookingExperienceProps) {
             as "what am I being charged", which beats any card layout at the
             same job. */}
         <div className="card-print overflow-hidden">
-          <div className="border-b-[1.5px] border-ink bg-vybe-100 px-6 py-4">
+          <div className="border-b-[1.5px] border-edgeStrong bg-vybe-100 px-6 py-4">
             <div className="flex items-baseline justify-between">
-              <p className="font-mono text-[0.6875rem] font-medium uppercase tracking-[0.22em] text-ink">
+              <p className="text-[0.6875rem] font-semibold tracking-[0.02em] text-ink">
                 Order summary
               </p>
-              <p className="font-mono text-[0.6875rem] uppercase tracking-[0.14em] text-ink/60">
+              <p className="text-[0.6875rem] font-semibold tracking-[0.02em] text-ink/60">
                 Step 1 / 2
               </p>
             </div>

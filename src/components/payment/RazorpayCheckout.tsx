@@ -307,7 +307,7 @@ export function RazorpayCheckout({
           contact: `+91${customer.phone}`,
         },
         notes: { reference },
-        theme: { color: '#2586ef', backdrop_color: '#0a2138' },
+        theme: { color: '#f7a826', backdrop_color: '#180611' },
         retry: { enabled: false },
         handler: (response: unknown) => {
           const payload = response as {

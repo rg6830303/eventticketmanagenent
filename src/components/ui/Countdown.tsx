@@ -40,7 +40,7 @@ export function Countdown({
     return (
       <div
         className={cn(
-          'flex items-center justify-center gap-3 rounded-[12px] border-[1.5px] border-ink bg-leaf-100 px-6 py-4 shadow-press-sm',
+          'flex items-center justify-center gap-3 rounded-[12px] border-[1.5px] border-edgeStrong bg-leaf-100 px-6 py-4 shadow-press-sm',
           className,
         )}
       >
@@ -61,7 +61,7 @@ export function Countdown({
         <div
           key={unit.label}
           className={cn(
-            'flex flex-1 flex-col items-center rounded-[12px] border-[1.5px] border-ink bg-paper shadow-press-sm',
+            'flex flex-1 flex-col items-center rounded-[12px] border-[1.5px] border-edgeStrong bg-paper shadow-press-sm',
             compact ? 'px-2 py-2.5' : 'min-w-[68px] px-2 py-3.5 sm:min-w-[82px]',
           )}
         >

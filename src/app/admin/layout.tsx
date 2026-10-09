@@ -24,11 +24,11 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const session = await getSession();
 
   if (!session) {
-    return <div className="min-h-dvh bg-canvas">{children}</div>;
+    return <div className="theme-console min-h-dvh bg-canvas text-slate">{children}</div>;
   }
 
   return (
-    <div className="relative flex min-h-dvh flex-col bg-canvas">
+    <div className="theme-console relative flex min-h-dvh flex-col bg-canvas text-slate">
       {/* Brand watermark, kept near-invisible. Any more contrast and it would
           compete with the numbers staff are trying to read in a dark room. */}
       <div aria-hidden className="pointer-events-none fixed inset-0 overflow-hidden">

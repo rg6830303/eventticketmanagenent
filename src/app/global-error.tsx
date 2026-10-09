@@ -21,8 +21,8 @@ export default function GlobalError({
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          background: '#05070f',
-          color: '#e9eefc',
+          background: '#180611',
+          color: '#fff1dc',
           fontFamily: 'system-ui, -apple-system, Segoe UI, sans-serif',
           padding: '24px',
           textAlign: 'center',
@@ -37,12 +37,12 @@ export default function GlobalError({
               letterSpacing: '-0.02em',
             }}
           >
-            HOUZ <span style={{ color: '#1f6bff' }}>OF</span> VYBE
+            HOUZ <span style={{ color: '#f7a826' }}>OF</span> VYBE
           </p>
           <h1 style={{ margin: '0 0 12px', fontSize: '24px', fontWeight: 700 }}>
             The site failed to load
           </h1>
-          <p style={{ margin: '0 0 28px', fontSize: '15px', lineHeight: 1.6, color: '#9aa8cc' }}>
+          <p style={{ margin: '0 0 28px', fontSize: '15px', lineHeight: 1.6, color: '#f0d4b8' }}>
             Something broke badly enough that we couldn&apos;t render the page. Reloading usually
             fixes it.
           </p>
@@ -50,8 +50,8 @@ export default function GlobalError({
             type="button"
             onClick={reset}
             style={{
-              background: '#1f6bff',
-              color: '#fff',
+              background: '#f7a826',
+              color: '#180611',
               border: 'none',
               borderRadius: '999px',
               padding: '14px 32px',
@@ -63,7 +63,7 @@ export default function GlobalError({
             Reload
           </button>
           {error.digest && (
-            <p style={{ marginTop: '28px', fontSize: '11px', color: '#63719b' }}>
+            <p style={{ marginTop: '28px', fontSize: '11px', color: '#c49e8e' }}>
               Reference: {error.digest}
             </p>
           )}

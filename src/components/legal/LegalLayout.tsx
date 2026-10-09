@@ -182,7 +182,7 @@ export function LegalLayout({
           </p>
           <h1 className="h-section">{title}</h1>
           <p className="lede mt-5 max-w-2xl">{lede}</p>
-          <p className="mt-7 flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[12px] uppercase tracking-[0.18em] text-muted">
+          <p className="mt-7 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] font-semibold tracking-[0.02em] text-muted">
             <span>Last updated</span>
             <span aria-hidden="true" className="h-3 w-px bg-edge" />
             <span className="text-slate">{lastUpdated}</span>
@@ -215,7 +215,7 @@ export function LegalLayout({
         <div className="mt-14 grid gap-12 lg:mt-16 lg:grid-cols-[236px_minmax(0,1fr)] lg:gap-16">
           <nav aria-label="On this page" className="hidden lg:block">
             <div className="sticky top-28 max-h-[calc(100dvh-9rem)] overflow-y-auto pr-1">
-              <p className="edit-index mb-5 block border-b-2 border-ink pb-2">On this page</p>
+              <p className="edit-index mb-5 block border-b-2 border-edgeStrong pb-2">On this page</p>
               <div className="relative pl-5">
                 <span
                   aria-hidden="true"
@@ -309,7 +309,7 @@ export function LegalLayout({
               {footnote && <div className="mt-4 border-t border-edge pt-10">{footnote}</div>}
 
               <div className="rule mt-14" />
-              <p className="mt-8 font-mono text-[11px] uppercase tracking-[0.22em] text-muted">
+              <p className="mt-8 text-[11px] font-semibold tracking-[0.02em] text-muted">
                 The rest of the paperwork
               </p>
               <div className="mt-4 flex flex-wrap gap-3">

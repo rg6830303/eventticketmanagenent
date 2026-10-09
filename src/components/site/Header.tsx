@@ -72,7 +72,7 @@ export function Header({ customerName, buyHref, featuredLine }: HeaderProps) {
         className={cn(
           'fixed inset-x-0 top-0 z-50 transition-[background-color,border-color,box-shadow] duration-300',
           landed
-            ? 'border-b-2 border-ink bg-paper/95 backdrop-blur-md'
+            ? 'border-b border-edge bg-canvas/85 backdrop-blur-md'
             : 'border-b-2 border-transparent bg-transparent',
         )}
       >
@@ -123,7 +123,7 @@ export function Header({ customerName, buyHref, featuredLine }: HeaderProps) {
           <div className="flex items-center gap-2">
             <Link
               href={buyHref}
-              className="btn-primary hidden py-3 text-[0.875rem] sm:inline-flex"
+              className="btn-primary px-4 py-2.5 text-[0.8125rem] sm:px-6 sm:py-3 sm:text-[0.875rem]"
             >
               Buy tickets
             </Link>
@@ -140,7 +140,7 @@ export function Header({ customerName, buyHref, featuredLine }: HeaderProps) {
               aria-expanded={menuOpen}
               aria-controls="mobile-nav"
               aria-label={menuOpen ? 'Close menu' : 'Open menu'}
-              className="flex h-11 w-11 items-center justify-center rounded-[10px] border-[1.5px] border-ink bg-paper text-ink shadow-press-sm transition-transform hover:-translate-y-[1px] lg:hidden"
+              className="flex h-11 w-11 items-center justify-center rounded-[10px] border-[1.5px] border-edgeStrong bg-paper text-ink shadow-press-sm transition-transform hover:-translate-y-[1px] lg:hidden"
             >
               <span className="relative block h-3 w-[18px]">
                 <span
@@ -205,14 +205,12 @@ export function Header({ customerName, buyHref, featuredLine }: HeaderProps) {
                         href={link.href}
                         aria-current={active ? 'page' : undefined}
                         className={cn(
-                          'flex items-baseline justify-between border-b border-edge py-4 font-display text-[1.75rem] font-medium tracking-[-0.03em] transition-colors',
+                          'flex items-baseline justify-between border-b border-edge py-4 font-display text-[1.75rem] transition-colors',
                           active ? 'text-vybe-600' : 'text-ink',
                         )}
                       >
                         {link.label}
-                        <span className="font-mono text-[0.6875rem] text-muted">
-                          {String(index + 1).padStart(2, '0')}
-                        </span>
+                        <span aria-hidden className="text-lg text-vybe-500">→</span>
                       </Link>
                     </motion.li>
                   );

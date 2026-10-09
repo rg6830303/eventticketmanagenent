@@ -125,7 +125,7 @@ export default function FaqPage() {
                   Book tickets
                 </Link>
                 <div className="rule my-6" />
-                <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-muted">
+                <p className="text-[10px] font-semibold tracking-[0.02em] text-muted">
                   Ticket support
                 </p>
                 <a

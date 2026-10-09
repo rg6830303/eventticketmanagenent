@@ -6,6 +6,7 @@ import { formatEventDate, formatEventTime, formatInr } from '@/lib/utils';
 import { BRAND } from '@/content/site';
 import { Countdown } from '@/components/ui/Countdown';
 import { Reveal } from '@/components/ui/Reveal';
+import { Dandiya3D } from '@/components/site/Dandiya3D';
 
 export const dynamic = 'force-dynamic';
 
@@ -19,8 +20,8 @@ export const metadata: Metadata = {
 /**
  * The front page sells the next night and nothing else.
  *
- * One featured event, dressed for the season (maroon, marigold and gold for
- * Navratri), and one call to action: Buy tickets. Past events live in the
+ * One featured event and one call to action: Buy tickets. The festival
+ * palette comes from the site-wide tokens, so every page wears it. Past events live in the
  * console as a record, not here.
  */
 export default async function HomePage() {
@@ -43,78 +44,103 @@ export default async function HomePage() {
 
   return (
     <div className="relative">
-      <section className="relative overflow-hidden bg-[#3b0a14] text-[#fff4dc]">
-        {/* Festive backdrop: marigold glow, a mandala ring, a garland of dots. */}
-        <div aria-hidden className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(245,158,11,0.35),transparent_60%)]" />
-        <div aria-hidden className="pointer-events-none absolute -right-48 -top-48 h-[40rem] w-[40rem] rounded-full border-[18px] border-dotted border-amber-400/20" />
-        <div aria-hidden className="pointer-events-none absolute -left-40 bottom-[-12rem] h-[30rem] w-[30rem] rounded-full border-[14px] border-dashed border-rose-400/20" />
-        <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-3 bg-[repeating-linear-gradient(90deg,#f59e0b_0_14px,#be123c_14px_28px,#16a34a_28px_42px)]" />
-
-        <div className="shell relative grid items-center gap-12 pb-20 pt-32 sm:pt-36 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]">
+      <section className="relative overflow-hidden">
+        <div className="shell relative grid items-center gap-10 pb-14 pt-28 sm:pt-32 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)] lg:gap-14 lg:pb-20">
           <Reveal>
             <div>
-              <p className="font-mono text-[0.6875rem] uppercase tracking-[0.28em] text-amber-300">
-                {BRAND.name} presents · Navratri 2026
-              </p>
-              <p className="mt-6 inline-flex items-center gap-2 rounded-full border border-amber-300/60 bg-amber-300/10 px-3 py-1 text-[0.75rem] font-semibold text-amber-200">
-                <span className="h-2 w-2 animate-pulse rounded-full bg-amber-400" />
+              <p className="inline-flex items-center gap-2 rounded-full border border-vybe-400/60 bg-vybe-100/70 px-3.5 py-1.5 text-[0.8125rem] font-semibold text-vybe-700">
+                <span className="relative flex h-2 w-2">
+                  <span className="absolute inset-0 animate-ping2 rounded-full bg-vybe-500" />
+                  <span className="relative h-2 w-2 rounded-full bg-vybe-500" />
+                </span>
                 {onSale ? 'Early Bird on sale now' : 'Tickets opening soon'}
               </p>
-              <h1 className="mt-5 font-display text-[clamp(2.75rem,7vw,5.75rem)] font-bold leading-[0.92] tracking-[-0.035em]">
+              <p className="mt-5 text-[0.9375rem] font-medium text-slate">
+                {BRAND.name} presents · Navratri 2026
+              </p>
+              <h1 className="mt-2 font-display text-[clamp(2.75rem,11vw,6rem)] leading-[0.98] text-ink">
                 {live.name}
-                {live.tagline && <span className="block text-amber-400">{live.tagline}</span>}
+                {live.tagline && (
+                  <span className="mt-1 block bg-gradient-to-r from-vybe-500 via-vybe-400 to-orchid-400 bg-clip-text font-script text-[0.62em] leading-[1.15] text-transparent">
+                    {live.tagline}
+                  </span>
+                )}
               </h1>
-              <p className="mt-6 max-w-xl text-[1.0625rem] leading-relaxed text-[#f5dfc0]">
+              <p className="mt-5 max-w-xl text-[1.0625rem] leading-relaxed text-slate">
                 {live.description ??
                   'Dhol, dandiya and a night-long garba circle. Dress in your brightest, bring your crew, and spin till the lights come up.'}
               </p>
-              <p className="mt-5 font-semibold">
-                {formatEventDate(live.starts_at)} · {formatEventTime(live.doors_at ?? live.starts_at)} · {live.venue_name}
-              </p>
 
-              <Link
-                href={buyHref}
-                className="mt-8 inline-flex items-center gap-2 rounded-2xl border-2 border-[#fff4dc] bg-amber-400 px-8 py-4 font-display text-lg font-bold text-[#3b0a14] shadow-[4px_4px_0_#fff4dc] transition-transform hover:-translate-y-0.5"
-              >
-                Buy tickets{fromPaise ? ` · ${formatInr(fromPaise)}` : ''}
-              </Link>
+              <dl className="mt-6 grid max-w-md grid-cols-3 overflow-hidden rounded-2xl border border-edgeStrong bg-paper/70 backdrop-blur-sm">
+                {[
+                  ['Date', formatEventDate(live.starts_at)],
+                  ['Doors', formatEventTime(live.doors_at ?? live.starts_at)],
+                  ['Venue', live.venue_name],
+                ].map(([k, v], i) => (
+                  <div key={k} className={i ? 'border-l border-edge px-3 py-3' : 'px-3 py-3'}>
+                    <dt className="text-[0.75rem] font-medium text-muted">{k}</dt>
+                    <dd className="mt-0.5 text-[0.875rem] font-semibold leading-snug text-ink">{v}</dd>
+                  </div>
+                ))}
+              </dl>
+
+              <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:items-center">
+                <Link href={buyHref} className="btn-primary w-full text-base sm:w-auto">
+                  Buy tickets{fromPaise ? ` · from ${formatInr(fromPaise)}` : ''}
+                </Link>
+                <Link href={`/events/${live.slug}`} className="btn-outline w-full text-base sm:w-auto">
+                  Event details
+                </Link>
+              </div>
 
               <div className="mt-8">
-                <p className="font-mono text-[0.625rem] uppercase tracking-[0.2em] text-amber-200/80">Doors open in</p>
+                <p className="text-[0.8125rem] font-medium text-muted">Doors open in</p>
                 <Countdown target={live.doors_at ?? live.starts_at} className="mt-2" compact />
               </div>
             </div>
           </Reveal>
 
           <Reveal delay={0.1}>
-            <Link href={buyHref} className="group relative block">
-              <div aria-hidden className="absolute -inset-4 rounded-[2rem] bg-gradient-to-br from-amber-400/50 via-rose-500/40 to-transparent blur-2xl" />
-              {live.hero_image ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={live.hero_image}
-                  alt={`${live.name} ${live.tagline ?? ''} poster`}
-                  className="relative h-auto w-full rounded-[1.75rem] border-2 border-amber-300 object-cover shadow-2xl transition-transform duration-500 group-hover:-translate-y-1"
-                />
-              ) : (
-                <div className="relative aspect-square w-full rounded-[1.75rem] border-2 border-amber-300 bg-rose-900" />
-              )}
-            </Link>
+            <div className="relative mx-auto w-full max-w-[520px]">
+              <Dandiya3D className="pointer-events-none absolute -left-[18%] -top-[14%] z-0 w-[62%] opacity-90 sm:-left-[22%]" />
+              <Link href={buyHref} className="group relative z-10 block [perspective:1000px]">
+                <div className="relative rounded-[1.75rem] bg-gradient-to-br from-vybe-500 via-orchid-500 to-pulse-500 p-[3px] shadow-[0_40px_80px_-30px_rgb(var(--c-orchid-500)/0.6)] transition-transform duration-500 ease-out group-hover:[transform:rotateY(-6deg)_rotateX(4deg)]">
+                  {live.hero_image ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={live.hero_image}
+                      alt={`${live.name} ${live.tagline ?? ''} poster`}
+                      className="h-auto w-full rounded-[1.6rem] object-cover"
+                    />
+                  ) : (
+                    <div className="aspect-square w-full rounded-[1.6rem] bg-paper" />
+                  )}
+                </div>
+              </Link>
+            </div>
           </Reveal>
         </div>
       </section>
 
-      <section className="shell py-16">
-        <ol className="grid gap-4 sm:grid-cols-3">
+      <section className="shell pb-20 pt-4">
+        <h2 className="h-section">
+          Three steps to the <span className="accent">circle</span>
+        </h2>
+        <ol className="mt-8 grid gap-4 sm:grid-cols-3">
           {[
             ['Pick your pass', 'Early Bird is the cheapest it will ever be. Add passes to your cart.'],
             ['Pay in seconds', 'Sign in and pay securely with Razorpay — UPI, cards, netbanking.'],
             ['QR in your inbox', 'Your pass lands in your email and your account the moment payment clears.'],
           ].map(([head, body], i) => (
-            <li key={head} className="card-print p-5">
-              <span className="font-mono text-[0.75rem] font-semibold text-vybe-600">0{i + 1}</span>
-              <p className="mt-2 font-display text-lg font-bold text-ink">{head}</p>
-              <p className="mt-1.5 text-[0.875rem] leading-relaxed text-slate">{body}</p>
+            <li key={head} className="card-print relative overflow-hidden p-5 sm:p-6">
+              <span aria-hidden className="absolute -right-2 -top-6 font-display text-[6rem] leading-none text-vybe-500/15">
+                {i + 1}
+              </span>
+              <span className="flex h-9 w-9 items-center justify-center rounded-full bg-vybe-500 font-display text-lg text-night">
+                {i + 1}
+              </span>
+              <p className="mt-4 font-display text-xl text-ink">{head}</p>
+              <p className="mt-1.5 text-[0.9375rem] leading-relaxed text-slate">{body}</p>
             </li>
           ))}
         </ol>

@@ -78,7 +78,7 @@ export function TicketRail({
               viewport={{ once: true, margin: '-70px' }}
               transition={{ duration: 0.55, delay: index * 0.08, ease: EASE }}
               className={cn(
-                'relative flex flex-col overflow-hidden rounded-[16px] border-[1.5px] border-ink bg-paper transition-transform duration-300 ease-out',
+                'relative flex flex-col overflow-hidden rounded-[16px] border-[1.5px] border-edgeStrong bg-paper transition-transform duration-300 ease-out',
                 featured ? 'shadow-press-lg md:-mt-3 md:mb-3' : 'shadow-stamp',
                 !reduce && lean[index % 3],
                 !reduce && 'hover:rotate-0 hover:-translate-y-1',
@@ -88,14 +88,14 @@ export function TicketRail({
               {/* Header band: tier code left, verdict right, like a stub. */}
               <div
                 className={cn(
-                  'flex items-center justify-between border-b-[1.5px] border-ink px-5 py-2.5',
-                  featured ? 'bg-vybe-500 text-white' : 'bg-vybe-100 text-ink',
+                  'flex items-center justify-between border-b-[1.5px] border-edgeStrong px-5 py-2.5',
+                  featured ? 'bg-vybe-500 text-night' : 'bg-vybe-100 text-ink',
                 )}
               >
-                <span className="font-mono text-[0.6875rem] font-medium uppercase tracking-[0.2em]">
+                <span className="text-[0.6875rem] font-semibold tracking-[0.02em]">
                   {tier.code}
                 </span>
-                <span className="font-mono text-[0.6875rem] uppercase tracking-[0.14em]">
+                <span className="text-[0.6875rem] font-semibold tracking-[0.02em]">
                   {soldOut
                     ? 'Sold out'
                     : featured
@@ -120,7 +120,7 @@ export function TicketRail({
                   <span className="tnum font-display text-[2.75rem] font-bold leading-none tracking-[-0.04em] text-ink">
                     {tier.pricePaise === 0 ? 'Free' : formatInr(tier.pricePaise)}
                   </span>
-                  <span className="font-mono text-[0.6875rem] uppercase tracking-[0.12em] text-muted">
+                  <span className="text-[0.6875rem] font-semibold tracking-[0.02em] text-muted">
                     {tier.priceUnit}
                   </span>
                 </p>
@@ -146,11 +146,11 @@ export function TicketRail({
               <div className="relative">
                 <span
                   aria-hidden
-                  className="absolute -left-[9px] top-1/2 h-4 w-4 -translate-y-1/2 rounded-full border-r-[1.5px] border-ink bg-canvasDeep"
+                  className="absolute -left-[9px] top-1/2 h-4 w-4 -translate-y-1/2 rounded-full border-r-[1.5px] border-edgeStrong bg-canvasDeep"
                 />
                 <span
                   aria-hidden
-                  className="absolute -right-[9px] top-1/2 h-4 w-4 -translate-y-1/2 rounded-full border-l-[1.5px] border-ink bg-canvasDeep"
+                  className="absolute -right-[9px] top-1/2 h-4 w-4 -translate-y-1/2 rounded-full border-l-[1.5px] border-edgeStrong bg-canvasDeep"
                 />
                 <span aria-hidden className="perforation mx-5 block h-px" />
               </div>
@@ -195,9 +195,9 @@ export function TicketRail({
               </div>
 
               {/* Barcode foot. Decorative, and honest about it. */}
-              <div className="flex items-center justify-between gap-4 border-t-[1.5px] border-ink bg-frost px-5 py-2.5">
+              <div className="flex items-center justify-between gap-4 border-t-[1.5px] border-edgeStrong bg-frost px-5 py-2.5">
                 <span aria-hidden className="barcode h-5 w-24 opacity-70" />
-                <span className="font-mono text-[0.625rem] uppercase tracking-[0.18em] text-muted">
+                <span className="text-[0.625rem] font-semibold tracking-[0.02em] text-muted">
                   HOV·26·{tier.code}
                 </span>
               </div>

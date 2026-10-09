@@ -6,9 +6,9 @@ export function Footer() {
   const year = new Date().getFullYear();
 
   return (
-    <footer className="relative mt-auto border-t-2 border-ink bg-frost">
+    <footer className="relative mt-auto border-t-2 border-edgeStrong bg-frost">
       {/* Last chance to sell the ticket, before the small print. */}
-      <div className="relative overflow-hidden border-b-2 border-ink bg-vybe-100">
+      <div className="relative overflow-hidden border-b-2 border-edgeStrong bg-vybe-100">
         <span
           aria-hidden
           className="pointer-events-none absolute -right-16 -top-16 h-64 w-64 halftone opacity-50"
@@ -22,7 +22,7 @@ export function Footer() {
               One account, every Houz of Vybe event. Sign up once and checkout takes seconds.
             </p>
           </div>
-          <Link href="/#upcoming" className="btn-primary shrink-0">
+          <Link href="/events" className="btn-primary shrink-0">
             See what&rsquo;s on
           </Link>
         </div>

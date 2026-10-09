@@ -22,7 +22,7 @@ export function ActivityGrid() {
   const reduce = useReducedMotion();
 
   return (
-    <ol className="border-t-2 border-ink">
+    <ol className="border-t-2 border-edgeStrong">
       {EVENT.activities.map((activity, index) => {
         const Icon = ACTIVITY_ICONS[activity.icon] ?? ACTIVITY_ICONS.gift;
         return (
@@ -42,18 +42,18 @@ export function ActivityGrid() {
               className="absolute inset-0 origin-left scale-x-0 bg-vybe-500 transition-transform duration-300 ease-out group-hover:scale-x-100"
             />
             <div className="relative flex items-baseline gap-4 py-5 sm:gap-8 sm:py-6">
-              <span className="w-8 shrink-0 font-mono text-[0.8125rem] text-vybe-600 transition-colors duration-200 group-hover:text-white/70 sm:w-12">
+              <span className="w-8 shrink-0 font-mono text-[0.8125rem] text-vybe-600 transition-colors duration-200 group-hover:text-night/70 sm:w-12">
                 {String(index + 1).padStart(2, '0')}
               </span>
               <div className="min-w-0 flex-1 sm:flex sm:items-baseline sm:gap-8">
-                <h3 className="font-display text-[1.35rem] font-semibold tracking-[-0.02em] text-ink transition-colors duration-200 group-hover:text-white sm:w-[38%] sm:shrink-0 sm:text-[1.6rem]">
+                <h3 className="font-display text-[1.35rem] font-semibold tracking-[-0.02em] text-ink transition-colors duration-200 group-hover:text-night sm:w-[38%] sm:shrink-0 sm:text-[1.6rem]">
                   {activity.title}
                 </h3>
-                <p className="mt-1 text-[0.9375rem] leading-relaxed text-slate transition-colors duration-200 group-hover:text-white/85 sm:mt-0">
+                <p className="mt-1 text-[0.9375rem] leading-relaxed text-slate transition-colors duration-200 group-hover:text-night/85 sm:mt-0">
                   {activity.note}
                 </p>
               </div>
-              <span className="hidden shrink-0 self-center text-vybe-600 transition-colors duration-200 group-hover:text-white sm:block">
+              <span className="hidden shrink-0 self-center text-vybe-600 transition-colors duration-200 group-hover:text-night sm:block">
                 <Icon className="h-6 w-6" />
               </span>
             </div>

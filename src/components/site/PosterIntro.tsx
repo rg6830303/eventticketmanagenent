@@ -101,7 +101,7 @@ export function PosterIntro() {
         <motion.div
           id="poster-intro"
           key="intro"
-          className="fixed inset-0 z-[999] flex items-center justify-center overflow-hidden bg-[#0a1730]"
+          className="fixed inset-0 z-[999] flex items-center justify-center overflow-hidden bg-[#180611]"
           initial={{ opacity: 1 }}
           animate={exiting ? { opacity: 0 } : { opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -114,7 +114,7 @@ export function PosterIntro() {
             className="absolute inset-0 opacity-[0.28]"
             style={{
               backgroundImage:
-                'linear-gradient(to right, rgba(160,190,255,0.35) 1px, transparent 1px), linear-gradient(to bottom, rgba(160,190,255,0.35) 1px, transparent 1px)',
+                'linear-gradient(to right, rgba(247,168,38,0.22) 1px, transparent 1px), linear-gradient(to bottom, rgba(247,168,38,0.22) 1px, transparent 1px)',
               backgroundSize: '46px 46px',
             }}
           />
@@ -123,7 +123,7 @@ export function PosterIntro() {
               className="h-[85vmin] w-[85vmin] rounded-full"
               style={{
                 background:
-                  'radial-gradient(circle, rgba(139,92,240,0.55), rgba(139,92,240,0) 62%)',
+                  'radial-gradient(circle, rgba(222,40,120,0.5), rgba(222,40,120,0) 62%)',
                 filter: 'blur(60px)',
               }}
               initial={{ scale: 0.7, opacity: 0 }}
@@ -143,12 +143,12 @@ export function PosterIntro() {
             <svg viewBox="0 0 200 200" className="absolute inset-0 h-full w-full">
               <defs>
                 <linearGradient id="intro-heart" x1="0" y1="0" x2="1" y2="1">
-                  <stop offset="0%" stopColor="#c9b0ff" />
-                  <stop offset="100%" stopColor="#7fb4ff" />
+                  <stop offset="0%" stopColor="#ffd27a" />
+                  <stop offset="100%" stopColor="#f7a826" />
                 </linearGradient>
                 <radialGradient id="intro-fill" cx="50%" cy="45%">
-                  <stop offset="0%" stopColor="#8b5cf0" stopOpacity="0.85" />
-                  <stop offset="100%" stopColor="#4a2a9e" stopOpacity="0.35" />
+                  <stop offset="0%" stopColor="#de2878" stopOpacity="0.85" />
+                  <stop offset="100%" stopColor="#7a1240" stopOpacity="0.35" />
                 </radialGradient>
               </defs>
 
@@ -243,7 +243,7 @@ export function PosterIntro() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 1.6, ease: EASE }}
           >
-            <p className="font-mono text-[clamp(0.625rem,1.6vw,0.8125rem)] uppercase tracking-[0.32em] text-[#bcdcff]">
+            <p className="text-[clamp(0.625rem,1.6vw,0.8125rem)] font-semibold tracking-[0.02em] text-[#ffd9a0]">
               {EVENT.edition} · {EVENT.venue.name} · {EVENT.dateShort}
             </p>
           </motion.div>
@@ -257,7 +257,7 @@ export function PosterIntro() {
             transition={{ duration: 2.4, ease: 'linear' }}
           />
 
-          <p className="absolute bottom-[3.5vh] inset-x-0 text-center font-mono text-[0.625rem] uppercase tracking-[0.28em] text-white/35">
+          <p className="absolute bottom-[3.5vh] inset-x-0 text-center text-[0.625rem] font-semibold tracking-[0.02em] text-white/35">
             Tap to skip
           </p>
         </motion.div>

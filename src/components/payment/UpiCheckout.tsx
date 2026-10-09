@@ -132,8 +132,8 @@ export function UpiCheckout({
         className="card-print overflow-hidden"
         aria-live="polite"
       >
-        <div className="flex items-center justify-between border-b-[1.5px] border-ink bg-amber-100 px-6 py-3.5">
-          <p className="font-mono text-[0.6875rem] font-medium uppercase tracking-[0.2em] text-amber-800">
+        <div className="flex items-center justify-between border-b-[1.5px] border-edgeStrong bg-amber-100 px-6 py-3.5">
+          <p className="text-[0.6875rem] font-semibold tracking-[0.02em] text-amber-800">
             Pending verification
           </p>
           <span className="relative flex h-2.5 w-2.5">
@@ -149,7 +149,7 @@ export function UpiCheckout({
             always before doors. The QR codes are emailed the moment that happens.
           </p>
 
-          <dl className="mt-6 border-t-2 border-ink">
+          <dl className="mt-6 border-t-2 border-edgeStrong">
             <Row label="Booking" value={reference} mono />
             <Row label="UTR you gave us" value={formatUtr(utr)} mono />
             <Row label="Amount" value={formatInr(amountPaise)} />
@@ -167,11 +167,11 @@ export function UpiCheckout({
   /* ------------------------------------------------------------------- pay */
   return (
     <div className="card-print overflow-hidden">
-      <div className="flex items-center justify-between border-b-[1.5px] border-ink bg-vybe-100 px-6 py-3.5">
-        <p className="font-mono text-[0.6875rem] font-medium uppercase tracking-[0.2em] text-ink">
+      <div className="flex items-center justify-between border-b-[1.5px] border-edgeStrong bg-vybe-100 px-6 py-3.5">
+        <p className="text-[0.6875rem] font-semibold tracking-[0.02em] text-ink">
           Pay by UPI
         </p>
-        <span className="font-mono text-[0.6875rem] uppercase tracking-[0.14em] text-ink/60">
+        <span className="text-[0.6875rem] font-semibold tracking-[0.02em] text-ink/60">
           {phase === 'pay' ? 'Step 1 of 2' : 'Step 2 of 2'}
         </span>
       </div>
@@ -189,7 +189,7 @@ export function UpiCheckout({
             {/* The amount is the loudest thing on the panel. Under-paying is
                 the single most common failure on this rail, and it costs the
                 operator a refund and the customer their passes. */}
-            <p className="font-mono text-[0.6875rem] uppercase tracking-[0.18em] text-vybe-700">
+            <p className="text-[0.6875rem] font-semibold tracking-[0.02em] text-vybe-700">
               Pay exactly
             </p>
             <p className="tnum mt-1 font-display text-[2.75rem] font-bold leading-none tracking-[-0.04em] text-ink">
@@ -200,7 +200,7 @@ export function UpiCheckout({
                 margin, and a QR bleeding into a coloured card fails on a real
                 share of Android cameras. */}
             <div className="mt-6 flex justify-center">
-              <div className="rounded-[14px] border-[1.5px] border-ink bg-white p-4 shadow-press">
+              <div className="rounded-[14px] border-[1.5px] border-edgeStrong bg-white p-4 shadow-press">
                 {/* eslint-disable-next-line @next/next/no-img-element -- a data: URL has nothing for next/image to optimise. */}
                 <img
                   src={qrDataUrl}
@@ -224,8 +224,8 @@ export function UpiCheckout({
               </a>
             )}
 
-            <div className="mt-5 border-t-2 border-ink pt-5">
-              <p className="font-mono text-[0.6875rem] uppercase tracking-[0.18em] text-vybe-700">
+            <div className="mt-5 border-t-2 border-edgeStrong pt-5">
+              <p className="text-[0.6875rem] font-semibold tracking-[0.02em] text-vybe-700">
                 Or pay this UPI ID
               </p>
               {/* The VPA gets its own row and wraps rather than truncating:
@@ -353,7 +353,7 @@ export function UpiCheckout({
 function Row({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
   return (
     <div className="flex items-baseline justify-between gap-4 border-b border-ink/15 py-3">
-      <dt className="font-mono text-[0.6875rem] uppercase tracking-[0.14em] text-muted">{label}</dt>
+      <dt className="text-[0.6875rem] font-semibold tracking-[0.02em] text-muted">{label}</dt>
       <dd className={cn('text-right font-medium text-ink', mono && 'font-mono tracking-[0.08em]')}>
         {value}
       </dd>

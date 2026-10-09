@@ -66,7 +66,7 @@ export default async function AccountPage() {
     <div className="shell pb-24 pt-32 sm:pt-36">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="font-mono text-[0.6875rem] uppercase tracking-[0.22em] text-muted">My account</p>
+          <p className="text-[0.6875rem] font-semibold tracking-[0.02em] text-muted">My account</p>
           <h1 className="mt-2 font-display text-3xl font-bold text-ink sm:text-4xl">Hey {account.name.split(' ')[0]}</h1>
           <p className="mt-1 text-[0.9375rem] text-slate">{account.email}</p>
         </div>

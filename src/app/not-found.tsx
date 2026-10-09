@@ -33,7 +33,7 @@ export default function NotFound() {
         <p
           aria-hidden
           className="font-display text-[30vw] font-extrabold leading-none tracking-tighter text-ink sm:text-[190px]"
-          style={{ textShadow: '0 0 60px rgba(3,6,15,0.9)' }}
+          style={{ textShadow: '0 0 60px rgba(18,3,11,0.9)' }}
         >
           404
         </p>

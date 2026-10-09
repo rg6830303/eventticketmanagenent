@@ -24,7 +24,7 @@ export default function AboutPage() {
             <h1 className="h-hero mt-4 max-w-[16ch]">{ABOUT_STORY.heading}</h1>
           </Reveal>
           <Reveal delay={0.14}>
-            <p className="mt-8 flex flex-wrap items-center gap-x-4 gap-y-2 font-mono text-[0.6875rem] uppercase tracking-[0.2em] text-muted">
+            <p className="mt-8 flex flex-wrap items-center gap-x-4 gap-y-2 text-[0.6875rem] font-semibold tracking-[0.02em] text-muted">
               <span className="text-vybe-600">{BRAND.city}</span>
               <span aria-hidden className="text-edgeStrong">/</span>
               <span>{BRAND.tagline}</span>
@@ -130,17 +130,17 @@ export default function AboutPage() {
 
       <section className="shell pb-24">
         <Reveal>
-          <div className="relative overflow-hidden rounded-[28px] bg-ink px-6 py-16 text-center sm:px-12">
+          <div className="relative overflow-hidden rounded-[28px] border border-vybe-400/50 bg-gradient-to-br from-orchid-300 via-paper to-vybe-200 px-6 py-16 text-center sm:px-12">
             <span aria-hidden className="absolute inset-0 gridfield opacity-[0.18]" />
             <span
               aria-hidden
               className="absolute -top-24 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-vybe-500/40 blur-[90px]"
             />
             <div className="relative">
-              <h2 className="font-display text-[clamp(1.75rem,4.5vw,3rem)] font-bold leading-[1.04] tracking-[-0.035em] text-white">
+              <h2 className="font-display text-[clamp(1.75rem,4.5vw,3rem)] font-bold leading-[1.04] text-ink">
                 Come to the first one.
               </h2>
-              <p className="mx-auto mt-4 max-w-md text-[1.0625rem] leading-relaxed text-vybe-100">
+              <p className="mx-auto mt-4 max-w-md text-[1.0625rem] leading-relaxed text-slate">
                 {EVENT.dateLabel}, {EVENT.timeLabel}, {EVENT.venue.name}. Booking takes about a
                 minute.
               </p>
@@ -148,14 +148,14 @@ export default function AboutPage() {
                 <Magnetic>
                   <Link
                     href="/book"
-                    className="btn inline-flex bg-white px-8 py-4 text-base text-ink shadow-mid hover:-translate-y-[2px] hover:bg-vybe-50"
+                    className="btn-primary px-8 py-4 text-base"
                   >
                     Buy tickets
                   </Link>
                 </Magnetic>
                 <Link
                   href="/contact"
-                  className="btn inline-flex border border-white/25 px-8 py-4 text-base text-white hover:border-white/50"
+                  className="btn-outline px-8 py-4 text-base"
                 >
                   Work with us
                 </Link>

@@ -93,7 +93,7 @@ export default async function TicketPage({ params }: { params: Promise<{ payload
         <Link href="/" aria-label="Houz of Vybe — home">
           <Logo compact />
         </Link>
-        <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted">Entry pass</span>
+        <span className="text-[10px] font-semibold tracking-[0.02em] text-muted">Entry pass</span>
       </header>
 
       <main className="mx-auto w-full max-w-md px-5 py-6">

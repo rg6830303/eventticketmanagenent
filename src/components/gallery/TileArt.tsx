@@ -72,21 +72,21 @@ export function TileArt({ hue, seed, variant = 'tile', className }: TileArtProps
         <defs>
           {/* Brand ramp: vybe-50 core, pulse-300 falling off to nothing. */}
           <linearGradient id={`${uid}-beam`} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#eaf2ff" stopOpacity="0.58" />
-            <stop offset="45%" stopColor="#7df2ff" stopOpacity="0.14" />
-            <stop offset="100%" stopColor="#1f6bff" stopOpacity="0" />
+            <stop offset="0%" stopColor="#fff1dc" stopOpacity="0.58" />
+            <stop offset="45%" stopColor="#f7a826" stopOpacity="0.14" />
+            <stop offset="100%" stopColor="#de2878" stopOpacity="0" />
           </linearGradient>
           <linearGradient id={`${uid}-floor`} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#03060f" stopOpacity="0" />
-            <stop offset="100%" stopColor="#03060f" stopOpacity="0.94" />
+            <stop offset="0%" stopColor="#12030b" stopOpacity="0" />
+            <stop offset="100%" stopColor="#12030b" stopOpacity="0.94" />
           </linearGradient>
           <pattern id={`${uid}-dots`} width="3.4" height="3.4" patternUnits="userSpaceOnUse">
-            <circle cx="0.8" cy="0.8" r="0.38" fill="#74abff" fillOpacity="0.18" />
+            <circle cx="0.8" cy="0.8" r="0.38" fill="#f7a826" fillOpacity="0.18" />
           </pattern>
           <radialGradient id={`${uid}-lamp`} cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stopColor="#eaf2ff" stopOpacity="0.92" />
-            <stop offset="55%" stopColor="#4189ff" stopOpacity="0.28" />
-            <stop offset="100%" stopColor="#1f6bff" stopOpacity="0" />
+            <stop offset="0%" stopColor="#fff1dc" stopOpacity="0.92" />
+            <stop offset="55%" stopColor="#de2878" stopOpacity="0.28" />
+            <stop offset="100%" stopColor="#de2878" stopOpacity="0" />
           </radialGradient>
         </defs>
 
@@ -103,7 +103,7 @@ export function TileArt({ hue, seed, variant = 'tile', className }: TileArtProps
 
         <circle cx={originX} cy="2" r="26" fill={`url(#${uid}-lamp)`} opacity="0.5" />
 
-        <g fill="#02040c" fillOpacity="0.88">
+        <g fill="#12030b" fillOpacity="0.88">
           {crowd.map((person) => (
             <g key={person.key}>
               <rect
@@ -126,7 +126,7 @@ export function TileArt({ hue, seed, variant = 'tile', className }: TileArtProps
       </svg>
 
       {/* Edge vignette keeps the tile from bleeding into its neighbour on a dark page. */}
-      <div className="absolute inset-0 bg-[radial-gradient(120%_100%_at_50%_0%,transparent_35%,rgba(3,6,15,0.72)_100%)]" />
+      <div className="absolute inset-0 bg-[radial-gradient(120%_100%_at_50%_0%,transparent_35%,rgba(18,3,11,0.72)_100%)]" />
       <div className="absolute inset-0 rounded-[inherit] shadow-ring" />
     </div>
   );

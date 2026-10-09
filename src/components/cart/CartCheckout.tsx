@@ -77,8 +77,8 @@ export function CartCheckout({
 function SignInToBuy() {
   return (
     <div className="card-print mt-6 overflow-hidden">
-      <div className="border-b-[1.5px] border-ink bg-vybe-100 px-6 py-4">
-        <p className="font-mono text-[0.6875rem] font-medium uppercase tracking-[0.22em] text-ink">
+      <div className="border-b-[1.5px] border-edgeStrong bg-vybe-100 px-6 py-4">
+        <p className="text-[0.6875rem] font-semibold tracking-[0.02em] text-ink">
           Checkout
         </p>
       </div>
@@ -292,7 +292,7 @@ function CheckoutForm({
           description: `${totalPasses} ${totalPasses === 1 ? 'pass' : 'passes'}`,
           prefill: { name: form.name, email: form.email, contact: form.phone },
           notes: { reference: ref },
-          theme: { color: '#2586ef', backdrop_color: '#0a2138' },
+          theme: { color: '#f7a826', backdrop_color: '#180611' },
           retry: { enabled: false },
           handler: async (payload: unknown) => {
             setPhase('verifying');
@@ -369,8 +369,8 @@ function CheckoutForm({
 
   return (
     <form onSubmit={submit} noValidate className="card-print mt-6 overflow-hidden">
-      <div className="border-b-[1.5px] border-ink bg-vybe-100 px-6 py-4">
-        <p className="font-mono text-[0.6875rem] font-medium uppercase tracking-[0.22em] text-ink">
+      <div className="border-b-[1.5px] border-edgeStrong bg-vybe-100 px-6 py-4">
+        <p className="text-[0.6875rem] font-semibold tracking-[0.02em] text-ink">
           Checkout
         </p>
         <p className="mt-2 text-[0.8125rem] leading-relaxed text-slate">
@@ -454,7 +454,7 @@ function CheckoutForm({
         </label>
       </div>
 
-      <div className="border-t-[1.5px] border-ink px-6 py-5">
+      <div className="border-t-[1.5px] border-edgeStrong px-6 py-5">
         {overLimit ? (
           <p className="rounded-xl border border-flare-300 bg-flare-200/30 px-4 py-3 text-[0.8125rem] leading-relaxed text-flare-600">
             <span className="font-semibold">

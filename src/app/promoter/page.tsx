@@ -187,7 +187,7 @@ export default async function PromoterPage() {
 
 function Shell({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-dvh bg-canvas">
+    <div className="theme-console min-h-dvh bg-canvas text-slate">
       <header className="border-b border-edge bg-paper">
         <div className="mx-auto flex max-w-lg items-center px-4 py-3">
           <Logo />

@@ -36,7 +36,7 @@ export function HowItWorks() {
   return (
     <motion.ol
       data-reveal=""
-      className="mt-12 grid border-t-2 border-ink sm:grid-cols-3"
+      className="mt-12 grid border-t-2 border-edgeStrong sm:grid-cols-3"
       {...listMotion}
     >
       {HOW_IT_WORKS.map((step, index) => (

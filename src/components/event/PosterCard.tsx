@@ -56,7 +56,7 @@ export function PosterCard({ className }: { className?: string }) {
         onPointerMove={handleMove}
         onPointerLeave={reset}
         style={reduce ? undefined : { rotateX, rotateY, transformStyle: 'preserve-3d' }}
-        className="relative aspect-[4/5] w-full overflow-hidden rounded-[20px] border-2 border-ink bg-gradient-to-br from-vybe-50 via-paper to-frost shadow-press-lg"
+        className="relative aspect-[4/5] w-full overflow-hidden rounded-[20px] border-2 border-edgeStrong bg-gradient-to-br from-vybe-50 via-paper to-frost shadow-press-lg"
       >
         {/* Halftone field, straight off the artwork. */}
         <span aria-hidden className="absolute inset-0 dotfield opacity-70" />
@@ -71,8 +71,8 @@ export function PosterCard({ className }: { className?: string }) {
         >
           <defs>
             <linearGradient id="poster-heart" x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0%" stopColor="#8ac3ff" />
-              <stop offset="100%" stopColor="#2586ef" />
+              <stop offset="0%" stopColor="#ffd27a" />
+              <stop offset="100%" stopColor="#f7a826" />
             </linearGradient>
           </defs>
           <path
@@ -131,8 +131,8 @@ export function PosterCard({ className }: { className?: string }) {
         </motion.svg>
 
         {/* Foot of the card: the details that actually sell the ticket. */}
-        <div className="absolute inset-x-0 bottom-0 border-t-2 border-ink bg-paper px-6 py-5">
-          <p className="font-mono text-[0.6875rem] uppercase tracking-[0.2em] text-vybe-600">
+        <div className="absolute inset-x-0 bottom-0 border-t-2 border-edgeStrong bg-paper px-6 py-5">
+          <p className="text-[0.6875rem] font-semibold tracking-[0.02em] text-vybe-600">
             {EVENT.edition}
           </p>
           <p className="mt-1.5 font-display text-[1.0625rem] font-semibold leading-snug tracking-[-0.02em] text-ink">
