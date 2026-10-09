@@ -247,7 +247,7 @@ export function Ticket3D({
 function Row({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
   return (
     <div className="flex items-baseline justify-between gap-4 border-b border-edge/70 pb-3 last:border-0">
-      <dt className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted">{label}</dt>
+      <dt className="text-[10px] font-semibold tracking-[0.01em] text-muted">{label}</dt>
       <dd
         className={cn(
           'min-w-0 truncate text-right text-[13px] text-ink',

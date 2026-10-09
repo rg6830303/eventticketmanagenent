@@ -138,7 +138,7 @@ export function ShareCrew({ reference, url, title = 'Houz of Vybe', className }:
         <div className="flex items-center gap-3">
           <p
             id="share-crew-slots-label"
-            className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted"
+            className="text-[11px] font-semibold tracking-[0.01em] text-muted"
           >
             Invite up to {SLOTS}
           </p>

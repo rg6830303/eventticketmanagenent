@@ -137,7 +137,7 @@ export async function TicketCard({ ticket, event, tier, index, total }: TicketCa
             <span
               className={cn(
                 'inline-flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1',
-                'text-[10px] font-semibold uppercase tracking-[0.16em] print:border-black/30 print:text-black',
+                'text-[10px] font-semibold tracking-[0.01em] print:border-black/30 print:text-black',
                 style.pill,
               )}
             >
@@ -255,7 +255,7 @@ export async function TicketCard({ ticket, event, tier, index, total }: TicketCa
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="min-w-0">
-      <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted print:text-black/60">
+      <p className="text-[10px] font-semibold tracking-[0.01em] text-muted print:text-black/60">
         {label}
       </p>
       <p className="mt-0.5 truncate">{children}</p>

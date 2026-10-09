@@ -351,7 +351,7 @@ export default async function PayPage({
 function Fact({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <dt className="text-[0.6875rem] font-medium uppercase tracking-[0.12em] text-muted">
+      <dt className="text-[0.8125rem] font-semibold tracking-[0.01em] text-muted">
         {label}
       </dt>
       <dd className="mt-1 font-medium text-ink">{value}</dd>

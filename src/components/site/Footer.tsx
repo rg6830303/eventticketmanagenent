@@ -67,7 +67,7 @@ export function Footer() {
           <div className="grid gap-8 sm:grid-cols-3">
             {Object.entries(FOOTER_LINKS).map(([group, links]) => (
               <div key={group}>
-                <p className="mb-4 text-[0.75rem] font-semibold uppercase tracking-[0.14em] text-ink">
+                <p className="mb-4 text-[0.8125rem] font-semibold tracking-[0.01em] text-ink">
                   {group}
                 </p>
                 <ul className="space-y-3">

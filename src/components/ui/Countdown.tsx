@@ -76,8 +76,8 @@ export function Countdown({
           </span>
           <span
             className={cn(
-              'mt-1.5 font-mono uppercase tracking-[0.16em] text-muted',
-              compact ? 'text-[0.5625rem]' : 'text-[0.625rem]',
+              'mt-1 font-sans font-medium capitalize text-muted',
+              compact ? 'text-[0.6875rem]' : 'text-[0.75rem]',
             )}
           >
             {unit.label}

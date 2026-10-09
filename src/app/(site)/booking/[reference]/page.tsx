@@ -172,7 +172,7 @@ export default async function BookingConfirmationPage({
           <div className="card-print p-6 sm:p-7">
             <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
               <div>
-                <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.14em] text-muted">
+                <p className="text-[0.8125rem] font-semibold tracking-[0.01em] text-muted">
                   Booking reference
                 </p>
                 <p className="font-mono text-xl font-medium tracking-[0.08em] text-ink">

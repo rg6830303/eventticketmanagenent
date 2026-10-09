@@ -115,7 +115,7 @@ export default function AboutPage() {
           {TICKETING_FACTS.map((fact) => (
             <StaggerItem key={fact.label}>
               <div className="panel h-full p-6">
-                <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.14em] text-muted">
+                <p className="text-[0.8125rem] font-semibold tracking-[0.01em] text-muted">
                   {fact.label}
                 </p>
                 <p className="mt-2 font-display text-[1.5rem] font-semibold leading-tight tracking-[-0.03em] text-ink">

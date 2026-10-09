@@ -63,7 +63,12 @@ export function TicketRail({
 
   return (
     <div>
-      <div className="grid gap-6 md:grid-cols-3 md:gap-5">
+      <div
+        className={cn(
+          'grid gap-6 md:gap-5',
+          tiers.length === 1 ? 'mx-auto max-w-md' : tiers.length === 2 ? 'md:grid-cols-2' : 'md:grid-cols-3',
+        )}
+      >
         {tiers.map((tier, index) => {
           const soldOut = tier.remaining <= 0;
           const scarce = !soldOut && tier.remaining <= Math.max(10, tier.total * 0.15);

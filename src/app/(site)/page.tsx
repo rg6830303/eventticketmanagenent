@@ -44,7 +44,7 @@ export default async function HomePage() {
 
   return (
     <div className="relative">
-      <section className="relative overflow-hidden">
+      <section id="upcoming" className="relative overflow-hidden">
         <div className="shell relative grid items-center gap-10 pb-14 pt-28 sm:pt-32 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)] lg:gap-14 lg:pb-20">
           <Reveal>
             <div>
@@ -102,7 +102,7 @@ export default async function HomePage() {
 
           <Reveal delay={0.1}>
             <div className="relative mx-auto w-full max-w-[520px]">
-              <Dandiya3D className="pointer-events-none absolute -left-[18%] -top-[14%] z-0 w-[62%] opacity-90 sm:-left-[22%]" />
+              <Dandiya3D className="pointer-events-none absolute -bottom-[10%] -left-[6%] z-20 w-[38%] drop-shadow-[0_20px_30px_rgba(0,0,0,0.6)] sm:-left-[12%] lg:-left-[16%] lg:w-[42%]" />
               <Link href={buyHref} className="group relative z-10 block [perspective:1000px]">
                 <div className="relative rounded-[1.75rem] bg-gradient-to-br from-vybe-500 via-orchid-500 to-pulse-500 p-[3px] shadow-[0_40px_80px_-30px_rgb(var(--c-orchid-500)/0.6)] transition-transform duration-500 ease-out group-hover:[transform:rotateY(-6deg)_rotateX(4deg)]">
                   {live.hero_image ? (

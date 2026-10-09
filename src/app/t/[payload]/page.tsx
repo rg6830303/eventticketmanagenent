@@ -156,7 +156,7 @@ export default async function TicketPage({ params }: { params: Promise<{ payload
 
           <div className="space-y-3 p-5">
             <div>
-              <p className="text-[10px] uppercase tracking-wider text-muted">Admit</p>
+              <p className="text-[10px] font-semibold tracking-[0.01em] text-muted">Admit</p>
               <p className="font-display text-xl font-bold leading-tight text-ink">
                 {pass.holder_name}
               </p>
@@ -170,7 +170,7 @@ export default async function TicketPage({ params }: { params: Promise<{ payload
             </dl>
 
             <div className="border-t border-edge pt-3">
-              <p className="text-[10px] uppercase tracking-wider text-muted">Venue</p>
+              <p className="text-[10px] font-semibold tracking-[0.01em] text-muted">Venue</p>
               <p className="mt-0.5 text-[13px] text-ink">{pass.venue_name}</p>
               {pass.venue_address && (
                 <p className="text-[12px] leading-relaxed text-slate">{pass.venue_address}</p>
@@ -222,7 +222,7 @@ export default async function TicketPage({ params }: { params: Promise<{ payload
 function Item({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
   return (
     <div>
-      <dt className="text-[10px] uppercase tracking-wider text-muted">{label}</dt>
+      <dt className="text-[10px] font-semibold tracking-[0.01em] text-muted">{label}</dt>
       <dd className={mono ? 'mt-0.5 font-mono text-[12px] text-ink' : 'mt-0.5 text-ink'}>
         {value}
       </dd>

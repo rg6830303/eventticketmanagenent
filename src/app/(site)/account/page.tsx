@@ -138,10 +138,10 @@ function BookingCard({ booking, past }: { booking: AccountBooking; past?: boolea
         <span
           className={
             pending
-              ? 'text-[0.75rem] font-semibold uppercase tracking-[0.1em] text-flare-600'
+              ? 'text-[0.8125rem] font-semibold tracking-[0.01em] text-flare-600'
               : past
-                ? 'text-[0.75rem] font-semibold uppercase tracking-[0.1em] text-muted'
-                : 'text-[0.75rem] font-semibold uppercase tracking-[0.1em] text-leaf-600'
+                ? 'text-[0.8125rem] font-semibold tracking-[0.01em] text-muted'
+                : 'text-[0.8125rem] font-semibold tracking-[0.01em] text-leaf-600'
           }
         >
           {pending

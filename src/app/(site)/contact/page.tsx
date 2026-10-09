@@ -42,7 +42,7 @@ export default function ContactPage() {
                 </h2>
                 <dl className="mt-5 space-y-5 text-[14px]">
                   <div>
-                    <dt className="text-[11px] uppercase tracking-[0.16em] text-muted">
+                    <dt className="text-[11px] font-semibold tracking-[0.01em] text-muted">
                       Ticket support
                     </dt>
                     <dd className="mt-1">
@@ -55,7 +55,7 @@ export default function ContactPage() {
                     </dd>
                   </div>
                   <div>
-                    <dt className="text-[11px] uppercase tracking-[0.16em] text-muted">
+                    <dt className="text-[11px] font-semibold tracking-[0.01em] text-muted">
                       Everything else
                     </dt>
                     <dd className="mt-1">
@@ -68,7 +68,7 @@ export default function ContactPage() {
                     </dd>
                   </div>
                   <div>
-                    <dt className="text-[11px] uppercase tracking-[0.16em] text-muted">Phone</dt>
+                    <dt className="text-[11px] font-semibold tracking-[0.01em] text-muted">Phone</dt>
                     <dd className="mt-1">
                       <a
                         href={`tel:${BRAND.phone.replace(/\s/g, '')}`}
