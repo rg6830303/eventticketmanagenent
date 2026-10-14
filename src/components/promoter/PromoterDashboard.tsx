@@ -202,18 +202,70 @@ export function PromoterIssue({ remaining, unsold }: { remaining: number; unsold
               setSerials(e.target.value);
               setFieldErrors((f) => ({ ...f, serials: [] }));
             }}
-            inputMode="numeric"
+            // Not "numeric": the iPhone number pad has no comma or dash, which
+            // are exactly the keys needed to sell several passes at once.
+            inputMode="text"
+            enterKeyHint="done"
             autoComplete="off"
-            placeholder={unsold.length ? String(unsold[0]) : ''}
+            autoCapitalize="off"
+            spellCheck={false}
+            placeholder={unsold.length ? `${unsold[0]}, ${unsold[1] ?? unsold[0] + 1} or ${unsold[0]}-${unsold[0] + 2}` : ''}
             required
           />
+          <span className="mt-2 flex flex-wrap gap-1.5">
+            {[',', '-'].map((ch) => (
+              <button
+                key={ch}
+                type="button"
+                onClick={() => setSerials((v) => (v.trim() && !/[,\-–]\s*$/.test(v) ? `${v.trimEnd()}${ch === ',' ? ', ' : '-'}` : v))}
+                className="btn-outline btn-sm min-w-[2.75rem] px-3 py-2 font-mono text-[15px]"
+                aria-label={ch === ',' ? 'Add comma' : 'Add range dash'}
+              >
+                {ch === ',' ? ', next' : '– to'}
+              </button>
+            ))}
+            {serials && (
+              <button type="button" onClick={() => setSerials('')} className="btn-quiet px-3 py-2 text-[13px]">
+                Clear
+              </button>
+            )}
+          </span>
+          {unsold.length > 0 && (
+            <span className="mt-2 block">
+              <span className="mb-1 block text-[12px] text-muted">Or tap serials to add them to this customer:</span>
+              <span className="flex flex-wrap gap-1.5">
+                {unsold.slice(0, 12).map((n) => {
+                  const on = picked.includes(n);
+                  return (
+                    <button
+                      key={n}
+                      type="button"
+                      aria-pressed={on}
+                      onClick={() => {
+                        const next = on ? picked.filter((x) => x !== n) : [...picked, n];
+                        setSerials(serialRanges(next));
+                        setFieldErrors((f) => ({ ...f, serials: [] }));
+                      }}
+                      className={
+                        on
+                          ? 'rounded-full border border-vybe-500 bg-vybe-500 px-3 py-1.5 font-mono text-[13px] font-semibold text-night'
+                          : 'rounded-full border border-edgeStrong bg-paper px-3 py-1.5 font-mono text-[13px] text-ink'
+                      }
+                    >
+                      #{n}
+                    </button>
+                  );
+                })}
+              </span>
+            </span>
+          )}
           <span className={serialHint || fieldErrors.serials?.[0] ? 'mt-1 block text-[12px] font-medium text-flare-600' : 'mt-1 block text-[12px] text-muted'}>
             {serialHint ??
               fieldErrors.serials?.[0] ??
               (quantity > 1
                 ? `${quantity} passes: #${serialRanges(picked)}`
                 : unsold.length
-                  ? `The serial on the pass you are selling. Several? e.g. ${unsold[0]}, ${unsold[1] ?? unsold[0]} or a range. Next unsold: #${unsold[0]}.`
+                  ? `The serial on the pass you are selling. Several for one customer? Separate with commas (1000, 1001), use a range (1000-1005), or tap the serials below. Next unsold: #${unsold[0]}.`
                   : 'You have no unsold serials left.')}
           </span>
         </label>
