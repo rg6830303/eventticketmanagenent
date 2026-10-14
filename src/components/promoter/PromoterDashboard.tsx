@@ -140,7 +140,7 @@ export function PromoterIssue({ remaining, unsold }: { remaining: number; unsold
     );
   }
 
-  const parsed = serials.trim() ? parseSerialList(serials, 10) : null;
+  const parsed = serials.trim() ? parseSerialList(serials) : null;
   const picked = parsed && 'serials' in parsed ? parsed.serials : [];
   const unsoldSet = new Set(unsold);
   const outside = picked.filter((n) => !unsoldSet.has(n));

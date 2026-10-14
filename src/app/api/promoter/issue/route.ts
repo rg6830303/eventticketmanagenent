@@ -15,8 +15,8 @@ import { emailSchema, nameSchema, phoneSchema } from '@/lib/validation';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-/** Most passes one customer can be issued in one go. */
-const MAX_PER_ISSUE = 10;
+// Large batches mint one pass at a time inside a single transaction.
+export const maxDuration = 60;
 
 /**
  * A promoter issues passes to a customer.
@@ -44,12 +44,11 @@ export async function POST(request: NextRequest) {
     if (!phone.success) return fail(phone.error.issues[0].message, 'invalid_phone', 422, { phone: [phone.error.issues[0].message] });
 
     // One pass per serial typed, each from the promoter's allocated range.
-    const parsed = parseSerialList(String(body.serials ?? ''), MAX_PER_ISSUE);
+    // No per-customer cap: the limit is the promoter's own unsold serials,
+    // which claimRequestedSerials and the allocation check enforce.
+    const parsed = parseSerialList(String(body.serials ?? ''));
     if ('error' in parsed) return fail(parsed.error, 'invalid_serials', 422, { serials: [parsed.error] });
     const quantity = parsed.serials.length;
-    if (quantity > MAX_PER_ISSUE) {
-      return fail(`Issue at most ${MAX_PER_ISSUE} passes per customer`, 'invalid_quantity', 422);
-    }
 
     const event = await getFeaturedEvent();
     if (!event) return fail('There is no event to issue passes for right now', 'no_event', 409);

@@ -1047,7 +1047,12 @@ export class AllocationError extends BookingError {}
  * count against capacity is how a venue ends up over its licence.
  */
 export async function issueBookingManually(args: IssueBookingArgs): Promise<BookingDetail> {
-  const quantity = Math.max(1, Math.min(Math.round(args.quantity), 50));
+  // Console issues are capped at 50. A promoter's batch is bounded by the
+  // serials they own instead, so it is not clamped here — clamping would mint
+  // fewer passes than the serials typed and misalign them.
+  const quantity = args.promoterSerials?.length
+    ? args.promoterSerials.length
+    : Math.max(1, Math.min(Math.round(args.quantity), 50));
   const amountPaise = Math.max(0, Math.round(args.amountPaise ?? 0));
 
   const reference = await transaction(async (client) => {
